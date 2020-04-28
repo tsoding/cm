@@ -57,7 +57,7 @@ fn main() -> Result<(), String> {
                 for cap in re.captures_iter(lines[cursor].as_str()) {
                     // TODO(#6): the program does not go back after exiting vim
                     Command::new("vim")
-                        .stdin(File::open("/dev/tty").unwrap())
+                        .stdin(File::open("/dev/tty").map_err(|e| e.to_string())?)
                         .arg(format!("+{}", &cap[2]))
                         .arg(&cap[1])
                         .spawn().map_err(|e| e.to_string())?
