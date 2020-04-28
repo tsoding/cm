@@ -19,7 +19,7 @@ fn render_list(lines: &Vec<String>, cursor: usize) {
 }
 
 fn main() -> Result<(), String> {
-    // TODO: regexp is not customizable
+    // TODO(#2): regexp is not customizable
     let re = Regex::new(r"^(.*?):(\d+):").map_err(|e| e.to_string())?;
 
     let mut lines: Vec<String> = Vec::new();
