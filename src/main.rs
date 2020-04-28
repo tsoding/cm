@@ -44,7 +44,8 @@ fn main() -> Result<(), String> {
     init_pair(REGULAR_PAIR, COLOR_WHITE, COLOR_BLACK);
     init_pair(CURSOR_PAIR, COLOR_BLACK, COLOR_WHITE);
 
-    loop {
+    let mut quit = false;
+    while !quit {
         erase();
         render_list(&lines, cursor);
         refresh();
@@ -63,11 +64,11 @@ fn main() -> Result<(), String> {
                         .wait_with_output().map_err(|e| e.to_string())? ;
                 }
             }
+            113 => quit = true,
             _ => {},
         }
     }
 
     endwin();
-
     Ok(())
 }
