@@ -8,6 +8,7 @@ const REGULAR_PAIR: i16 = 1;
 const CURSOR_PAIR: i16 = 2;
 
 fn render_list(lines: &Vec<String>, cursor: usize) {
+    // TODO: captured regexp groups are not highlighted
     for (i, line) in lines.iter().enumerate() {
         mv(i as i32, 0);
         let pair = if i == cursor { CURSOR_PAIR } else { REGULAR_PAIR };
@@ -18,6 +19,7 @@ fn render_list(lines: &Vec<String>, cursor: usize) {
 }
 
 fn main() -> Result<(), String> {
+    // TODO: regexp is not customizable
     let re = Regex::new(r"^(.*?):(\d+):").map_err(|e| e.to_string())?;
 
     let mut lines: Vec<String> = Vec::new();
@@ -29,6 +31,7 @@ fn main() -> Result<(), String> {
     }
 
     // NOTE: stolen from https://stackoverflow.com/a/44884859
+    // TODO: the terminal redirection is too hacky
     let tty_path = CString::new("/dev/tty").map_err(|e| e.to_string())?;
     let fopen_mode = CString::new("r+").map_err(|e| e.to_string())?;
     let file = unsafe { fopen(tty_path.as_ptr(), fopen_mode.as_ptr()) };
