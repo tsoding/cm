@@ -3,6 +3,8 @@ use regex::Regex;
 use std::io::stdin;
 use libc::*;
 use std::ffi::CString;
+use std::process::Command;
+use std::fs::File;
 
 const REGULAR_PAIR: i16 = 1;
 const CURSOR_PAIR: i16 = 2;
@@ -52,9 +54,13 @@ fn main() -> Result<(), String> {
             10 => {
                 endwin();
                 for cap in re.captures_iter(lines[cursor].as_str()) {
-                    // TODO(#4): cm does not run the program
-                    //   https://www.reddit.com/r/rust/comments/917kcq/using_stdprocesscommand_to_open_file_in_vi/
-                    println!("vim +{} {}", &cap[2], &cap[1]);
+                    // TODO(#6): the program does not go back after exiting vim
+                    Command::new("vim")
+                        .stdin(File::open("/dev/tty").unwrap())
+                        .arg(format!("+{}", &cap[2]))
+                        .arg(&cap[1])
+                        .spawn().map_err(|e| e.to_string())?
+                        .wait_with_output().map_err(|e| e.to_string())? ;
                 }
                 return Ok(());
             }
