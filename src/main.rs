@@ -3,7 +3,7 @@ use regex::Regex;
 use std::io::stdin;
 use libc::*;
 use std::ffi::CString;
-use std::process::{Command, Stdio};
+use std::process::Command;
 use std::fs::File;
 
 const REGULAR_PAIR: i16 = 1;
