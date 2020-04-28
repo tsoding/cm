@@ -8,7 +8,7 @@ const REGULAR_PAIR: i16 = 1;
 const CURSOR_PAIR: i16 = 2;
 
 fn render_list(lines: &Vec<String>, cursor: usize) {
-    // TODO: captured regexp groups are not highlighted
+    // TODO(#1): captured regexp groups are not highlighted
     for (i, line) in lines.iter().enumerate() {
         mv(i as i32, 0);
         let pair = if i == cursor { CURSOR_PAIR } else { REGULAR_PAIR };
