@@ -62,7 +62,6 @@ fn main() -> Result<(), String> {
                         .spawn().map_err(|e| e.to_string())?
                         .wait_with_output().map_err(|e| e.to_string())? ;
                 }
-                return Ok(());
             }
             _ => {},
         }
