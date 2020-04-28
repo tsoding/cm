@@ -61,10 +61,8 @@ fn main() -> Result<(), String> {
                         .stdin(File::open("/dev/tty").unwrap())
                         .arg(format!("+{}", &cap[2]))
                         .arg(&cap[1])
-                        .spawn()
-                        .expect("Something went wrong.")
-                        .wait_with_output()
-                        .expect("Something went wrong");
+                        .spawn().map_err(|e| e.to_string())?
+                        .wait_with_output().map_err(|e| e.to_string())? ;
                 }
                 return Ok(());
             }
