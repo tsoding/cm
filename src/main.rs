@@ -16,7 +16,10 @@ fn render_list(lines: &Vec<String>, cursor: usize) {
 }
 
 fn main() -> Result<(), String> {
+    let re = Regex::new(r"^(.*?):(\d+):").map_err(|e| e.to_string())?;
+
     // TODO: cm does not support input through pipes
+    //   https://stackoverflow.com/a/44884859
     let mut lines: Vec<String> = Vec::new();
     let mut cursor: usize = 0;
     let mut line: String = String::new();
@@ -38,6 +41,13 @@ fn main() -> Result<(), String> {
         match getch() {
             115 => if cursor + 1 < lines.len() { cursor += 1 },
             119 => if cursor > 0 { cursor -= 1 },
+            10 => {
+                endwin();
+                for cap in re.captures_iter(lines[cursor].as_str()) {
+                    println!("vim +{} {}", &cap[2], &cap[1]);
+                }
+                return Ok(());
+            }
             _ => {},
         }
     }
