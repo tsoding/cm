@@ -31,7 +31,7 @@ fn main() -> Result<(), String> {
     }
 
     // NOTE: stolen from https://stackoverflow.com/a/44884859
-    // TODO: the terminal redirection is too hacky
+    // TODO(#3): the terminal redirection is too hacky
     let tty_path = CString::new("/dev/tty").map_err(|e| e.to_string())?;
     let fopen_mode = CString::new("r+").map_err(|e| e.to_string())?;
     let file = unsafe { fopen(tty_path.as_ptr(), fopen_mode.as_ptr()) };
