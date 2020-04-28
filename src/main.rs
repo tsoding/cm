@@ -15,7 +15,7 @@ fn render_list(lines: &Vec<String>, cursor: usize) {
         mv(i as i32, 0);
         let pair = if i == cursor { CURSOR_PAIR } else { REGULAR_PAIR };
         attron(COLOR_PAIR(pair));
-        printw(line.as_str());
+        addstr(line.as_str());
         attroff(COLOR_PAIR(pair));
     }
 }
