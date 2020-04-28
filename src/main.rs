@@ -1,6 +1,8 @@
 use ncurses::*;
 use regex::Regex;
 use std::io::stdin;
+use libc::*;
+use std::ffi::CString;
 
 const REGULAR_PAIR: i16 = 1;
 const CURSOR_PAIR: i16 = 2;
@@ -18,8 +20,6 @@ fn render_list(lines: &Vec<String>, cursor: usize) {
 fn main() -> Result<(), String> {
     let re = Regex::new(r"^(.*?):(\d+):").map_err(|e| e.to_string())?;
 
-    // TODO: cm does not support input through pipes
-    //   https://stackoverflow.com/a/44884859
     let mut lines: Vec<String> = Vec::new();
     let mut cursor: usize = 0;
     let mut line: String = String::new();
@@ -28,9 +28,14 @@ fn main() -> Result<(), String> {
         line.clear();
     }
 
-    initscr();
+    // NOTE: stolen from https://stackoverflow.com/a/44884859
+    let tty_path = CString::new("/dev/tty").map_err(|e| e.to_string())?;
+    let fopen_mode = CString::new("r+").map_err(|e| e.to_string())?;
+    let file = unsafe { fopen(tty_path.as_ptr(), fopen_mode.as_ptr()) };
+    let screen = newterm(None, file, file);
+    set_term(screen);
+
     start_color();
-    cbreak();
     init_pair(REGULAR_PAIR, COLOR_WHITE, COLOR_BLACK);
     init_pair(CURSOR_PAIR, COLOR_BLACK, COLOR_WHITE);
 
@@ -44,6 +49,8 @@ fn main() -> Result<(), String> {
             10 => {
                 endwin();
                 for cap in re.captures_iter(lines[cursor].as_str()) {
+                    // TODO: cm does not run the program
+                    //   https://www.reddit.com/r/rust/comments/917kcq/using_stdprocesscommand_to_open_file_in_vi/
                     println!("vim +{} {}", &cap[2], &cap[1]);
                 }
                 return Ok(());
