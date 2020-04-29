@@ -1,24 +1,33 @@
+use libc::*;
 use ncurses::*;
 use regex::Regex;
-use std::io::stdin;
-use libc::*;
-use std::ffi::CString;
-use std::process::Command;
-use std::fs::File;
 use std::error::Error;
+use std::ffi::CString;
+use std::fs::File;
+use std::io::stdin;
+use std::process::Command;
 
 const REGULAR_PAIR: i16 = 1;
 const CURSOR_PAIR: i16 = 2;
 
-fn render_list(lines: &Vec<String>, cursor: usize) {
+fn render_list(lines: &[String], cursor: usize) {
     // TODO(#1): captured regexp groups are not highlighted
     for (i, line) in lines.iter().enumerate() {
         mv(i as i32, 0);
-        let pair = if i == cursor { CURSOR_PAIR } else { REGULAR_PAIR };
+        let pair = if i == cursor {
+            CURSOR_PAIR
+        } else {
+            REGULAR_PAIR
+        };
         attron(COLOR_PAIR(pair));
-        addstr(line.as_str());
+        addstr(&line);
         attroff(COLOR_PAIR(pair));
     }
+}
+
+/// Read a key press as a char
+fn get_char() -> char {
+    getch() as u8 as char
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -45,15 +54,26 @@ fn main() -> Result<(), Box<dyn Error>> {
     init_pair(REGULAR_PAIR, COLOR_WHITE, COLOR_BLACK);
     init_pair(CURSOR_PAIR, COLOR_BLACK, COLOR_WHITE);
 
-    let mut quit = false;
-    while !quit {
+    loop {
         erase();
         render_list(&lines, cursor);
         refresh();
-        match getch() {
-            115 => if cursor + 1 < lines.len() { cursor += 1 },
-            119 => if cursor > 0 { cursor -= 1 },
-            10 => {
+        match get_char() {
+            's' => {
+                if cursor + 1 < lines.len() {
+                    cursor += 1;
+                } else {
+                    cursor = 0;
+                }
+            }
+            'w' => {
+                if cursor > 0 {
+                    cursor -= 1;
+                } else {
+                    cursor = lines.len() - 1;
+                }
+            }
+            '\n' => {
                 endwin();
                 for cap in re.captures_iter(lines[cursor].as_str()) {
                     // TODO(#6): the program does not go back after exiting vim
@@ -62,11 +82,11 @@ fn main() -> Result<(), Box<dyn Error>> {
                         .arg(format!("+{}", &cap[2]))
                         .arg(&cap[1])
                         .spawn()?
-                        .wait_with_output()? ;
+                        .wait_with_output()?;
                 }
             }
-            113 => quit = true,
-            _ => {},
+            'q' => break,
+            _ => {}
         }
     }
 
