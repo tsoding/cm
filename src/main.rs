@@ -54,25 +54,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     init_pair(REGULAR_PAIR, COLOR_WHITE, COLOR_BLACK);
     init_pair(CURSOR_PAIR, COLOR_BLACK, COLOR_WHITE);
 
-    loop {
+    let mut quit = false;
+    while !quit {
         erase();
         render_list(&lines, cursor);
         refresh();
         match get_char() {
-            's' => {
-                if cursor + 1 < lines.len() {
-                    cursor += 1;
-                } else {
-                    cursor = 0;
-                }
-            }
-            'w' => {
-                if cursor > 0 {
-                    cursor -= 1;
-                } else {
-                    cursor = lines.len() - 1;
-                }
-            }
+            's' => if cursor + 1 < lines.len()  { cursor += 1; }
+            'w' => if cursor > 0                { cursor -= 1; }
             '\n' => {
                 endwin();
                 for cap in re.captures_iter(lines[cursor].as_str()) {
@@ -85,7 +74,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                         .wait_with_output()?;
                 }
             }
-            'q' => break,
+            'q' => quit = true,
             _ => {}
         }
     }
