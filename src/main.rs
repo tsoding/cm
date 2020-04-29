@@ -25,9 +25,23 @@ fn render_list(lines: &[String], cursor: usize) {
     }
 }
 
+/// Return a Regex pattern or use the default one
+fn get_pattern() -> Result<Regex, impl Error> {
+    let mut args = std::env::args();
+
+    while let Some(arg) = args.next() {
+        if arg == "--pattern" {
+            if let Some(pattern) = args.next() {
+                return Regex::new(&pattern);
+            }
+        }
+    }
+
+    Regex::new(r"^(.*?):(\d+):")
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
-    // TODO(#2): regexp is not customizable
-    let re = Regex::new(r"^(.*?):(\d+):")?;
+    let re = get_pattern()?;
 
     let mut lines: Vec<String> = Vec::new();
     let mut cursor: usize = 0;
