@@ -25,11 +25,6 @@ fn render_list(lines: &[String], cursor: usize) {
     }
 }
 
-/// Read a key press as a char
-fn get_char() -> char {
-    getch() as u8 as char
-}
-
 fn main() -> Result<(), Box<dyn Error>> {
     // TODO(#2): regexp is not customizable
     let re = Regex::new(r"^(.*?):(\d+):")?;
@@ -59,7 +54,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         erase();
         render_list(&lines, cursor);
         refresh();
-        match get_char() {
+        match getch() as u8 as char {
             's' => if cursor + 1 < lines.len()  { cursor += 1; }
             'w' => if cursor > 0                { cursor -= 1; }
             '\n' => {
