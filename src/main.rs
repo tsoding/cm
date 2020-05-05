@@ -20,7 +20,7 @@ fn render_list(lines: &[String], cursor: usize) {
 
     // TODO(#1): captured regexp groups are not highlighted
     // TODO(#16): word wrapping for long lines
-    // TODO: scroll horizontally
+    // TODO(#17): scroll horizontally
     //   Mutually exclusive with word wrap
     for (i, line) in lines.iter()
                           .skip(cursor / y * y)
