@@ -10,7 +10,7 @@ use std::process::Command;
 const REGULAR_PAIR: i16 = 1;
 const CURSOR_PAIR: i16 = 2;
 
-fn render_list(lines: &[String], cursor: usize) {
+fn render_list(lines: &[String], cursor_y: usize, cursor_x: usize) {
     let (w, h) = {
         let mut x: i32 = 0;
         let mut y: i32 = 0;
@@ -22,11 +22,16 @@ fn render_list(lines: &[String], cursor: usize) {
     // TODO(#16): word wrapping for long lines
     // TODO(#17): scroll horizontally
     //   Mutually exclusive with word wrap
-    for (i, line) in lines.iter().skip(cursor / h * h).enumerate().take_while(|(i, _)| *i < h) {
+    for (i, line) in lines.iter().skip(cursor_y / h * h).enumerate().take_while(|(i, _)| *i < h) {
         let line_to_render = {
-            let mut line_to_render = String::from(line.trim_end());
-            if line.len() < w {
-                for _ in 0..(w - line.len()) {
+            let mut line_to_render = line
+                .trim_end()
+                .get(cursor_x..)
+                .unwrap_or("")
+                .to_string();
+            let n = line_to_render.len();
+            if n < w {
+                for _ in 0..(w - n) {
                     line_to_render.push(' ');
                 }
             }
@@ -34,7 +39,7 @@ fn render_list(lines: &[String], cursor: usize) {
         };
 
         mv(i as i32, 0);
-        let pair = if i == (cursor % h) {
+        let pair = if i == (cursor_y % h) {
             CURSOR_PAIR
         } else {
             REGULAR_PAIR
@@ -64,7 +69,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let re = get_pattern()?;
 
     let mut lines: Vec<String> = Vec::new();
-    let mut cursor: usize = 0;
+    let mut cursor_x: usize = 0;
+    let mut cursor_y: usize = 0;
     let mut line: String = String::new();
     while stdin().read_line(&mut line)? > 0 {
         lines.push(line.clone());
@@ -86,14 +92,16 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut quit = false;
     while !quit {
         erase();
-        render_list(&lines, cursor);
+        render_list(&lines, cursor_y, cursor_x);
         refresh();
         match getch() as u8 as char {
-            's' => if cursor + 1 < lines.len()  { cursor += 1; }
-            'w' => if cursor > 0                { cursor -= 1; }
+            's' if cursor_y + 1 < lines.len() => cursor_y += 1,
+            'w' if cursor_y > 0               => cursor_y -= 1,
+            'd'                               => cursor_x += 1,
+            'a' if cursor_x > 0               => cursor_x -= 1,
             '\n' => {
                 endwin();
-                for cap in re.captures_iter(lines[cursor].as_str()) {
+                for cap in re.captures_iter(lines[cursor_y].as_str()) {
                     Command::new("vim")
                         .stdin(File::open("/dev/tty")?)
                         .arg(format!("+{}", &cap[2]))
@@ -107,6 +115,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
+    // TODO(#21): if application crashes it does not finalize the terminal
     endwin();
     Ok(())
 }
