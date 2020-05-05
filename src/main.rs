@@ -11,7 +11,7 @@ const REGULAR_PAIR: i16 = 1;
 const CURSOR_PAIR: i16 = 2;
 
 fn render_list(lines: &[String], cursor: usize) {
-    let (_x, y) = {
+    let (w, h) = {
         let mut x: i32 = 0;
         let mut y: i32 = 0;
         getmaxyx(stdscr(), &mut y, &mut x);
@@ -22,19 +22,25 @@ fn render_list(lines: &[String], cursor: usize) {
     // TODO(#16): word wrapping for long lines
     // TODO(#17): scroll horizontally
     //   Mutually exclusive with word wrap
-    for (i, line) in lines.iter()
-                          .skip(cursor / y * y)
-                          .enumerate()
-                          .take_while(|(i, _)| *i < y) {
+    for (i, line) in lines.iter().skip(cursor / h * h).enumerate().take_while(|(i, _)| *i < h) {
+        let line_to_render = {
+            let mut line_to_render = String::from(line.trim_end());
+            if line.len() < w {
+                for _ in 0..(w - line.len()) {
+                    line_to_render.push(' ');
+                }
+            }
+            line_to_render
+        };
+
         mv(i as i32, 0);
-        // TODO(#18): cursor is not visible when the line is empty
-        let pair = if i == (cursor % y) {
+        let pair = if i == (cursor % h) {
             CURSOR_PAIR
         } else {
             REGULAR_PAIR
         };
         attron(COLOR_PAIR(pair));
-        addstr(&line);
+        addstr(&line_to_render);
         attroff(COLOR_PAIR(pair));
     }
 }
