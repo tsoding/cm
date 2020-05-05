@@ -115,7 +115,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
-    // TODO: if application crashes it does not finalize the terminal
+    // TODO(#21): if application crashes it does not finalize the terminal
     endwin();
     Ok(())
 }
