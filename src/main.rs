@@ -27,7 +27,7 @@ fn render_list(lines: &[String], cursor: usize) {
                           .enumerate()
                           .take_while(|(i, _)| *i < y) {
         mv(i as i32, 0);
-        // TODO: cursor is not visible when the line is empty
+        // TODO(#18): cursor is not visible when the line is empty
         let pair = if i == (cursor % y) {
             CURSOR_PAIR
         } else {
