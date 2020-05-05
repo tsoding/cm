@@ -11,10 +11,24 @@ const REGULAR_PAIR: i16 = 1;
 const CURSOR_PAIR: i16 = 2;
 
 fn render_list(lines: &[String], cursor: usize) {
+    let (_x, y) = {
+        let mut x: i32 = 0;
+        let mut y: i32 = 0;
+        getmaxyx(stdscr(), &mut y, &mut x);
+        (x as usize, y as usize)
+    };
+
     // TODO(#1): captured regexp groups are not highlighted
-    for (i, line) in lines.iter().enumerate() {
+    // TODO(#16): word wrapping for long lines
+    // TODO(#17): scroll horizontally
+    //   Mutually exclusive with word wrap
+    for (i, line) in lines.iter()
+                          .skip(cursor / y * y)
+                          .enumerate()
+                          .take_while(|(i, _)| *i < y) {
         mv(i as i32, 0);
-        let pair = if i == cursor {
+        // TODO(#18): cursor is not visible when the line is empty
+        let pair = if i == (cursor % y) {
             CURSOR_PAIR
         } else {
             REGULAR_PAIR
