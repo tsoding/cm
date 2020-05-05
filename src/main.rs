@@ -37,8 +37,6 @@ fn render_list(lines: &[Line], cursor_y: usize, cursor_x: usize) {
 
     // TODO(#1): captured regexp groups are not highlighted
     // TODO(#16): word wrapping for long lines
-    // TODO(#17): scroll horizontally
-    //   Mutually exclusive with word wrap
     for (i, line) in lines.iter().skip(cursor_y / h * h).enumerate().take_while(|(i, _)| *i < h) {
         let line_to_render = {
             let mut line_to_render = line
