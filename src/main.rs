@@ -145,14 +145,22 @@ fn main() -> Result<(), Box<dyn Error>> {
             'a' if cursor_x > 0               => cursor_x -= 1,
             '\n' => {
                 endwin();
-                // TODO: just reuse captures from the Line
-                for cap in re.captures_iter(lines[cursor_y].text.as_str()) {
-                    Command::new("vim")
-                        .stdin(File::open("/dev/tty")?)
-                        .arg(format!("+{}", &cap[2]))
-                        .arg(&cap[1])
-                        .spawn()?
-                        .wait_with_output()?;
+                match lines[cursor_y].caps.as_slice() {
+                    [(file_start, file_end), (line_start, line_end)] => {
+                        let line_number = lines[cursor_y]
+                            .text.get(*line_start..*line_end)
+                            .unwrap_or("");
+                        let file_path = lines[cursor_y]
+                            .text.get(*file_start..*file_end)
+                            .unwrap_or("");
+                        Command::new("vim")
+                            .stdin(File::open("/dev/tty")?)
+                            .arg(format!("+{}", line_number))
+                            .arg(file_path)
+                            .spawn()?
+                            .wait_with_output()?;
+                    },
+                    _ => {},
                 }
             }
             'q' => quit = true,
