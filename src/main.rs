@@ -130,6 +130,18 @@ fn main() -> Result<(), Box<dyn Error>> {
     init_pair(MATCH_PAIR, COLOR_YELLOW, COLOR_BLACK);
     init_pair(MATCH_CURSOR_PAIR, COLOR_RED, COLOR_WHITE);
 
+    let editor_env: String = match std::env::var("EDITOR") {
+        Ok(val) => val,
+        _ => "vim".to_string(),
+    };
+    // make editor_args iterator for command with argument.
+    // e.g. EDITOR="emacs -nw -Q"
+    let mut editor_args = editor_env.split_whitespace();
+    let editor: &str = match editor_args.next() {
+        Some(val) => val,
+        None => "vim",
+    };
+
     let mut quit = false;
     while !quit {
         erase();
@@ -150,8 +162,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                         let file_path = lines[cursor_y]
                             .text.get(*file_start..*file_end)
                             .unwrap_or("");
-                        Command::new("vim")
+                        Command::new(&editor)
                             .stdin(File::open("/dev/tty")?)
+                            .args(&mut editor_args)
                             .arg(format!("+{}", line_number))
                             .arg(file_path)
                             .spawn()?
