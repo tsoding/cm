@@ -182,6 +182,7 @@ impl Default for Profile {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
+    // TODO: profile is not saved/loaded to/from file system
     let profile = Profile::default();
 
     let re = Regex::new(profile.regexs[profile.current_regex].as_str())?;
@@ -248,9 +249,13 @@ fn main() -> Result<(), Box<dyn Error>> {
             render_list(
                 Rect { x: 0, y: 0, w: w, h: list_h},
                 &lines, cursor_y, cursor_x);
+            // TODO: no way to switch regex
+            // TODO: no way to add new regex
             render_regexs(
                 Rect { x: 0, y: list_h, w: w / 2, h: working_h - list_h},
                 &profile);
+            // TODO: no way to switch cmd
+            // TODO: no way to add new cmd
             render_cmds(
                 Rect { x: w / 2, y: list_h, w: w - w / 2, h: working_h - list_h},
                 &profile);
