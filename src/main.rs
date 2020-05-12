@@ -255,7 +255,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 Rect { x: 0, y: list_h, w: w / 2, h: working_h - list_h},
                 &profile);
             // TODO(#33): no way to switch cmd
-            // TODO: no way to add new cmd
+            // TODO(#34): no way to add new cmd
             render_cmds(
                 Rect { x: w / 2, y: list_h, w: w - w / 2, h: working_h - list_h},
                 &profile);
