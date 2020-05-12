@@ -90,7 +90,7 @@ fn render_cmds(rect: Rect, profile: &Profile) {
             let line_to_render = {
                 let mut line_to_render = line
                     .trim_end()
-                    // TODO: no support for horizontal scrolling for cmds list
+                    // TODO(#29): no support for horizontal scrolling for cmds list
                     // .get(cursor_x..)
                     // .unwrap_or("")
                     .to_string();
