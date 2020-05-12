@@ -254,7 +254,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             render_regexs(
                 Rect { x: 0, y: list_h, w: w / 2, h: working_h - list_h},
                 &profile);
-            // TODO: no way to switch cmd
+            // TODO(#33): no way to switch cmd
             // TODO: no way to add new cmd
             render_cmds(
                 Rect { x: w / 2, y: list_h, w: w - w / 2, h: working_h - list_h},
