@@ -10,6 +10,7 @@ use std::process::Command;
 #[derive(Debug)]
 struct Line {
     text: String,
+    // TODO: Line::caps should vector of ranges of usize
     caps: Vec<(usize, usize)>,
 }
 
@@ -76,23 +77,29 @@ fn render_list(lines: &[Line], cursor_y: usize, cursor_x: usize) {
     }
 }
 
-/// Return a Regex pattern or use the default one
-fn get_pattern() -> Result<Regex, impl Error> {
-    let mut args = std::env::args();
+#[derive(Debug)]
+struct Profile {
+    regexs: Vec<String>,
+    cmds: Vec<String>,
+    current_regex: usize,
+    current_cmd: usize,
+}
 
-    while let Some(arg) = args.next() {
-        if arg == "--pattern" {
-            if let Some(pattern) = args.next() {
-                return Regex::new(&pattern);
-            }
+impl Default for Profile {
+    fn default() -> Self {
+        Self {
+            regexs: vec![r"^(.*?):(\d+):".to_string()],
+            cmds: vec!["vim +\\2 \\1".to_string()],
+            current_regex: 0,
+            current_cmd: 0,
         }
     }
-
-    Regex::new(r"^(.*?):(\d+):")
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let re = get_pattern()?;
+    let profile = Profile::default();
+
+    let re = Regex::new(profile.regexs[profile.current_regex].as_str())?;
 
     let mut lines: Vec<Line> = Vec::new();
     let mut cursor_x: usize = 0;
@@ -113,8 +120,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         lines.push(line);
         line_text.clear();
     }
-    // println!("{:#?}", lines);
-    // return Ok(());
 
     // NOTE: stolen from https://stackoverflow.com/a/44884859
     // TODO(#3): the terminal redirection is too hacky
@@ -142,23 +147,20 @@ fn main() -> Result<(), Box<dyn Error>> {
             'a' if cursor_x > 0               => cursor_x -= 1,
             '\n' => {
                 endwin();
-                match lines[cursor_y].caps.as_slice() {
-                    [(file_start, file_end), (line_start, line_end)] => {
-                        let line_number = lines[cursor_y]
-                            .text.get(*line_start..*line_end)
-                            .unwrap_or("");
-                        let file_path = lines[cursor_y]
-                            .text.get(*file_start..*file_end)
-                            .unwrap_or("");
-                        Command::new("vim")
-                            .stdin(File::open("/dev/tty")?)
-                            .arg(format!("+{}", line_number))
-                            .arg(file_path)
-                            .spawn()?
-                            .wait_with_output()?;
-                    },
-                    _ => {},
+                let mut cmdline = profile.cmds[profile.current_cmd].clone();
+                for (i, (start, end)) in lines[cursor_y].caps.iter().enumerate() {
+                    cmdline = cmdline.replace(
+                        format!("\\{}", i + 1).as_str(),
+                        lines[cursor_y]
+                            .text.get(*start..*end)
+                            .unwrap_or(""))
                 }
+                Command::new("sh")
+                    .stdin(File::open("/dev/tty")?)
+                    .arg("-c")
+                    .arg(cmdline)
+                    .spawn()?
+                    .wait_with_output()?;
             }
             'q' => quit = true,
             _ => {}
