@@ -10,7 +10,7 @@ use std::process::Command;
 #[derive(Debug)]
 struct Line {
     text: String,
-    // TODO: Line::caps should vector of ranges of usize
+    // TODO(#27): Line::caps should be a vector of ranges of usize
     caps: Vec<(usize, usize)>,
 }
 
