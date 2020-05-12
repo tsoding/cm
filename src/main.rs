@@ -250,7 +250,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 Rect { x: 0, y: 0, w: w, h: list_h},
                 &lines, cursor_y, cursor_x);
             // TODO(#31): no way to switch regex
-            // TODO: no way to add new regex
+            // TODO(#32): no way to add new regex
             render_regexs(
                 Rect { x: 0, y: list_h, w: w / 2, h: working_h - list_h},
                 &profile);
