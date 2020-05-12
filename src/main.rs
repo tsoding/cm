@@ -52,7 +52,7 @@ fn render_regexs(rect: Rect, profile: &Profile) {
             let line_to_render = {
                 let mut line_to_render = line
                     .trim_end()
-                    // TODO: no support for horizontal scrolling for regexs list
+                    // TODO(#28): no support for horizontal scrolling for regexs list
                     // .get(cursor_x..)
                     // .unwrap_or("")
                     .to_string();
