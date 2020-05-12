@@ -42,17 +42,77 @@ struct Rect {
 
 fn render_regexs(rect: Rect, profile: &Profile) {
     if rect.h > 0 {
-        let todo = "TODO: render_regexs is not implemented";
-        mv(rect.y as i32, rect.x as i32);
-        addstr(todo.get(0..usize::min(todo.len(), rect.w)).unwrap_or(""));
+        let start = profile.current_regex / rect.h * rect.h;
+        for (i, line) in profile
+            .regexs.iter()
+            .skip(start)
+            .enumerate()
+            .take_while(|(i, _)| *i < rect.h)
+        {
+            let line_to_render = {
+                let mut line_to_render = line
+                    .trim_end()
+                    // TODO: no support for horizontal scrolling for regexs list
+                    // .get(cursor_x..)
+                    // .unwrap_or("")
+                    .to_string();
+                let n = line_to_render.len();
+                if n < rect.w {
+                    for _ in 0..(rect.w - n) {
+                        line_to_render.push(' ');
+                    }
+                }
+                line_to_render
+            };
+
+            mv(i as i32 + rect.y as i32, rect.x as i32);
+            let pair = if i == (profile.current_regex % rect.h) {
+                CURSOR_PAIR
+            } else {
+                REGULAR_PAIR
+            };
+            attron(COLOR_PAIR(pair));
+            addstr(&line_to_render);
+            attroff(COLOR_PAIR(pair));
+        }
     }
 }
 
 fn render_cmds(rect: Rect, profile: &Profile) {
     if rect.h > 0 {
-        let todo = "TODO: render_cmds is not implemented";
-        mv(rect.y as i32, rect.x as i32);
-        addstr(todo.get(0..usize::min(todo.len(), rect.w)).unwrap_or(""));
+        let start = profile.current_cmd / rect.h * rect.h;
+        for (i, line) in profile
+            .cmds.iter()
+            .skip(start)
+            .enumerate()
+            .take_while(|(i, _)| *i < rect.h)
+        {
+            let line_to_render = {
+                let mut line_to_render = line
+                    .trim_end()
+                    // TODO: no support for horizontal scrolling for cmds list
+                    // .get(cursor_x..)
+                    // .unwrap_or("")
+                    .to_string();
+                let n = line_to_render.len();
+                if n < rect.w {
+                    for _ in 0..(rect.w - n) {
+                        line_to_render.push(' ');
+                    }
+                }
+                line_to_render
+            };
+
+            mv(i as i32 + rect.y as i32, rect.x as i32);
+            let pair = if i == (profile.current_cmd % rect.h) {
+                CURSOR_PAIR
+            } else {
+                REGULAR_PAIR
+            };
+            attron(COLOR_PAIR(pair));
+            addstr(&line_to_render);
+            attroff(COLOR_PAIR(pair));
+        }
     }
 }
 
