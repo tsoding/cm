@@ -40,9 +40,17 @@ struct Rect {
     h: usize,
 }
 
-fn render_profile(rect: Rect, profile: &Profile) {
+fn render_regexs(rect: Rect, profile: &Profile) {
     if rect.h > 0 {
-        let todo = "TODO: render_profile is not implemented";
+        let todo = "TODO: render_regexs is not implemented";
+        mv(rect.y as i32, rect.x as i32);
+        addstr(todo.get(0..usize::min(todo.len(), rect.w)).unwrap_or(""));
+    }
+}
+
+fn render_cmds(rect: Rect, profile: &Profile) {
+    if rect.h > 0 {
+        let todo = "TODO: render_cmds is not implemented";
         mv(rect.y as i32, rect.x as i32);
         addstr(todo.get(0..usize::min(todo.len(), rect.w)).unwrap_or(""));
     }
@@ -180,8 +188,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             render_list(
                 Rect { x: 0, y: 0, w: w, h: list_h},
                 &lines, cursor_y, cursor_x);
-            render_profile(
-                Rect { x: 0, y: list_h, w: w, h: working_h - list_h},
+            render_regexs(
+                Rect { x: 0, y: list_h, w: w / 2, h: working_h - list_h},
+                &profile);
+            render_cmds(
+                Rect { x: w / 2, y: list_h, w: w - w / 2, h: working_h - list_h},
                 &profile);
         } else {
             render_list(Rect { x: 0, y: 0, w: w, h: h - 1 }, &lines, cursor_y, cursor_x);
