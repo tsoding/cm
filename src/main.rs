@@ -28,50 +28,69 @@ const CURSOR_PAIR: i16 = 2;
 const MATCH_PAIR: i16 = 3;
 const MATCH_CURSOR_PAIR: i16 = 4;
 
+fn render_status(text: &str) {
+    let h = {
+        let mut x: i32 = 0;
+        let mut y: i32 = 0;
+        getmaxyx(stdscr(), &mut y, &mut x);
+        y
+    };
+
+    if h <= 1 {
+        mv(0, 0);
+        addstr("MAKE THE WINDOW BIGGER YOU FOOL!");
+    } else {
+        mv(h - 1, 0);
+        addstr(text);
+    }
+}
+
 fn render_list(lines: &[Line], cursor_y: usize, cursor_x: usize) {
     let (w, h) = {
         let mut x: i32 = 0;
         let mut y: i32 = 0;
         getmaxyx(stdscr(), &mut y, &mut x);
-        (x as usize, y as usize)
+        (x as usize, y as usize - 1)
     };
 
-    // TODO(#16): word wrapping for long lines
-    for (i, line) in lines.iter().skip(cursor_y / h * h).enumerate().take_while(|(i, _)| *i < h) {
-        let line_to_render = {
-            let mut line_to_render = line
-                .text
-                .trim_end()
-                .get(cursor_x..)
-                .unwrap_or("")
-                .to_string();
-            let n = line_to_render.len();
-            if n < w {
-                for _ in 0..(w - n) {
-                    line_to_render.push(' ');
+    if h > 0 {
+        // TODO(#16): word wrapping for long lines
+        for (i, line) in lines.iter().skip(cursor_y / h * h).enumerate().take_while(|(i, _)| *i < h) {
+            let line_to_render = {
+                let mut line_to_render = line
+                    .text
+                    .trim_end()
+                    .get(cursor_x..)
+                    .unwrap_or("")
+                    .to_string();
+                let n = line_to_render.len();
+                if n < w {
+                    for _ in 0..(w - n) {
+                        line_to_render.push(' ');
+                    }
                 }
-            }
-            line_to_render
-        };
+                line_to_render
+            };
 
-        mv(i as i32, 0);
-        let (pair, cap_pair) = if i == (cursor_y % h) {
-            (CURSOR_PAIR, MATCH_CURSOR_PAIR)
-        } else {
-            (REGULAR_PAIR, MATCH_PAIR)
-        };
-        attron(COLOR_PAIR(pair));
-        addstr(&line_to_render);
-        attroff(COLOR_PAIR(pair));
+            mv(i as i32, 0);
+            let (pair, cap_pair) = if i == (cursor_y % h) {
+                (CURSOR_PAIR, MATCH_CURSOR_PAIR)
+            } else {
+                (REGULAR_PAIR, MATCH_PAIR)
+            };
+            attron(COLOR_PAIR(pair));
+            addstr(&line_to_render);
+            attroff(COLOR_PAIR(pair));
 
-        for (start0, end0) in &line.caps {
-            let start = usize::max(cursor_x, *start0);
-            let end = usize::min(cursor_x + w, *end0);
-            if start != end {
-                mv(i as i32, (start - cursor_x) as i32);
-                attron(COLOR_PAIR(cap_pair));
-                addstr(line.text.get(start..end).unwrap_or(""));
-                attroff(COLOR_PAIR(cap_pair));
+            for (start0, end0) in &line.caps {
+                let start = usize::max(cursor_x, *start0);
+                let end = usize::min(cursor_x + w, *end0);
+                if start != end {
+                    mv(i as i32, (start - cursor_x) as i32);
+                    attron(COLOR_PAIR(cap_pair));
+                    addstr(line.text.get(start..end).unwrap_or(""));
+                    attroff(COLOR_PAIR(cap_pair));
+                }
             }
         }
     }
@@ -137,8 +156,18 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut quit = false;
     while !quit {
+        let mut cmdline = profile.cmds[profile.current_cmd].clone();
+        for (i, (start, end)) in lines[cursor_y].caps.iter().enumerate() {
+            cmdline = cmdline.replace(
+                format!("\\{}", i + 1).as_str(),
+                lines[cursor_y]
+                    .text.get(*start..*end)
+                    .unwrap_or(""))
+        }
+
         erase();
         render_list(&lines, cursor_y, cursor_x);
+        render_status(&cmdline);
         refresh();
         match getch() as u8 as char {
             's' if cursor_y + 1 < lines.len() => cursor_y += 1,
@@ -147,14 +176,6 @@ fn main() -> Result<(), Box<dyn Error>> {
             'a' if cursor_x > 0               => cursor_x -= 1,
             '\n' => {
                 endwin();
-                let mut cmdline = profile.cmds[profile.current_cmd].clone();
-                for (i, (start, end)) in lines[cursor_y].caps.iter().enumerate() {
-                    cmdline = cmdline.replace(
-                        format!("\\{}", i + 1).as_str(),
-                        lines[cursor_y]
-                            .text.get(*start..*end)
-                            .unwrap_or(""))
-                }
                 Command::new("sh")
                     .stdin(File::open("/dev/tty")?)
                     .arg("-c")
