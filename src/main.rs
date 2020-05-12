@@ -28,31 +28,21 @@ const CURSOR_PAIR: i16 = 2;
 const MATCH_PAIR: i16 = 3;
 const MATCH_CURSOR_PAIR: i16 = 4;
 
-fn render_status(text: &str) {
-    let h = {
-        let mut x: i32 = 0;
-        let mut y: i32 = 0;
-        getmaxyx(stdscr(), &mut y, &mut x);
-        y
-    };
-
-    if h <= 1 {
-        mv(0, 0);
-        addstr("MAKE THE WINDOW BIGGER YOU FOOL!");
-    } else {
-        mv(h - 1, 0);
-        addstr(text);
-    }
+fn render_status(y: usize, text: &str) {
+    mv(y as i32, 0);
+    addstr(text);
 }
 
-fn render_list(lines: &[Line], cursor_y: usize, cursor_x: usize) {
-    let (w, h) = {
-        let mut x: i32 = 0;
-        let mut y: i32 = 0;
-        getmaxyx(stdscr(), &mut y, &mut x);
-        (x as usize, y as usize - 1)
-    };
+struct Rect {
+    x: usize,
+    y: usize,
+    w: usize,
+    h: usize,
+}
 
+fn render_list(rect: Rect, lines: &[Line], cursor_y: usize, cursor_x: usize) {
+    let h = rect.h;
+    let w = rect.w;
     if h > 0 {
         // TODO(#16): word wrapping for long lines
         for (i, line) in lines.iter().skip(cursor_y / h * h).enumerate().take_while(|(i, _)| *i < h) {
@@ -72,7 +62,7 @@ fn render_list(lines: &[Line], cursor_y: usize, cursor_x: usize) {
                 line_to_render
             };
 
-            mv(i as i32, 0);
+            mv(i as i32 + rect.y as i32, rect.x as i32);
             let (pair, cap_pair) = if i == (cursor_y % h) {
                 (CURSOR_PAIR, MATCH_CURSOR_PAIR)
             } else {
@@ -86,7 +76,7 @@ fn render_list(lines: &[Line], cursor_y: usize, cursor_x: usize) {
                 let start = usize::max(cursor_x, *start0);
                 let end = usize::min(cursor_x + w, *end0);
                 if start != end {
-                    mv(i as i32, (start - cursor_x) as i32);
+                    mv(i as i32 + rect.y as i32, (start - cursor_x) as i32 + rect.x as i32);
                     attron(COLOR_PAIR(cap_pair));
                     addstr(line.text.get(start..end).unwrap_or(""));
                     attroff(COLOR_PAIR(cap_pair));
@@ -165,9 +155,20 @@ fn main() -> Result<(), Box<dyn Error>> {
                     .unwrap_or(""))
         }
 
+        let (w, h) = {
+            let mut x: i32 = 0;
+            let mut y: i32 = 0;
+            getmaxyx(stdscr(), &mut y, &mut x);
+            (x as usize, y as usize)
+        };
+
         erase();
-        render_list(&lines, cursor_y, cursor_x);
-        render_status(&cmdline);
+        render_list(Rect { x: 0, y: 0, w: w, h: h - 1 }, &lines, cursor_y, cursor_x);
+        if h <= 1 {
+            render_status(0, "MAKE THE WINDOW BIGGER YOU FOOL!");
+        } else {
+            render_status(h - 1, &cmdline);
+        }
         refresh();
         match getch() as u8 as char {
             's' if cursor_y + 1 < lines.len() => cursor_y += 1,
