@@ -40,6 +40,14 @@ struct Rect {
     h: usize,
 }
 
+fn render_profile(rect: Rect, profile: &Profile) {
+    if rect.h > 0 {
+        let todo = "TODO: render_profile is not implemented";
+        mv(rect.y as i32, rect.x as i32);
+        addstr(todo.get(0..usize::min(todo.len(), rect.w)).unwrap_or(""));
+    }
+}
+
 fn render_list(rect: Rect, lines: &[Line], cursor_y: usize, cursor_x: usize) {
     let h = rect.h;
     let w = rect.w;
@@ -145,6 +153,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     init_pair(MATCH_CURSOR_PAIR, COLOR_RED, COLOR_WHITE);
 
     let mut quit = false;
+    let mut profile_pane = false;
     while !quit {
         let mut cmdline = profile.cmds[profile.current_cmd].clone();
         for (i, (start, end)) in lines[cursor_y].caps.iter().enumerate() {
@@ -163,7 +172,21 @@ fn main() -> Result<(), Box<dyn Error>> {
         };
 
         erase();
-        render_list(Rect { x: 0, y: 0, w: w, h: h - 1 }, &lines, cursor_y, cursor_x);
+
+        if profile_pane {
+            let working_h = h - 1;
+            let list_h = working_h / 3 * 2;
+
+            render_list(
+                Rect { x: 0, y: 0, w: w, h: list_h},
+                &lines, cursor_y, cursor_x);
+            render_profile(
+                Rect { x: 0, y: list_h, w: w, h: working_h - list_h},
+                &profile);
+        } else {
+            render_list(Rect { x: 0, y: 0, w: w, h: h - 1 }, &lines, cursor_y, cursor_x);
+        }
+
         if h <= 1 {
             render_status(0, "MAKE THE WINDOW BIGGER YOU FOOL!");
         } else {
@@ -175,6 +198,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             'w' if cursor_y > 0               => cursor_y -= 1,
             'd'                               => cursor_x += 1,
             'a' if cursor_x > 0               => cursor_x -= 1,
+            'e'                               => profile_pane = !profile_pane,
             '\n' => {
                 endwin();
                 Command::new("sh")
