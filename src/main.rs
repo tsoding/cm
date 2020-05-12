@@ -182,7 +182,7 @@ impl Default for Profile {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    // TODO: profile is not saved/loaded to/from file system
+    // TODO(#30): profile is not saved/loaded to/from file system
     let profile = Profile::default();
 
     let re = Regex::new(profile.regexs[profile.current_regex].as_str())?;
