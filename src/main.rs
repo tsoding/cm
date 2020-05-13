@@ -196,9 +196,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         let mut line = Line::from_string(line_text.as_str());
 
         for cap in caps {
+            // NOTE: we are skiping first cap because it contains the
+            // whole match which is not needed in our case
             for mat_opt in cap.iter().skip(1) {
                 if let Some(mat) = mat_opt {
-                    line.caps.push(mat.start()..mat.end())
+                    line.caps.push(mat.into())
                 }
             }
         }
