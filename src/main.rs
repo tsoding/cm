@@ -51,12 +51,6 @@ impl<Item> ItemList<Item> where Item: RenderItem {
     }
 }
 
-#[derive(Debug)]
-struct Line {
-    text: String,
-    caps: Vec<Range<usize>>,
-}
-
 impl RenderItem for String {
     fn render(&self, Row {x, y, w} : Row, cursor_x: usize, selected: bool) {
         let line_to_render = {
@@ -86,6 +80,21 @@ impl RenderItem for String {
     }
 }
 
+#[derive(Debug)]
+struct Line {
+    text: String,
+    caps: Vec<Range<usize>>,
+}
+
+impl Line {
+    fn from_string(text: &str) -> Self {
+        Self {
+            text: String::from(text),
+            caps: Vec::new(),
+        }
+    }
+}
+
 impl RenderItem for Line {
     fn render(&self, row : Row, cursor_x: usize, selected: bool) {
         let Row {x, y, w} = row;
@@ -106,15 +115,6 @@ impl RenderItem for Line {
                 addstr(self.text.get(start..end).unwrap_or(""));
                 attroff(COLOR_PAIR(cap_pair));
             }
-        }
-    }
-}
-
-impl Line {
-    fn from_string(text: &str) -> Self {
-        Self {
-            text: String::from(text),
-            caps: Vec::new(),
         }
     }
 }
