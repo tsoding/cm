@@ -6,12 +6,12 @@ use std::ffi::CString;
 use std::fs::File;
 use std::io::stdin;
 use std::process::Command;
+use std::ops::Range;
 
 #[derive(Debug)]
 struct Line {
     text: String,
-    // TODO(#27): Line::caps should be a vector of ranges of usize
-    caps: Vec<(usize, usize)>,
+    caps: Vec<Range<usize>>,
 }
 
 impl Line {
@@ -148,9 +148,9 @@ fn render_list(rect: Rect, lines: &[Line], cursor_y: usize, cursor_x: usize) {
             addstr(&line_to_render);
             attroff(COLOR_PAIR(pair));
 
-            for (start0, end0) in &line.caps {
-                let start = usize::max(cursor_x, *start0);
-                let end = usize::min(cursor_x + w, *end0);
+            for cap in &line.caps {
+                let start = usize::max(cursor_x, cap.start);
+                let end = usize::min(cursor_x + w, cap.end);
                 if start != end {
                     mv(i as i32 + rect.y as i32, (start - cursor_x) as i32 + rect.x as i32);
                     attron(COLOR_PAIR(cap_pair));
@@ -196,9 +196,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         let mut line = Line::from_string(line_text.as_str());
 
         for cap in caps {
+            // NOTE: we are skiping first cap because it contains the
+            // whole match which is not needed in our case
             for mat_opt in cap.iter().skip(1) {
                 if let Some(mat) = mat_opt {
-                    line.caps.push((mat.start(), mat.end()))
+                    line.caps.push(mat.into())
                 }
             }
         }
@@ -225,11 +227,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut profile_pane = false;
     while !quit {
         let mut cmdline = profile.cmds[profile.current_cmd].clone();
-        for (i, (start, end)) in lines[cursor_y].caps.iter().enumerate() {
+        for (i, cap) in lines[cursor_y].caps.iter().enumerate() {
             cmdline = cmdline.replace(
                 format!("\\{}", i + 1).as_str(),
                 lines[cursor_y]
-                    .text.get(*start..*end)
+                    .text.get(cap.clone())
                     .unwrap_or(""))
         }
 
