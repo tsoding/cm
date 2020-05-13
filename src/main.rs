@@ -21,6 +21,45 @@ impl Line {
             caps: Vec::new(),
         }
     }
+
+    fn render(&self, Row {x, y, w} : Row, cursor_x: usize, selected: bool) {
+        let line_to_render = {
+            let mut line_to_render = self
+                .text
+                .trim_end()
+                .get(cursor_x..)
+                .unwrap_or("")
+                .to_string();
+            let n = line_to_render.len();
+            if n < w {
+                for _ in 0..(w - n) {
+                    line_to_render.push(' ');
+                }
+            }
+            line_to_render
+        };
+
+        mv(y as i32, x as i32);
+        let (pair, cap_pair) = if selected {
+            (CURSOR_PAIR, MATCH_CURSOR_PAIR)
+        } else {
+            (REGULAR_PAIR, MATCH_PAIR)
+        };
+        attron(COLOR_PAIR(pair));
+        addstr(&line_to_render);
+        attroff(COLOR_PAIR(pair));
+
+        for cap in &self.caps {
+            let start = usize::max(cursor_x, cap.start);
+            let end = usize::min(cursor_x + w, cap.end);
+            if start != end {
+                mv(y as i32, (start - cursor_x + x) as i32);
+                attron(COLOR_PAIR(cap_pair));
+                addstr(self.text.get(start..end).unwrap_or(""));
+                attroff(COLOR_PAIR(cap_pair));
+            }
+        }
+    }
 }
 
 struct LineList {
@@ -52,50 +91,11 @@ impl LineList {
         self.cursor_x += 1;
     }
 
-    fn render(&self, rect: Rect) {
-        let h = rect.h;
-        let w = rect.w;
-        let cursor_x = self.cursor_x;
-        let cursor_y = self.cursor_y;
+    fn render(&self, Rect {x, y, w, h}: Rect) {
         if h > 0 {
             // TODO(#16): word wrapping for long lines
-            for (i, line) in self.lines.iter().skip(cursor_y / h * h).enumerate().take_while(|(i, _)| *i < h) {
-                let line_to_render = {
-                    let mut line_to_render = line
-                        .text
-                        .trim_end()
-                        .get(cursor_x..)
-                        .unwrap_or("")
-                        .to_string();
-                    let n = line_to_render.len();
-                    if n < w {
-                        for _ in 0..(w - n) {
-                            line_to_render.push(' ');
-                        }
-                    }
-                    line_to_render
-                };
-
-                mv(i as i32 + rect.y as i32, rect.x as i32);
-                let (pair, cap_pair) = if i == (cursor_y % h) {
-                    (CURSOR_PAIR, MATCH_CURSOR_PAIR)
-                } else {
-                    (REGULAR_PAIR, MATCH_PAIR)
-                };
-                attron(COLOR_PAIR(pair));
-                addstr(&line_to_render);
-                attroff(COLOR_PAIR(pair));
-
-                for cap in &line.caps {
-                    let start = usize::max(cursor_x, cap.start);
-                    let end = usize::min(cursor_x + w, cap.end);
-                    if start != end {
-                        mv(i as i32 + rect.y as i32, (start - cursor_x) as i32 + rect.x as i32);
-                        attron(COLOR_PAIR(cap_pair));
-                        addstr(line.text.get(start..end).unwrap_or(""));
-                        attroff(COLOR_PAIR(cap_pair));
-                    }
-                }
+            for (i, line) in self.lines.iter().skip(self.cursor_y / h * h).enumerate().take_while(|(i, _)| *i < h) {
+                line.render(Row {x: x, y: i + y, w: w}, self.cursor_x, i == (self.cursor_y % h));
             }
         }
     }
@@ -116,6 +116,12 @@ struct Rect {
     y: usize,
     w: usize,
     h: usize,
+}
+
+struct Row {
+    x: usize,
+    y: usize,
+    w: usize,
 }
 
 fn render_regexs(rect: Rect, profile: &Profile) {
