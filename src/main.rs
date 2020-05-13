@@ -8,20 +8,56 @@ use std::io::stdin;
 use std::process::Command;
 use std::ops::Range;
 
+trait RenderItem {
+    fn render(&self, row: Row, cursor_x: usize, selected: bool);
+}
+
+struct ItemList<Item> {
+    items: Vec<Item>,
+    cursor_x: usize,
+    cursor_y: usize,
+}
+
+impl<Item> ItemList<Item> where Item: RenderItem {
+    fn up(&mut self) {
+        if self.cursor_y > 0 {
+            self.cursor_y -= 1
+        }
+    }
+
+    fn down(&mut self) {
+        if self.cursor_y + 1 < self.items.len() {
+            self.cursor_y += 1;
+        }
+    }
+
+    fn left(&mut self) {
+        if self.cursor_x > 0 {
+            self.cursor_x -= 1;
+        }
+    }
+
+    fn right(&mut self) {
+        self.cursor_x += 1;
+    }
+
+    fn render(&self, Rect {x, y, w, h}: Rect) {
+        if h > 0 {
+            // TODO(#16): word wrapping for long lines
+            for (i, item) in self.items.iter().skip(self.cursor_y / h * h).enumerate().take_while(|(i, _)| *i < h) {
+                item.render(Row {x: x, y: i + y, w: w}, self.cursor_x, i == (self.cursor_y % h));
+            }
+        }
+    }
+}
+
 #[derive(Debug)]
 struct Line {
     text: String,
     caps: Vec<Range<usize>>,
 }
 
-impl Line {
-    fn from_string(text: &str) -> Self {
-        Self {
-            text: String::from(text),
-            caps: Vec::new(),
-        }
-    }
-
+impl RenderItem for Line {
     fn render(&self, Row {x, y, w} : Row, cursor_x: usize, selected: bool) {
         let line_to_render = {
             let mut line_to_render = self
@@ -62,41 +98,11 @@ impl Line {
     }
 }
 
-struct LineList {
-    lines: Vec<Line>,
-    cursor_x: usize,
-    cursor_y: usize,
-}
-
-impl LineList {
-    fn up(&mut self) {
-        if self.cursor_y > 0 {
-            self.cursor_y -= 1
-        }
-    }
-
-    fn down(&mut self) {
-        if self.cursor_y + 1 < self.lines.len() {
-            self.cursor_y += 1;
-        }
-    }
-
-    fn left(&mut self) {
-        if self.cursor_x > 0 {
-            self.cursor_x -= 1;
-        }
-    }
-
-    fn right(&mut self) {
-        self.cursor_x += 1;
-    }
-
-    fn render(&self, Rect {x, y, w, h}: Rect) {
-        if h > 0 {
-            // TODO(#16): word wrapping for long lines
-            for (i, line) in self.lines.iter().skip(self.cursor_y / h * h).enumerate().take_while(|(i, _)| *i < h) {
-                line.render(Row {x: x, y: i + y, w: w}, self.cursor_x, i == (self.cursor_y % h));
-            }
+impl Line {
+    fn from_string(text: &str) -> Self {
+        Self {
+            text: String::from(text),
+            caps: Vec::new(),
         }
     }
 }
@@ -223,8 +229,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     // TODO(#30): profile is not saved/loaded to/from file system
     let profile = Profile::default();
     let re = Regex::new(profile.regexs[profile.current_regex].as_str())?;
-    let mut line_list = LineList {
-        lines: Vec::new(),
+    let mut line_list = ItemList::<Line> {
+        items: Vec::new(),
         cursor_x: 0,
         cursor_y: 0,
     };
@@ -243,7 +249,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
         }
 
-        line_list.lines.push(line);
+        line_list.items.push(line);
         line_text.clear();
     }
 
@@ -265,10 +271,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut profile_pane = false;
     while !quit {
         let mut cmdline = profile.cmds[profile.current_cmd].clone();
-        for (i, cap) in line_list.lines[line_list.cursor_y].caps.iter().enumerate() {
+        for (i, cap) in line_list.items[line_list.cursor_y].caps.iter().enumerate() {
             cmdline = cmdline.replace(
                 format!("\\{}", i + 1).as_str(),
-                line_list.lines[line_list.cursor_y]
+                line_list.items[line_list.cursor_y]
                     .text.get(cap.clone())
                     .unwrap_or(""))
         }
