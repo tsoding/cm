@@ -57,11 +57,10 @@ struct Line {
     caps: Vec<Range<usize>>,
 }
 
-impl RenderItem for Line {
+impl RenderItem for String {
     fn render(&self, Row {x, y, w} : Row, cursor_x: usize, selected: bool) {
         let line_to_render = {
             let mut line_to_render = self
-                .text
                 .trim_end()
                 .get(cursor_x..)
                 .unwrap_or("")
@@ -76,14 +75,27 @@ impl RenderItem for Line {
         };
 
         mv(y as i32, x as i32);
-        let (pair, cap_pair) = if selected {
-            (CURSOR_PAIR, MATCH_CURSOR_PAIR)
+        let pair = if selected {
+            CURSOR_PAIR
         } else {
-            (REGULAR_PAIR, MATCH_PAIR)
+            REGULAR_PAIR
         };
         attron(COLOR_PAIR(pair));
         addstr(&line_to_render);
         attroff(COLOR_PAIR(pair));
+    }
+}
+
+impl RenderItem for Line {
+    fn render(&self, row : Row, cursor_x: usize, selected: bool) {
+        let Row {x, y, w} = row;
+        self.text.render(row, cursor_x, selected);
+
+        let cap_pair = if selected {
+            MATCH_CURSOR_PAIR
+        } else {
+            MATCH_PAIR
+        };
 
         for cap in &self.caps {
             let start = usize::max(cursor_x, cap.start);
