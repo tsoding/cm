@@ -147,6 +147,12 @@ struct Profile {
     cmd_list: ItemList<String>,
 }
 
+impl Profile {
+    fn current_regex(&self) -> Result<Regex, impl Error> {
+        Regex::new(self.regex_list.items[self.regex_list.cursor_y].as_str())
+    }
+}
+
 impl Default for Profile {
     fn default() -> Self {
         Self {
@@ -166,8 +172,8 @@ impl Default for Profile {
 
 fn main() -> Result<(), Box<dyn Error>> {
     // TODO(#30): profile is not saved/loaded to/from file system
-    let mut profile = Profile::default();
-    let re = Regex::new(profile.regex_list.items[profile.regex_list.cursor_y].as_str())?;
+    let profile = Profile::default();
+    let re = profile.current_regex()?;
     let mut line_list = ItemList::<Line> {
         items: Vec::new(),
         cursor_x: 0,
