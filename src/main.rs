@@ -8,6 +8,78 @@ use std::io::stdin;
 use std::process::Command;
 use std::ops::Range;
 
+trait RenderItem {
+    fn render(&self, row: Row, cursor_x: usize, selected: bool);
+}
+
+struct ItemList<Item> {
+    items: Vec<Item>,
+    cursor_x: usize,
+    cursor_y: usize,
+}
+
+impl<Item> ItemList<Item> where Item: RenderItem {
+    fn up(&mut self) {
+        if self.cursor_y > 0 {
+            self.cursor_y -= 1
+        }
+    }
+
+    fn down(&mut self) {
+        if self.cursor_y + 1 < self.items.len() {
+            self.cursor_y += 1;
+        }
+    }
+
+    fn left(&mut self) {
+        if self.cursor_x > 0 {
+            self.cursor_x -= 1;
+        }
+    }
+
+    fn right(&mut self) {
+        self.cursor_x += 1;
+    }
+
+    fn render(&self, Rect {x, y, w, h}: Rect) {
+        if h > 0 {
+            // TODO(#16): word wrapping for long lines
+            for (i, item) in self.items.iter().skip(self.cursor_y / h * h).enumerate().take_while(|(i, _)| *i < h) {
+                item.render(Row {x: x, y: i + y, w: w}, self.cursor_x, i == (self.cursor_y % h));
+            }
+        }
+    }
+}
+
+impl RenderItem for String {
+    fn render(&self, Row {x, y, w} : Row, cursor_x: usize, selected: bool) {
+        let line_to_render = {
+            let mut line_to_render = self
+                .trim_end()
+                .get(cursor_x..)
+                .unwrap_or("")
+                .to_string();
+            let n = line_to_render.len();
+            if n < w {
+                for _ in 0..(w - n) {
+                    line_to_render.push(' ');
+                }
+            }
+            line_to_render
+        };
+
+        mv(y as i32, x as i32);
+        let pair = if selected {
+            CURSOR_PAIR
+        } else {
+            REGULAR_PAIR
+        };
+        attron(COLOR_PAIR(pair));
+        addstr(&line_to_render);
+        attroff(COLOR_PAIR(pair));
+    }
+}
+
 #[derive(Debug)]
 struct Line {
     text: String,
@@ -19,6 +91,30 @@ impl Line {
         Self {
             text: String::from(text),
             caps: Vec::new(),
+        }
+    }
+}
+
+impl RenderItem for Line {
+    fn render(&self, row : Row, cursor_x: usize, selected: bool) {
+        let Row {x, y, w} = row;
+        self.text.render(row, cursor_x, selected);
+
+        let cap_pair = if selected {
+            MATCH_CURSOR_PAIR
+        } else {
+            MATCH_PAIR
+        };
+
+        for cap in &self.caps {
+            let start = usize::max(cursor_x, cap.start);
+            let end = usize::min(cursor_x + w, cap.end);
+            if start != end {
+                mv(y as i32, (start - cursor_x + x) as i32);
+                attron(COLOR_PAIR(cap_pair));
+                addstr(self.text.get(start..end).unwrap_or(""));
+                attroff(COLOR_PAIR(cap_pair));
+            }
         }
     }
 }
@@ -40,143 +136,36 @@ struct Rect {
     h: usize,
 }
 
-fn render_regexs(rect: Rect, profile: &Profile) {
-    if rect.h > 0 {
-        let start = profile.current_regex / rect.h * rect.h;
-        for (i, line) in profile
-            .regexs.iter()
-            .skip(start)
-            .enumerate()
-            .take_while(|(i, _)| *i < rect.h)
-        {
-            let line_to_render = {
-                let mut line_to_render = line
-                    .trim_end()
-                    // TODO(#28): no support for horizontal scrolling for regexs list
-                    // .get(cursor_x..)
-                    // .unwrap_or("")
-                    .to_string();
-                let n = line_to_render.len();
-                if n < rect.w {
-                    for _ in 0..(rect.w - n) {
-                        line_to_render.push(' ');
-                    }
-                }
-                line_to_render
-            };
-
-            mv(i as i32 + rect.y as i32, rect.x as i32);
-            let pair = if i == (profile.current_regex % rect.h) {
-                CURSOR_PAIR
-            } else {
-                REGULAR_PAIR
-            };
-            attron(COLOR_PAIR(pair));
-            addstr(&line_to_render);
-            attroff(COLOR_PAIR(pair));
-        }
-    }
+struct Row {
+    x: usize,
+    y: usize,
+    w: usize,
 }
 
-fn render_cmds(rect: Rect, profile: &Profile) {
-    if rect.h > 0 {
-        let start = profile.current_cmd / rect.h * rect.h;
-        for (i, line) in profile
-            .cmds.iter()
-            .skip(start)
-            .enumerate()
-            .take_while(|(i, _)| *i < rect.h)
-        {
-            let line_to_render = {
-                let mut line_to_render = line
-                    .trim_end()
-                    // TODO(#29): no support for horizontal scrolling for cmds list
-                    // .get(cursor_x..)
-                    // .unwrap_or("")
-                    .to_string();
-                let n = line_to_render.len();
-                if n < rect.w {
-                    for _ in 0..(rect.w - n) {
-                        line_to_render.push(' ');
-                    }
-                }
-                line_to_render
-            };
-
-            mv(i as i32 + rect.y as i32, rect.x as i32);
-            let pair = if i == (profile.current_cmd % rect.h) {
-                CURSOR_PAIR
-            } else {
-                REGULAR_PAIR
-            };
-            attron(COLOR_PAIR(pair));
-            addstr(&line_to_render);
-            attroff(COLOR_PAIR(pair));
-        }
-    }
-}
-
-fn render_list(rect: Rect, lines: &[Line], cursor_y: usize, cursor_x: usize) {
-    let h = rect.h;
-    let w = rect.w;
-    if h > 0 {
-        // TODO(#16): word wrapping for long lines
-        for (i, line) in lines.iter().skip(cursor_y / h * h).enumerate().take_while(|(i, _)| *i < h) {
-            let line_to_render = {
-                let mut line_to_render = line
-                    .text
-                    .trim_end()
-                    .get(cursor_x..)
-                    .unwrap_or("")
-                    .to_string();
-                let n = line_to_render.len();
-                if n < w {
-                    for _ in 0..(w - n) {
-                        line_to_render.push(' ');
-                    }
-                }
-                line_to_render
-            };
-
-            mv(i as i32 + rect.y as i32, rect.x as i32);
-            let (pair, cap_pair) = if i == (cursor_y % h) {
-                (CURSOR_PAIR, MATCH_CURSOR_PAIR)
-            } else {
-                (REGULAR_PAIR, MATCH_PAIR)
-            };
-            attron(COLOR_PAIR(pair));
-            addstr(&line_to_render);
-            attroff(COLOR_PAIR(pair));
-
-            for cap in &line.caps {
-                let start = usize::max(cursor_x, cap.start);
-                let end = usize::min(cursor_x + w, cap.end);
-                if start != end {
-                    mv(i as i32 + rect.y as i32, (start - cursor_x) as i32 + rect.x as i32);
-                    attron(COLOR_PAIR(cap_pair));
-                    addstr(line.text.get(start..end).unwrap_or(""));
-                    attroff(COLOR_PAIR(cap_pair));
-                }
-            }
-        }
-    }
-}
-
-#[derive(Debug)]
 struct Profile {
-    regexs: Vec<String>,
-    cmds: Vec<String>,
-    current_regex: usize,
-    current_cmd: usize,
+    regex_list: ItemList<String>,
+    cmd_list: ItemList<String>,
+}
+
+impl Profile {
+    fn current_regex(&self) -> Result<Regex, impl Error> {
+        Regex::new(self.regex_list.items[self.regex_list.cursor_y].as_str())
+    }
 }
 
 impl Default for Profile {
     fn default() -> Self {
         Self {
-            regexs: vec![r"^(.*?):(\d+):".to_string()],
-            cmds: vec!["vim +\\2 \\1".to_string()],
-            current_regex: 0,
-            current_cmd: 0,
+            regex_list: ItemList::<String> {
+                items: vec![r"^(.*?):(\d+):".to_string()],
+                cursor_x: 0,
+                cursor_y: 0,
+            },
+            cmd_list: ItemList::<String> {
+                items: vec!["vim +\\2 \\1".to_string()],
+                cursor_x: 0,
+                cursor_y: 0
+            },
         }
     }
 }
@@ -184,12 +173,12 @@ impl Default for Profile {
 fn main() -> Result<(), Box<dyn Error>> {
     // TODO(#30): profile is not saved/loaded to/from file system
     let profile = Profile::default();
-
-    let re = Regex::new(profile.regexs[profile.current_regex].as_str())?;
-
-    let mut lines: Vec<Line> = Vec::new();
-    let mut cursor_x: usize = 0;
-    let mut cursor_y: usize = 0;
+    let re = profile.current_regex()?;
+    let mut line_list = ItemList::<Line> {
+        items: Vec::new(),
+        cursor_x: 0,
+        cursor_y: 0,
+    };
     let mut line_text: String = String::new();
     while stdin().read_line(&mut line_text)? > 0 {
         let caps = re.captures_iter(line_text.as_str()).next();
@@ -205,7 +194,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
         }
 
-        lines.push(line);
+        line_list.items.push(line);
         line_text.clear();
     }
 
@@ -226,11 +215,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut quit = false;
     let mut profile_pane = false;
     while !quit {
-        let mut cmdline = profile.cmds[profile.current_cmd].clone();
-        for (i, cap) in lines[cursor_y].caps.iter().enumerate() {
+        let mut cmdline = profile.cmd_list.items[profile.cmd_list.cursor_y].clone();
+        for (i, cap) in line_list.items[line_list.cursor_y].caps.iter().enumerate() {
             cmdline = cmdline.replace(
                 format!("\\{}", i + 1).as_str(),
-                lines[cursor_y]
+                line_list.items[line_list.cursor_y]
                     .text.get(cap.clone())
                     .unwrap_or(""))
         }
@@ -248,21 +237,15 @@ fn main() -> Result<(), Box<dyn Error>> {
             let working_h = h - 1;
             let list_h = working_h / 3 * 2;
 
-            render_list(
-                Rect { x: 0, y: 0, w: w, h: list_h},
-                &lines, cursor_y, cursor_x);
+            line_list.render(Rect { x: 0, y: 0, w: w, h: list_h});
             // TODO(#31): no way to switch regex
             // TODO(#32): no way to add new regex
-            render_regexs(
-                Rect { x: 0, y: list_h, w: w / 2, h: working_h - list_h},
-                &profile);
+            profile.regex_list.render(Rect { x: 0, y: list_h, w: w / 2, h: working_h - list_h});
             // TODO(#33): no way to switch cmd
             // TODO(#34): no way to add new cmd
-            render_cmds(
-                Rect { x: w / 2, y: list_h, w: w - w / 2, h: working_h - list_h},
-                &profile);
+            profile.cmd_list.render(Rect { x: w / 2, y: list_h, w: w - w / 2, h: working_h - list_h});
         } else {
-            render_list(Rect { x: 0, y: 0, w: w, h: h - 1 }, &lines, cursor_y, cursor_x);
+            line_list.render(Rect { x: 0, y: 0, w: w, h: h - 1 });
         }
 
         if h <= 1 {
@@ -272,11 +255,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
         refresh();
         match getch() as u8 as char {
-            's' if cursor_y + 1 < lines.len() => cursor_y += 1,
-            'w' if cursor_y > 0               => cursor_y -= 1,
-            'd'                               => cursor_x += 1,
-            'a' if cursor_x > 0               => cursor_x -= 1,
-            'e'                               => profile_pane = !profile_pane,
+            's'  => line_list.down(),
+            'w'  => line_list.up(),
+            'd'  => line_list.right(),
+            'a'  => line_list.left(),
+            'e'  => profile_pane = !profile_pane,
             '\n' => {
                 endwin();
                 Command::new("sh")
