@@ -142,105 +142,32 @@ struct Row {
     w: usize,
 }
 
-fn render_regexs(rect: Rect, profile: &Profile) {
-    if rect.h > 0 {
-        let start = profile.current_regex / rect.h * rect.h;
-        for (i, line) in profile
-            .regexs.iter()
-            .skip(start)
-            .enumerate()
-            .take_while(|(i, _)| *i < rect.h)
-        {
-            let line_to_render = {
-                let mut line_to_render = line
-                    .trim_end()
-                    // TODO(#28): no support for horizontal scrolling for regexs list
-                    // .get(cursor_x..)
-                    // .unwrap_or("")
-                    .to_string();
-                let n = line_to_render.len();
-                if n < rect.w {
-                    for _ in 0..(rect.w - n) {
-                        line_to_render.push(' ');
-                    }
-                }
-                line_to_render
-            };
-
-            mv(i as i32 + rect.y as i32, rect.x as i32);
-            let pair = if i == (profile.current_regex % rect.h) {
-                CURSOR_PAIR
-            } else {
-                REGULAR_PAIR
-            };
-            attron(COLOR_PAIR(pair));
-            addstr(&line_to_render);
-            attroff(COLOR_PAIR(pair));
-        }
-    }
-}
-
-fn render_cmds(rect: Rect, profile: &Profile) {
-    if rect.h > 0 {
-        let start = profile.current_cmd / rect.h * rect.h;
-        for (i, line) in profile
-            .cmds.iter()
-            .skip(start)
-            .enumerate()
-            .take_while(|(i, _)| *i < rect.h)
-        {
-            let line_to_render = {
-                let mut line_to_render = line
-                    .trim_end()
-                    // TODO(#29): no support for horizontal scrolling for cmds list
-                    // .get(cursor_x..)
-                    // .unwrap_or("")
-                    .to_string();
-                let n = line_to_render.len();
-                if n < rect.w {
-                    for _ in 0..(rect.w - n) {
-                        line_to_render.push(' ');
-                    }
-                }
-                line_to_render
-            };
-
-            mv(i as i32 + rect.y as i32, rect.x as i32);
-            let pair = if i == (profile.current_cmd % rect.h) {
-                CURSOR_PAIR
-            } else {
-                REGULAR_PAIR
-            };
-            attron(COLOR_PAIR(pair));
-            addstr(&line_to_render);
-            attroff(COLOR_PAIR(pair));
-        }
-    }
-}
-
-#[derive(Debug)]
 struct Profile {
-    regexs: Vec<String>,
-    cmds: Vec<String>,
-    current_regex: usize,
-    current_cmd: usize,
+    regex_list: ItemList<String>,
+    cmd_list: ItemList<String>,
 }
 
 impl Default for Profile {
     fn default() -> Self {
         Self {
-            regexs: vec![r"^(.*?):(\d+):".to_string()],
-            cmds: vec!["vim +\\2 \\1".to_string()],
-            current_regex: 0,
-            current_cmd: 0,
+            regex_list: ItemList::<String> {
+                items: vec![r"^(.*?):(\d+):".to_string(), "(.*)(.*)(.*)".to_string()],
+                cursor_x: 0,
+                cursor_y: 0,
+            },
+            cmd_list: ItemList::<String> {
+                items: vec!["vim +\\2 \\1".to_string(), "emacs \\2".to_string()],
+                cursor_x: 0,
+                cursor_y: 0
+            },
         }
     }
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
     // TODO(#30): profile is not saved/loaded to/from file system
-    let profile = Profile::default();
-    let re = Regex::new(profile.regexs[profile.current_regex].as_str())?;
+    let mut profile = Profile::default();
+    let re = Regex::new(profile.regex_list.items[profile.regex_list.cursor_y].as_str())?;
     let mut line_list = ItemList::<Line> {
         items: Vec::new(),
         cursor_x: 0,
@@ -282,7 +209,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut quit = false;
     let mut profile_pane = false;
     while !quit {
-        let mut cmdline = profile.cmds[profile.current_cmd].clone();
+        let mut cmdline = profile.cmd_list.items[profile.cmd_list.cursor_y].clone();
         for (i, cap) in line_list.items[line_list.cursor_y].caps.iter().enumerate() {
             cmdline = cmdline.replace(
                 format!("\\{}", i + 1).as_str(),
@@ -307,14 +234,10 @@ fn main() -> Result<(), Box<dyn Error>> {
             line_list.render(Rect { x: 0, y: 0, w: w, h: list_h});
             // TODO(#31): no way to switch regex
             // TODO(#32): no way to add new regex
-            render_regexs(
-                Rect { x: 0, y: list_h, w: w / 2, h: working_h - list_h},
-                &profile);
+            profile.regex_list.render(Rect { x: 0, y: list_h, w: w / 2, h: working_h - list_h});
             // TODO(#33): no way to switch cmd
             // TODO(#34): no way to add new cmd
-            render_cmds(
-                Rect { x: w / 2, y: list_h, w: w - w / 2, h: working_h - list_h},
-                &profile);
+            profile.cmd_list.render(Rect { x: w / 2, y: list_h, w: w - w / 2, h: working_h - list_h});
         } else {
             line_list.render(Rect { x: 0, y: 0, w: w, h: h - 1 });
         }
