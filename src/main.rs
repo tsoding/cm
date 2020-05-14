@@ -162,7 +162,7 @@ impl Default for Profile {
                 cursor_y: 0,
             },
             cmd_list: ItemList::<String> {
-                items: vec!["vim +\\2 \\1".to_string()],
+                items: vec!["$EDITOR +\\2 \\1".to_string()],
                 cursor_x: 0,
                 cursor_y: 0
             },
