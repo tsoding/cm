@@ -269,6 +269,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             'e'  => profile_pane = !profile_pane,
             '\n' => {
                 endwin();
+                // TODO(#40): shell is not customizable
                 Command::new("sh")
                     .stdin(File::open("/dev/tty")?)
                     .arg("-c")
