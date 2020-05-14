@@ -152,7 +152,7 @@ struct Profile {
 }
 
 impl Profile {
-    fn current_regex(&self) -> Result<Regex, impl Error> {
+    fn compile_current_regex(&self) -> Result<Regex, impl Error> {
         Regex::new(self.regex_list.current_item())
     }
 
@@ -187,7 +187,7 @@ impl Default for Profile {
 fn main() -> Result<(), Box<dyn Error>> {
     // TODO(#30): profile is not saved/loaded to/from file system
     let profile = Profile::default();
-    let re = profile.current_regex()?;
+    let re = profile.compile_current_regex()?;
     let mut line_list = ItemList::<Line> {
         items: Vec::new(),
         cursor_x: 0,
