@@ -49,6 +49,10 @@ impl<Item> ItemList<Item> where Item: RenderItem {
             }
         }
     }
+
+    fn current_item(&self) -> &Item {
+        &self.items[self.cursor_y]
+    }
 }
 
 impl RenderItem for String {
@@ -149,7 +153,17 @@ struct Profile {
 
 impl Profile {
     fn current_regex(&self) -> Result<Regex, impl Error> {
-        Regex::new(self.regex_list.items[self.regex_list.cursor_y].as_str())
+        Regex::new(self.regex_list.current_item())
+    }
+
+    fn render_cmdline(&self, line: &Line) -> String {
+        let mut cmdline = self.cmd_list.current_item().clone();
+        for (i, cap) in line.caps.iter().enumerate() {
+            cmdline = cmdline.replace(
+                format!("\\{}", i + 1).as_str(),
+                line.text.get(cap.clone()).unwrap_or(""))
+        }
+        cmdline
     }
 }
 
@@ -215,14 +229,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut quit = false;
     let mut profile_pane = false;
     while !quit {
-        let mut cmdline = profile.cmd_list.items[profile.cmd_list.cursor_y].clone();
-        for (i, cap) in line_list.items[line_list.cursor_y].caps.iter().enumerate() {
-            cmdline = cmdline.replace(
-                format!("\\{}", i + 1).as_str(),
-                line_list.items[line_list.cursor_y]
-                    .text.get(cap.clone())
-                    .unwrap_or(""))
-        }
+        let cmdline = profile.render_cmdline(line_list.current_item());
 
         let (w, h) = {
             let mut x: i32 = 0;
