@@ -8,7 +8,7 @@ use std::io::{stdin, Write};
 use std::process::Command;
 use std::ops::Range;
 use std::path::{Path, PathBuf};
-use std::env::{VarError, var};
+use std::env::var;
 
 trait RenderItem {
     fn render(&self, row: Row, cursor_x: usize,
@@ -257,12 +257,6 @@ impl Default for Profile {
     }
 }
 
-fn path_from_var(key: &str) -> Result<PathBuf, VarError> {
-    var(key).map(|x| PathBuf::new().join(x))
-}
-
-const CONFIG_FILE_NAME: &'static str = "cm.conf";
-
 fn handle_line_list_key(line_list: &mut ItemList<Line>, key: char, cmdline: &str) -> Result<(), Box<dyn Error>>
 {
     match key {
@@ -328,9 +322,12 @@ impl Focus {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let xdg_config_dir = path_from_var("XDG_CONFIG_HOME");
-    let home_config_dir = path_from_var("HOME").map(|x| x.join(".config"));
-    let config_path = xdg_config_dir.or(home_config_dir).map(|p| p.join(CONFIG_FILE_NAME))?;
+    let config_path = {
+        const CONFIG_FILE_NAME: &'static str = "cm.conf";
+        let xdg_config_dir = var("XDG_CONFIG_HOME").map(PathBuf::from);
+        let home_config_dir = var("HOME").map(PathBuf::from).map(|x| x.join(".config"));
+        xdg_config_dir.or(home_config_dir).map(|p| p.join(CONFIG_FILE_NAME))?
+    };
 
     let mut profile = if config_path.exists() {
         Profile::from_file(&config_path)?
