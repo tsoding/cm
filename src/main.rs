@@ -44,6 +44,16 @@ impl<Item> ItemList<Item> where Item: RenderItem {
         self.cursor_x += 1;
     }
 
+    fn handle_key(&mut self, key: char) {
+        match key {
+            's' => self.down(),
+            'w' => self.up(),
+            'd' => self.right(),
+            'a' => self.left(),
+            _ => {}
+        }
+    }
+
     fn render(&self, Rect {x, y, w, h}: Rect, focused: bool) {
         if h > 0 {
             // TODO(#16): word wrapping for long lines
@@ -261,14 +271,10 @@ impl Default for Profile {
     }
 }
 
-fn handle_line_list_key(line_list: &mut ItemList<Line>, key: char, cmdline: &str) -> Result<(), Box<dyn Error>>
-{
+fn handle_line_list_key(line_list: &mut ItemList<Line>, key: char, cmdline: &str) -> Result<(), Box<dyn Error>> {
     match key {
-        's'  => line_list.down(),
-        'w'  => line_list.up(),
-        'd'  => line_list.right(),
-        'a'  => line_list.left(),
         '\n' => {
+            // TODO: endwin() on Enter in LineList looks like a total hack and it's unclear why it even works
             endwin();
             // TODO(#40): shell is not customizable
             Command::new("sh")
@@ -278,31 +284,7 @@ fn handle_line_list_key(line_list: &mut ItemList<Line>, key: char, cmdline: &str
                 .spawn()?
                 .wait_with_output()?;
         }
-        _ => {}
-    };
-
-    Ok(())
-}
-
-fn handle_regex_list_key(profile: &mut Profile, key: char) -> Result<(), Box<dyn Error>> {
-    match key {
-        's'  => profile.regex_list.down(),
-        'w'  => profile.regex_list.up(),
-        'd'  => profile.regex_list.right(),
-        'a'  => profile.regex_list.left(),
-        _ => {}
-    };
-
-    Ok(())
-}
-
-fn handle_cmd_list_key(profile: &mut Profile, key: char) -> Result<(), Box<dyn Error>> {
-    match key {
-        's'  => profile.cmd_list.down(),
-        'w'  => profile.cmd_list.up(),
-        'd'  => profile.cmd_list.right(),
-        'a'  => profile.cmd_list.left(),
-        _ => {}
+        key => line_list.handle_key(key)
     };
 
     Ok(())
@@ -421,16 +403,16 @@ fn main() -> Result<(), Box<dyn Error>> {
         let key = getch() as u8 as char;
         match key {
             'e'  => profile_pane = !profile_pane,
-            'q' => quit = true,
+            'q'  => quit = true,
             // TODO(#43): cm does not handle Shift+TAB to scroll backwards through the panels
             '\t' => focus = focus.next(),
-            key => if !profile_pane {
+            key  => if !profile_pane {
                 handle_line_list_key(&mut line_list, key, &cmdline)?;
             } else {
                 match focus {
-                    Focus::LineList => handle_line_list_key(&mut line_list, key, &cmdline)?,
-                    Focus::RegexList => handle_regex_list_key(&mut profile, key)?,
-                    Focus::CmdList => handle_cmd_list_key(&mut profile, key)?,
+                    Focus::LineList  => handle_line_list_key(&mut line_list, key, &cmdline)?,
+                    Focus::RegexList => profile.regex_list.handle_key(key),
+                    Focus::CmdList   => profile.cmd_list.handle_key(key),
                 }
             }
         }
