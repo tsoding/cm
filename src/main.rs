@@ -8,7 +8,7 @@ use std::io::{stdin, Write};
 use std::process::Command;
 use std::ops::Range;
 use std::path::{Path, PathBuf};
-use std::env::{VarError, var};
+use std::env::var;
 
 trait RenderItem {
     fn render(&self, row: Row, cursor_x: usize,
@@ -42,6 +42,16 @@ impl<Item> ItemList<Item> where Item: RenderItem {
 
     fn right(&mut self) {
         self.cursor_x += 1;
+    }
+
+    fn handle_key(&mut self, key: char) {
+        match key {
+            's' => self.down(),
+            'w' => self.up(),
+            'd' => self.right(),
+            'a' => self.left(),
+            _ => {}
+        }
     }
 
     fn render(&self, Rect {x, y, w, h}: Rect, focused: bool) {
@@ -167,8 +177,8 @@ struct Profile {
 }
 
 impl Profile {
-    fn from_file(file_path: &Path) -> Result<Self, Box<dyn Error>> {
-        let mut result = Self {
+    fn empty() -> Self {
+        Self {
             regex_list: ItemList::<String> {
                 items: vec![],
                 cursor_x: 0,
@@ -179,7 +189,11 @@ impl Profile {
                 cursor_x: 0,
                 cursor_y: 0
             },
-        };
+        }
+    }
+
+    fn from_file(file_path: &Path) -> Result<Self, Box<dyn Error>> {
+        let mut result = Profile::empty();
         let input = read_to_string(file_path)?;
         for (i, line) in input.lines().map(|x| x.trim_start()).enumerate() {
             let fail = |message| {
@@ -257,27 +271,10 @@ impl Default for Profile {
     }
 }
 
-fn path_from_var(key: &str) -> Result<PathBuf, VarError> {
-    var(key).map(|x| PathBuf::new().join(x))
-}
-
-const CONFIG_FILE_NAME: &'static str = "cm.conf";
-
-#[derive(PartialEq)]
-enum Focus {
-    LineList,
-    RegexList,
-    CmdList
-}
-
-fn handle_line_list_key(line_list: &mut ItemList<Line>, key: char, cmdline: &str) -> Result<(), Box<dyn Error>>
-{
+fn handle_line_list_key(line_list: &mut ItemList<Line>, key: char, cmdline: &str) -> Result<(), Box<dyn Error>> {
     match key {
-        's'  => line_list.down(),
-        'w'  => line_list.up(),
-        'd'  => line_list.right(),
-        'a'  => line_list.left(),
         '\n' => {
+            // TODO(#47): endwin() on Enter in LineList looks like a total hack and it's unclear why it even works
             endwin();
             // TODO(#40): shell is not customizable
             Command::new("sh")
@@ -287,48 +284,36 @@ fn handle_line_list_key(line_list: &mut ItemList<Line>, key: char, cmdline: &str
                 .spawn()?
                 .wait_with_output()?;
         }
-        _ => {}
+        key => line_list.handle_key(key)
     };
 
     Ok(())
 }
 
-fn handle_regex_list_key(profile: &mut Profile, key: char) -> Result<(), Box<dyn Error>> {
-    match key {
-        's'  => profile.regex_list.down(),
-        'w'  => profile.regex_list.up(),
-        'd'  => profile.regex_list.right(),
-        'a'  => profile.regex_list.left(),
-        _ => {}
-    };
-
-    Ok(())
+#[derive(PartialEq)]
+enum Focus {
+    LineList,
+    RegexList,
+    CmdList
 }
 
-fn handle_cmd_list_key(profile: &mut Profile, key: char) -> Result<(), Box<dyn Error>> {
-    match key {
-        's'  => profile.cmd_list.down(),
-        'w'  => profile.cmd_list.up(),
-        'd'  => profile.cmd_list.right(),
-        'a'  => profile.cmd_list.left(),
-        _ => {}
-    };
-
-    Ok(())
-}
-
-fn next_focus(focus: Focus) -> Focus {
-    match focus {
-        Focus::LineList  => Focus::RegexList,
-        Focus::RegexList => Focus::CmdList,
-        Focus::CmdList   => Focus::LineList,
+impl Focus {
+    fn next(self) -> Self {
+        match self {
+            Focus::LineList  => Focus::RegexList,
+            Focus::RegexList => Focus::CmdList,
+            Focus::CmdList   => Focus::LineList,
+        }
     }
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let xdg_config_dir = path_from_var("XDG_CONFIG_HOME");
-    let home_config_dir = path_from_var("HOME").map(|x| x.join(".config"));
-    let config_path = xdg_config_dir.or(home_config_dir).map(|p| p.join(CONFIG_FILE_NAME))?;
+    let config_path = {
+        const CONFIG_FILE_NAME: &'static str = "cm.conf";
+        let xdg_config_dir = var("XDG_CONFIG_HOME").map(PathBuf::from);
+        let home_config_dir = var("HOME").map(PathBuf::from).map(|x| x.join(".config"));
+        xdg_config_dir.or(home_config_dir).map(|p| p.join(CONFIG_FILE_NAME))?
+    };
 
     let mut profile = if config_path.exists() {
         Profile::from_file(&config_path)?
@@ -418,16 +403,16 @@ fn main() -> Result<(), Box<dyn Error>> {
         let key = getch() as u8 as char;
         match key {
             'e'  => profile_pane = !profile_pane,
-            'q' => quit = true,
+            'q'  => quit = true,
             // TODO(#43): cm does not handle Shift+TAB to scroll backwards through the panels
-            '\t' => focus = next_focus(focus),
-            key => if !profile_pane {
+            '\t' => focus = focus.next(),
+            key  => if !profile_pane {
                 handle_line_list_key(&mut line_list, key, &cmdline)?;
             } else {
                 match focus {
-                    Focus::LineList => handle_line_list_key(&mut line_list, key, &cmdline)?,
-                    Focus::RegexList => handle_regex_list_key(&mut profile, key)?,
-                    Focus::CmdList => handle_cmd_list_key(&mut profile, key)?,
+                    Focus::LineList  => handle_line_list_key(&mut line_list, key, &cmdline)?,
+                    Focus::RegexList => profile.regex_list.handle_key(key),
+                    Focus::CmdList   => profile.cmd_list.handle_key(key),
                 }
             }
         }
