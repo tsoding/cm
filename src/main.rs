@@ -274,7 +274,7 @@ impl Default for Profile {
 fn handle_line_list_key(line_list: &mut ItemList<Line>, key: char, cmdline: &str) -> Result<(), Box<dyn Error>> {
     match key {
         '\n' => {
-            // TODO: endwin() on Enter in LineList looks like a total hack and it's unclear why it even works
+            // TODO(#47): endwin() on Enter in LineList looks like a total hack and it's unclear why it even works
             endwin();
             // TODO(#40): shell is not customizable
             Command::new("sh")
