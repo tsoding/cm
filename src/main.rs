@@ -280,7 +280,7 @@ fn handle_line_list_key(line_list: &mut ItemList<Line>, key: char, cmdline: &str
             // TODO(#47): endwin() on Enter in LineList looks like a total hack and it's unclear why it even works
             endwin();
             // TODO(#40): shell is not customizable
-            // TODO: cm doesn't say anything if the executed command has failed
+            // TODO(#50): cm doesn't say anything if the executed command has failed
             Command::new("sh")
                 .stdin(File::open("/dev/tty")?)
                 .arg("-c")
