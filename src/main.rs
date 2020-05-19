@@ -3,10 +3,12 @@ use ncurses::*;
 use regex::Regex;
 use std::error::Error;
 use std::ffi::CString;
-use std::fs::File;
-use std::io::stdin;
+use std::fs::{File, read_to_string, create_dir_all};
+use std::io::{stdin, Write};
 use std::process::Command;
 use std::ops::Range;
+use std::path::{Path, PathBuf};
+use std::env::{VarError, var};
 
 trait RenderItem {
     fn render(&self, row: Row, cursor_x: usize, selected: bool);
@@ -152,6 +154,64 @@ struct Profile {
 }
 
 impl Profile {
+    fn from_file(file_path: &Path) -> Result<Self, Box<dyn Error>> {
+        let mut result = Self {
+            regex_list: ItemList::<String> {
+                items: vec![],
+                cursor_x: 0,
+                cursor_y: 0,
+            },
+            cmd_list: ItemList::<String> {
+                items: vec![],
+                cursor_x: 0,
+                cursor_y: 0
+            },
+        };
+        let input = read_to_string(file_path)?;
+        for (i, line) in input.lines().map(|x| x.trim_start()).enumerate() {
+            let fail = |message| {
+                format!("{}:{}: {}", file_path.display(), i + 1, message)
+            };
+
+            if line.len() > 0 {
+                let mut assign = line.split('=');
+                let key   = assign.next().ok_or(fail("Key is not provided"))?.trim();
+                let value = assign.next().ok_or(fail("Value is not provided"))?.trim();
+                match key {
+                    "regexs"        =>
+                        result.regex_list.items.push(value.to_string()),
+                    "cmds"          =>
+                        result.cmd_list.items.push(value.to_string()),
+                    "current_regex" => result.regex_list.cursor_y = value
+                        .parse::<usize>()
+                        .map_err(|_| fail("Not a number"))?,
+                    "current_cmd"   => result.cmd_list.cursor_y = value
+                        .parse::<usize>()
+                        .map_err(|_| fail("Not a number"))?,
+                    _               =>
+                        Err(fail(&format!("Unknown key {}", key))).unwrap(),
+                }
+            }
+        }
+
+        Ok(result)
+    }
+
+    fn to_file<F: Write>(&self, stream: &mut F) -> Result<(), Box<dyn Error>> {
+        for regex in self.regex_list.items.iter() {
+            write!(stream, "regexs = {}\n", regex)?;
+        }
+
+        for cmd in self.cmd_list.items.iter() {
+            write!(stream, "cmds = {}\n", cmd)?;
+        }
+
+        write!(stream, "current_regex = {}\n", self.regex_list.cursor_y)?;
+        write!(stream, "current_cmd = {}\n", self.cmd_list.cursor_y)?;
+
+        Ok(())
+    }
+
     fn compile_current_regex(&self) -> Result<Regex, impl Error> {
         Regex::new(self.regex_list.current_item())
     }
@@ -184,9 +244,23 @@ impl Default for Profile {
     }
 }
 
+fn path_from_var(key: &str) -> Result<PathBuf, VarError> {
+    var(key).map(|x| PathBuf::new().join(x))
+}
+
+const CONFIG_FILE_NAME: &'static str = "cm.conf";
+
 fn main() -> Result<(), Box<dyn Error>> {
-    // TODO(#30): profile is not saved/loaded to/from file system
-    let profile = Profile::default();
+    let xdg_config_dir = path_from_var("XDG_CONFIG_HOME");
+    let home_config_dir = path_from_var("HOME").map(|x| x.join(".config"));
+    let config_path = xdg_config_dir.or(home_config_dir).map(|p| p.join(CONFIG_FILE_NAME))?;
+
+    let profile = if config_path.exists() {
+        Profile::from_file(&config_path)?
+    } else {
+        Profile::default()
+    };
+
     let re = profile.compile_current_regex()?;
     let mut line_list = ItemList::<Line> {
         items: Vec::new(),
@@ -284,5 +358,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // TODO(#21): if application crashes it does not finalize the terminal
     endwin();
+
+    config_path.parent().map(create_dir_all);
+    profile.to_file(&mut File::create(config_path)?)?;
+
     Ok(())
 }
