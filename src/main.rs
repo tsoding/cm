@@ -420,7 +420,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         match key {
             'e'  => profile_pane = !profile_pane,
             'q' => quit = true,
-            // TODO: cm does not handle Shift+TAB to scroll backwards through the panels
+            // TODO(#43): cm does not handle Shift+TAB to scroll backwards through the panels
             '\t' => focus = next_focus(focus),
             key => if !profile_pane {
                 handle_line_list_key(&mut line_list, key, &cmdline)?;
