@@ -389,7 +389,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                              focus == Focus::LineList);
             // TODO(#31): no way to switch regex
             // TODO(#32): no way to add new regex
-            // TODO: no way to delete a regex
+            // TODO(#51): no way to delete a regex
             profile.regex_list.render(Rect { x: 0, y: list_h, w: w / 2, h: working_h - list_h},
                                       focus == Focus::RegexList);
             // TODO(#34): no way to add new cmd
