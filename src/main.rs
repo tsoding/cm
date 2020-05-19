@@ -263,13 +263,6 @@ fn path_from_var(key: &str) -> Result<PathBuf, VarError> {
 
 const CONFIG_FILE_NAME: &'static str = "cm.conf";
 
-#[derive(PartialEq)]
-enum Focus {
-    LineList,
-    RegexList,
-    CmdList
-}
-
 fn handle_line_list_key(line_list: &mut ItemList<Line>, key: char, cmdline: &str) -> Result<(), Box<dyn Error>>
 {
     match key {
@@ -317,11 +310,20 @@ fn handle_cmd_list_key(profile: &mut Profile, key: char) -> Result<(), Box<dyn E
     Ok(())
 }
 
-fn next_focus(focus: Focus) -> Focus {
-    match focus {
-        Focus::LineList  => Focus::RegexList,
-        Focus::RegexList => Focus::CmdList,
-        Focus::CmdList   => Focus::LineList,
+#[derive(PartialEq)]
+enum Focus {
+    LineList,
+    RegexList,
+    CmdList
+}
+
+impl Focus {
+    fn next(self) -> Self {
+        match self {
+            Focus::LineList  => Focus::RegexList,
+            Focus::RegexList => Focus::CmdList,
+            Focus::CmdList   => Focus::LineList,
+        }
     }
 }
 
@@ -420,7 +422,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             'e'  => profile_pane = !profile_pane,
             'q' => quit = true,
             // TODO(#43): cm does not handle Shift+TAB to scroll backwards through the panels
-            '\t' => focus = next_focus(focus),
+            '\t' => focus = focus.next(),
             key => if !profile_pane {
                 handle_line_list_key(&mut line_list, key, &cmdline)?;
             } else {
