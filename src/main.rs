@@ -209,6 +209,8 @@ impl Profile {
                         result.regex_list.items.push(value.to_string()),
                     "cmds"          =>
                         result.cmd_list.items.push(value.to_string()),
+                    // TODO(#49): cm crashes if current_regex or current_cmd from cm.conf is out-of-bound
+                    //   I think we should simply clamp it to the allowed rage
                     "current_regex" => result.regex_list.cursor_y = value
                         .parse::<usize>()
                         .map_err(|_| fail("Not a number"))?,
@@ -278,6 +280,7 @@ fn handle_line_list_key(line_list: &mut ItemList<Line>, key: char, cmdline: &str
             // TODO(#47): endwin() on Enter in LineList looks like a total hack and it's unclear why it even works
             endwin();
             // TODO(#40): shell is not customizable
+            // TODO: cm doesn't say anything if the executed command has failed
             Command::new("sh")
                 .stdin(File::open("/dev/tty")?)
                 .arg("-c")
@@ -386,9 +389,11 @@ fn main() -> Result<(), Box<dyn Error>> {
                              focus == Focus::LineList);
             // TODO(#31): no way to switch regex
             // TODO(#32): no way to add new regex
+            // TODO: no way to delete a regex
             profile.regex_list.render(Rect { x: 0, y: list_h, w: w / 2, h: working_h - list_h},
                                       focus == Focus::RegexList);
             // TODO(#34): no way to add new cmd
+            // TODO: no way to delete a cmd
             profile.cmd_list.render(Rect { x: w / 2, y: list_h, w: w - w / 2, h: working_h - list_h},
                                     focus == Focus::CmdList);
         } else {
