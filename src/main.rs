@@ -11,7 +11,8 @@ use std::path::{Path, PathBuf};
 use std::env::{VarError, var};
 
 trait RenderItem {
-    fn render(&self, row: Row, cursor_x: usize, selected: bool);
+    fn render(&self, row: Row, cursor_x: usize,
+              selected: bool, focused: bool);
 }
 
 struct ItemList<Item> {
@@ -43,11 +44,13 @@ impl<Item> ItemList<Item> where Item: RenderItem {
         self.cursor_x += 1;
     }
 
-    fn render(&self, Rect {x, y, w, h}: Rect) {
+    fn render(&self, Rect {x, y, w, h}: Rect, focused: bool) {
         if h > 0 {
             // TODO(#16): word wrapping for long lines
             for (i, item) in self.items.iter().skip(self.cursor_y / h * h).enumerate().take_while(|(i, _)| *i < h) {
-                item.render(Row {x: x, y: i + y, w: w}, self.cursor_x, i == (self.cursor_y % h));
+                item.render(Row {x: x, y: i + y, w: w}, self.cursor_x,
+                            i == (self.cursor_y % h),
+                            focused);
             }
         }
     }
@@ -58,7 +61,7 @@ impl<Item> ItemList<Item> where Item: RenderItem {
 }
 
 impl RenderItem for String {
-    fn render(&self, Row {x, y, w} : Row, cursor_x: usize, selected: bool) {
+    fn render(&self, Row {x, y, w} : Row, cursor_x: usize, selected: bool, focused: bool) {
         let line_to_render = {
             let mut line_to_render = self
                 .trim_end()
@@ -76,7 +79,11 @@ impl RenderItem for String {
 
         mv(y as i32, x as i32);
         let pair = if selected {
-            CURSOR_PAIR
+            if focused {
+                CURSOR_PAIR
+            } else {
+                UNFOCUSED_CURSOR_PAIR
+            }
         } else {
             REGULAR_PAIR
         };
@@ -102,12 +109,16 @@ impl Line {
 }
 
 impl RenderItem for Line {
-    fn render(&self, row : Row, cursor_x: usize, selected: bool) {
+    fn render(&self, row : Row, cursor_x: usize, selected: bool, focused: bool) {
         let Row {x, y, w} = row;
-        self.text.render(row, cursor_x, selected);
+        self.text.render(row, cursor_x, selected, focused);
 
         let cap_pair = if selected {
-            MATCH_CURSOR_PAIR
+            if focused {
+                MATCH_CURSOR_PAIR
+            } else {
+                UNFOCUSED_MATCH_CURSOR_PAIR
+            }
         } else {
             MATCH_PAIR
         };
@@ -127,8 +138,10 @@ impl RenderItem for Line {
 
 const REGULAR_PAIR: i16 = 1;
 const CURSOR_PAIR: i16 = 2;
-const MATCH_PAIR: i16 = 3;
-const MATCH_CURSOR_PAIR: i16 = 4;
+const UNFOCUSED_CURSOR_PAIR: i16 = 3;
+const MATCH_PAIR: i16 = 4;
+const MATCH_CURSOR_PAIR: i16 = 5;
+const UNFOCUSED_MATCH_CURSOR_PAIR: i16 = 6;
 
 fn render_status(y: usize, text: &str) {
     mv(y as i32, 0);
@@ -250,12 +263,74 @@ fn path_from_var(key: &str) -> Result<PathBuf, VarError> {
 
 const CONFIG_FILE_NAME: &'static str = "cm.conf";
 
+#[derive(PartialEq)]
+enum Focus {
+    LineList,
+    RegexList,
+    CmdList
+}
+
+fn handle_line_list_key(line_list: &mut ItemList<Line>, key: char, cmdline: &str) -> Result<(), Box<dyn Error>>
+{
+    match key {
+        's'  => line_list.down(),
+        'w'  => line_list.up(),
+        'd'  => line_list.right(),
+        'a'  => line_list.left(),
+        '\n' => {
+            endwin();
+            // TODO(#40): shell is not customizable
+            Command::new("sh")
+                .stdin(File::open("/dev/tty")?)
+                .arg("-c")
+                .arg(cmdline)
+                .spawn()?
+                .wait_with_output()?;
+        }
+        _ => {}
+    };
+
+    Ok(())
+}
+
+fn handle_regex_list_key(profile: &mut Profile, key: char) -> Result<(), Box<dyn Error>> {
+    match key {
+        's'  => profile.regex_list.down(),
+        'w'  => profile.regex_list.up(),
+        'd'  => profile.regex_list.right(),
+        'a'  => profile.regex_list.left(),
+        _ => {}
+    };
+
+    Ok(())
+}
+
+fn handle_cmd_list_key(profile: &mut Profile, key: char) -> Result<(), Box<dyn Error>> {
+    match key {
+        's'  => profile.cmd_list.down(),
+        'w'  => profile.cmd_list.up(),
+        'd'  => profile.cmd_list.right(),
+        'a'  => profile.cmd_list.left(),
+        _ => {}
+    };
+
+    Ok(())
+}
+
+fn next_focus(focus: Focus) -> Focus {
+    match focus {
+        Focus::LineList  => Focus::RegexList,
+        Focus::RegexList => Focus::CmdList,
+        Focus::CmdList   => Focus::LineList,
+    }
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     let xdg_config_dir = path_from_var("XDG_CONFIG_HOME");
     let home_config_dir = path_from_var("HOME").map(|x| x.join(".config"));
     let config_path = xdg_config_dir.or(home_config_dir).map(|p| p.join(CONFIG_FILE_NAME))?;
 
-    let profile = if config_path.exists() {
+    let mut profile = if config_path.exists() {
         Profile::from_file(&config_path)?
     } else {
         Profile::default()
@@ -268,6 +343,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         cursor_y: 0,
     };
     let mut line_text: String = String::new();
+    let mut focus = Focus::RegexList;
     while stdin().read_line(&mut line_text)? > 0 {
         let caps = re.captures_iter(line_text.as_str()).next();
         let mut line = Line::from_string(line_text.as_str());
@@ -297,8 +373,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     start_color();
     init_pair(REGULAR_PAIR, COLOR_WHITE, COLOR_BLACK);
     init_pair(CURSOR_PAIR, COLOR_BLACK, COLOR_WHITE);
+    init_pair(UNFOCUSED_CURSOR_PAIR, COLOR_BLACK, COLOR_CYAN);
     init_pair(MATCH_PAIR, COLOR_YELLOW, COLOR_BLACK);
     init_pair(MATCH_CURSOR_PAIR, COLOR_RED, COLOR_WHITE);
+    init_pair(UNFOCUSED_MATCH_CURSOR_PAIR, COLOR_BLACK, COLOR_CYAN);
 
     let mut quit = false;
     let mut profile_pane = false;
@@ -318,15 +396,18 @@ fn main() -> Result<(), Box<dyn Error>> {
             let working_h = h - 1;
             let list_h = working_h / 3 * 2;
 
-            line_list.render(Rect { x: 0, y: 0, w: w, h: list_h});
+            line_list.render(Rect { x: 0, y: 0, w: w, h: list_h},
+                             focus == Focus::LineList);
             // TODO(#31): no way to switch regex
             // TODO(#32): no way to add new regex
-            profile.regex_list.render(Rect { x: 0, y: list_h, w: w / 2, h: working_h - list_h});
+            profile.regex_list.render(Rect { x: 0, y: list_h, w: w / 2, h: working_h - list_h},
+                                      focus == Focus::RegexList);
             // TODO(#33): no way to switch cmd
             // TODO(#34): no way to add new cmd
-            profile.cmd_list.render(Rect { x: w / 2, y: list_h, w: w - w / 2, h: working_h - list_h});
+            profile.cmd_list.render(Rect { x: w / 2, y: list_h, w: w - w / 2, h: working_h - list_h},
+                                    focus == Focus::CmdList);
         } else {
-            line_list.render(Rect { x: 0, y: 0, w: w, h: h - 1 });
+            line_list.render(Rect { x: 0, y: 0, w: w, h: h - 1 }, true);
         }
 
         if h <= 1 {
@@ -335,24 +416,21 @@ fn main() -> Result<(), Box<dyn Error>> {
             render_status(h - 1, &cmdline);
         }
         refresh();
-        match getch() as u8 as char {
-            's'  => line_list.down(),
-            'w'  => line_list.up(),
-            'd'  => line_list.right(),
-            'a'  => line_list.left(),
+        let key = getch() as u8 as char;
+        match key {
             'e'  => profile_pane = !profile_pane,
-            '\n' => {
-                endwin();
-                // TODO(#40): shell is not customizable
-                Command::new("sh")
-                    .stdin(File::open("/dev/tty")?)
-                    .arg("-c")
-                    .arg(cmdline)
-                    .spawn()?
-                    .wait_with_output()?;
-            }
             'q' => quit = true,
-            _ => {}
+            // TODO: cm does not handle Shift+TAB to scroll backwards through the panels
+            '\t' => focus = next_focus(focus),
+            key => if !profile_pane {
+                handle_line_list_key(&mut line_list, key, &cmdline)?;
+            } else {
+                match focus {
+                    Focus::LineList => handle_line_list_key(&mut line_list, key, &cmdline)?,
+                    Focus::RegexList => handle_regex_list_key(&mut profile, key)?,
+                    Focus::CmdList => handle_cmd_list_key(&mut profile, key)?,
+                }
+            }
         }
     }
 
