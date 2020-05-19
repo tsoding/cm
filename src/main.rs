@@ -393,7 +393,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             profile.regex_list.render(Rect { x: 0, y: list_h, w: w / 2, h: working_h - list_h},
                                       focus == Focus::RegexList);
             // TODO(#34): no way to add new cmd
-            // TODO: no way to delete a cmd
+            // TODO(#52): no way to delete a cmd
             profile.cmd_list.render(Rect { x: w / 2, y: list_h, w: w - w / 2, h: working_h - list_h},
                                     focus == Focus::CmdList);
         } else {
