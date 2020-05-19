@@ -167,8 +167,8 @@ struct Profile {
 }
 
 impl Profile {
-    fn from_file(file_path: &Path) -> Result<Self, Box<dyn Error>> {
-        let mut result = Self {
+    fn empty() -> Self {
+        Self {
             regex_list: ItemList::<String> {
                 items: vec![],
                 cursor_x: 0,
@@ -179,7 +179,11 @@ impl Profile {
                 cursor_x: 0,
                 cursor_y: 0
             },
-        };
+        }
+    }
+
+    fn from_file(file_path: &Path) -> Result<Self, Box<dyn Error>> {
+        let mut result = Profile::empty();
         let input = read_to_string(file_path)?;
         for (i, line) in input.lines().map(|x| x.trim_start()).enumerate() {
             let fail = |message| {
