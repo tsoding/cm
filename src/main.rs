@@ -196,29 +196,44 @@ impl Profile {
         let mut result = Profile::empty();
         let input = read_to_string(file_path)?;
         for (i, line) in input.lines().map(|x| x.trim_start()).enumerate() {
-            let fail = |message| {
-                format!("{}:{}: {}", file_path.display(), i + 1, message)
-            };
+
+            macro_rules! format_err {
+                // format_err!("foo: {}", bar)
+                ($message:literal, $($xs:expr),+ $(,)?) => {
+                    format_err!(format_args!($message, $($xs),+))
+                };
+                // format_err!("foo")
+                ($message:expr) => {
+                    format!("{}:{}: {}", file_path.display(), i + 1, $message)
+                };
+            }
 
             if line.len() > 0 {
                 let mut assign = line.split('=');
-                let key   = assign.next().ok_or(fail("Key is not provided"))?.trim();
-                let value = assign.next().ok_or(fail("Value is not provided"))?.trim();
+                let key   = assign.next().ok_or_else(|| format_err!("Key is not provided"))?.trim();
+                let value = assign.next().ok_or_else(|| format_err!("Value is not provided"))?.trim();
                 match key {
-                    "regexs"        =>
-                        result.regex_list.items.push(value.to_string()),
-                    "cmds"          =>
-                        result.cmd_list.items.push(value.to_string()),
+                    "regexs" => {
+                        result.regex_list.items.push(value.to_string());
+                    }
+                    "cmds"   => {
+                        result.cmd_list.items.push(value.to_string());
+                    }
                     // TODO(#49): cm crashes if current_regex or current_cmd from cm.conf is out-of-bound
                     //   I think we should simply clamp it to the allowed rage
-                    "current_regex" => result.regex_list.cursor_y = value
-                        .parse::<usize>()
-                        .map_err(|_| fail("Not a number"))?,
-                    "current_cmd"   => result.cmd_list.cursor_y = value
-                        .parse::<usize>()
-                        .map_err(|_| fail("Not a number"))?,
-                    _               =>
-                        Err(fail(&format!("Unknown key {}", key))).unwrap(),
+                    "current_regex" => {
+                        result.regex_list.cursor_y = value
+                            .parse()
+                            .map_err(|_| format_err!("Not a number"))?;
+                    }
+                    "current_cmd"   => {
+                        result.cmd_list.cursor_y = value
+                            .parse()
+                            .map_err(|_| format_err!("Not a number"))?;
+                    }
+                    _ => {
+                        return Err(format_err!("Unknown key {}", key).into());
+                    }
                 }
             }
         }
