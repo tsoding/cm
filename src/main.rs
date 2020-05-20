@@ -8,7 +8,7 @@ use std::io::{stdin, Write};
 use std::process::Command;
 use std::ops::Range;
 use std::path::{Path, PathBuf};
-use std::env::var;
+use std::env::var_os;
 
 trait RenderItem {
     fn render(&self, row: Row, cursor_x: usize,
@@ -311,13 +311,19 @@ impl Focus {
     }
 }
 
+fn find_config_home() -> Option<PathBuf> {
+    const CONFIG_FILE_NAME: &str = "cm.conf";
+
+    let path_var = |name| var_os(name).map(PathBuf::from);
+
+    let  xdg_config_dir = || path_var("XDG_CONFIG_HOME");
+    let home_config_dir = || path_var("HOME").map(|p| p.join(".config"));
+
+    xdg_config_dir().or_else(home_config_dir).map(|p| p.join(CONFIG_FILE_NAME))
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
-    let config_path = {
-        const CONFIG_FILE_NAME: &'static str = "cm.conf";
-        let xdg_config_dir = var("XDG_CONFIG_HOME").map(PathBuf::from);
-        let home_config_dir = var("HOME").map(PathBuf::from).map(|x| x.join(".config"));
-        xdg_config_dir.or(home_config_dir).map(|p| p.join(CONFIG_FILE_NAME))?
-    };
+    let config_path = find_config_home().ok_or("Failed to find home for config")?;
 
     let mut profile = if config_path.exists() {
         Profile::from_file(&config_path)?
