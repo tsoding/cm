@@ -10,6 +10,21 @@ use std::ops::Range;
 use std::path::{Path, PathBuf};
 use std::env::var;
 
+#[derive(Copy, Clone)]
+enum Key {
+    Byte(u8),
+    Code(i32),
+}
+
+impl Key {
+    fn getch() -> Self {
+        match ncurses::getch() {
+            x @ 0x00..=0xFF => Key::Byte(x as u8),
+            x               => Key::Code(x),
+        }
+    }
+}
+
 trait RenderItem {
     fn render(&self, row: Row, cursor_x: usize,
               selected: bool, focused: bool);
@@ -44,12 +59,12 @@ impl<Item> ItemList<Item> where Item: RenderItem {
         self.cursor_x += 1;
     }
 
-    fn handle_key(&mut self, key: char) {
+    fn handle_key(&mut self, key: Key) {
         match key {
-            's' => self.down(),
-            'w' => self.up(),
-            'd' => self.right(),
-            'a' => self.left(),
+            Key::Byte(b's') => { self.down(); }
+            Key::Byte(b'w') => { self.up(); }
+            Key::Byte(b'd') => { self.right(); }
+            Key::Byte(b'a') => { self.left(); }
             _ => {}
         }
     }
@@ -274,9 +289,9 @@ impl Default for Profile {
     }
 }
 
-fn handle_line_list_key(line_list: &mut ItemList<Line>, key: char, cmdline: &str) -> Result<(), Box<dyn Error>> {
+fn handle_line_list_key(line_list: &mut ItemList<Line>, key: Key, cmdline: &str) -> Result<(), Box<dyn Error>> {
     match key {
-        '\n' => {
+        Key::Byte(b'\n') => {
             // TODO(#47): endwin() on Enter in LineList looks like a total hack and it's unclear why it even works
             endwin();
             // TODO(#40): shell is not customizable
@@ -288,8 +303,10 @@ fn handle_line_list_key(line_list: &mut ItemList<Line>, key: char, cmdline: &str
                 .spawn()?
                 .wait_with_output()?;
         }
-        key => line_list.handle_key(key)
-    };
+        key => {
+            line_list.handle_key(key);
+        }
+    }
 
     Ok(())
 }
@@ -406,19 +423,21 @@ fn main() -> Result<(), Box<dyn Error>> {
             render_status(h - 1, &cmdline);
         }
         refresh();
-        let key = getch() as u8 as char;
-        match key {
-            'e'  => profile_pane = !profile_pane,
-            'q'  => quit = true,
+
+        match Key::getch() {
+            Key::Byte(b'e')  => { profile_pane = !profile_pane; }
+            Key::Byte(b'q')  => { quit = true; }
             // TODO(#43): cm does not handle Shift+TAB to scroll backwards through the panels
-            '\t' => focus = focus.next(),
-            key  => if !profile_pane {
-                handle_line_list_key(&mut line_list, key, &cmdline)?;
-            } else {
-                match focus {
-                    Focus::LineList  => handle_line_list_key(&mut line_list, key, &cmdline)?,
-                    Focus::RegexList => profile.regex_list.handle_key(key),
-                    Focus::CmdList   => profile.cmd_list.handle_key(key),
+            Key::Byte(b'\t') => { focus = focus.next(); }
+            key => {
+                if !profile_pane {
+                    handle_line_list_key(&mut line_list, key, &cmdline)?;
+                } else {
+                    match focus {
+                        Focus::LineList  => { handle_line_list_key(&mut line_list, key, &cmdline)?; }
+                        Focus::RegexList => { profile.regex_list.handle_key(key); }
+                        Focus::CmdList   => { profile.cmd_list.handle_key(key); }
+                    }
                 }
             }
         }
