@@ -21,6 +21,16 @@ struct ItemList<Item> {
     cursor_y: usize,
 }
 
+impl<T> Default for ItemList<T> {
+    fn default() -> Self {
+        Self {
+            items: Vec::new(),
+            cursor_x: 0,
+            cursor_y: 0,
+        }
+    }
+}
+
 impl<Item> ItemList<Item> where Item: RenderItem {
     fn up(&mut self) {
         if self.cursor_y > 0 {
@@ -171,21 +181,23 @@ struct Row {
     w: usize,
 }
 
+#[derive(Default)]
 struct Profile {
     regex_list: ItemList<String>,
     cmd_list: ItemList<String>,
 }
 
 impl Profile {
-    fn empty() -> Self {
+    fn default_profile() -> Self {
         Self {
-            regex_list: ItemList::<String> {
-                items: vec![],
+            regex_list: ItemList {
+                items: vec![r"^(.*?):(\d+):".to_string()],
                 cursor_x: 0,
                 cursor_y: 0,
             },
-            cmd_list: ItemList::<String> {
-                items: vec![],
+            cmd_list: ItemList {
+                items: vec!["vim +\\2 \\1".to_string(),
+                            "emacs -nw +\\2 \\1".to_string()],
                 cursor_x: 0,
                 cursor_y: 0
             },
@@ -193,7 +205,7 @@ impl Profile {
     }
 
     fn from_file(file_path: &Path) -> Result<Self, Box<dyn Error>> {
-        let mut result = Profile::empty();
+        let mut result = Profile::default();
         let input = read_to_string(file_path)?;
         for (i, line) in input.lines().map(|x| x.trim_start()).enumerate() {
             let fail = |message| {
@@ -256,24 +268,6 @@ impl Profile {
     }
 }
 
-impl Default for Profile {
-    fn default() -> Self {
-        Self {
-            regex_list: ItemList::<String> {
-                items: vec![r"^(.*?):(\d+):".to_string()],
-                cursor_x: 0,
-                cursor_y: 0,
-            },
-            cmd_list: ItemList::<String> {
-                items: vec!["vim +\\2 \\1".to_string(),
-                            "emacs -nw +\\2 \\1".to_string()],
-                cursor_x: 0,
-                cursor_y: 0
-            },
-        }
-    }
-}
-
 fn handle_line_list_key(line_list: &mut ItemList<Line>, key: char, cmdline: &str) -> Result<(), Box<dyn Error>> {
     match key {
         '\n' => {
@@ -322,15 +316,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut profile = if config_path.exists() {
         Profile::from_file(&config_path)?
     } else {
-        Profile::default()
+        Profile::default_profile()
     };
 
     let re = profile.compile_current_regex()?;
-    let mut line_list = ItemList::<Line> {
-        items: Vec::new(),
-        cursor_x: 0,
-        cursor_y: 0,
-    };
+    let mut line_list = ItemList::default();
     let mut line_text: String = String::new();
     let mut focus = Focus::RegexList;
     while stdin().read_line(&mut line_text)? > 0 {
