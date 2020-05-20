@@ -11,8 +11,7 @@ use std::path::{Path, PathBuf};
 use std::env::var;
 
 trait RenderItem {
-    fn render(&self, row: Row, cursor_x: usize,
-              selected: bool, focused: bool);
+    fn render(&self, row: Row, cursor_x: usize, selected: bool, focused: bool);
 }
 
 struct ItemList<Item> {
@@ -64,11 +63,11 @@ impl<Item> ItemList<Item> where Item: RenderItem {
         }
     }
 
-    fn render(&self, Rect {x, y, w, h}: Rect, focused: bool) {
+    fn render(&self, Rect { x, y, w, h }: Rect, focused: bool) {
         if h > 0 {
             // TODO(#16): word wrapping for long lines
             for (i, item) in self.items.iter().skip(self.cursor_y / h * h).enumerate().take_while(|(i, _)| *i < h) {
-                item.render(Row {x: x, y: i + y, w: w}, self.cursor_x,
+                item.render(Row { x, y: i + y, w }, self.cursor_x,
                             i == (self.cursor_y % h),
                             focused);
             }
@@ -81,7 +80,7 @@ impl<Item> ItemList<Item> where Item: RenderItem {
 }
 
 impl RenderItem for String {
-    fn render(&self, Row {x, y, w} : Row, cursor_x: usize, selected: bool, focused: bool) {
+    fn render(&self, Row { x, y, w }: Row, cursor_x: usize, selected: bool, focused: bool) {
         let line_to_render = {
             let mut line_to_render = self
                 .trim_end()
@@ -129,8 +128,8 @@ impl Line {
 }
 
 impl RenderItem for Line {
-    fn render(&self, row : Row, cursor_x: usize, selected: bool, focused: bool) {
-        let Row {x, y, w} = row;
+    fn render(&self, row: Row, cursor_x: usize, selected: bool, focused: bool) {
+        let Row { x, y, w } = row;
         self.text.render(row, cursor_x, selected, focused);
 
         let cap_pair = if selected {
@@ -240,15 +239,15 @@ impl Profile {
 
     fn to_file<F: Write>(&self, stream: &mut F) -> Result<(), Box<dyn Error>> {
         for regex in self.regex_list.items.iter() {
-            write!(stream, "regexs = {}\n", regex)?;
+            writeln!(stream, "regexs = {}", regex)?;
         }
 
         for cmd in self.cmd_list.items.iter() {
-            write!(stream, "cmds = {}\n", cmd)?;
+            writeln!(stream, "cmds = {}", cmd)?;
         }
 
-        write!(stream, "current_regex = {}\n", self.regex_list.cursor_y)?;
-        write!(stream, "current_cmd = {}\n", self.cmd_list.cursor_y)?;
+        writeln!(stream, "current_regex = {}", self.regex_list.cursor_y)?;
+        writeln!(stream, "current_cmd = {}", self.cmd_list.cursor_y)?;
 
         Ok(())
     }
@@ -321,7 +320,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let re = profile.compile_current_regex()?;
     let mut line_list = ItemList::default();
-    let mut line_text: String = String::new();
+    let mut line_text = String::new();
     let mut focus = Focus::RegexList;
     while stdin().read_line(&mut line_text)? > 0 {
         let caps = re.captures_iter(line_text.as_str()).next();
@@ -375,7 +374,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             let working_h = h - 1;
             let list_h = working_h / 3 * 2;
 
-            line_list.render(Rect { x: 0, y: 0, w: w, h: list_h},
+            line_list.render(Rect { x: 0, y: 0, w, h: list_h },
                              focus == Focus::LineList);
             // TODO(#31): no way to switch regex
             // TODO(#32): no way to add new regex
@@ -387,7 +386,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             profile.cmd_list.render(Rect { x: w / 2, y: list_h, w: w - w / 2, h: working_h - list_h},
                                     focus == Focus::CmdList);
         } else {
-            line_list.render(Rect { x: 0, y: 0, w: w, h: h - 1 }, true);
+            line_list.render(Rect { x: 0, y: 0, w, h: h - 1 }, true);
         }
 
         if h <= 1 {
