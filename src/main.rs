@@ -50,21 +50,34 @@ impl<Item> ItemList<Item> where Item: RenderItem {
     }
 
     fn left(&mut self) {
-        if self.cursor_x > 0 {
-            self.cursor_x -= 1;
-        }
+        self.left_n(1);
+    }
+
+    fn left_n(&mut self, n: usize) {
+        self.cursor_x = self.cursor_x.saturating_sub(n);
     }
 
     fn right(&mut self) {
-        self.cursor_x += 1;
+        self.right_n(1);
     }
 
-    fn handle_key(&mut self, key: Key) {
+    fn right_n(&mut self, n: usize) {
+        self.cursor_x = self.cursor_x.saturating_add(n);
+    }
+
+    fn left_home(&mut self) {
+        self.cursor_x = 0;
+    }
+
+    fn handle_key(&mut self, key: Key, window_w: usize) {
         match key {
-            Key::Byte(b's') => { self.down(); }
-            Key::Byte(b'w') => { self.up(); }
-            Key::Byte(b'd') => { self.right(); }
-            Key::Byte(b'a') => { self.left(); }
+            Key::Code(KEY_DOWN)   | Key::Byte(b's') => { self.down(); }
+            Key::Code(KEY_UP)     | Key::Byte(b'w') => { self.up(); }
+            Key::Code(KEY_RIGHT)  | Key::Byte(b'd') => { self.right(); }
+            Key::Code(KEY_LEFT)   | Key::Byte(b'a') => { self.left(); }
+            Key::Code(KEY_SRIGHT) | Key::Byte(b'D') => { self.right_n(window_w / 4); }
+            Key::Code(KEY_SLEFT)  | Key::Byte(b'A') => { self.left_n(window_w / 4); }
+            Key::Code(KEY_HOME)                     => { self.left_home(); }
             _ => {}
         }
     }
@@ -289,9 +302,9 @@ impl Default for Profile {
     }
 }
 
-fn handle_line_list_key(line_list: &mut ItemList<Line>, key: Key, cmdline: &str) -> Result<(), Box<dyn Error>> {
+fn handle_line_list_key(line_list: &mut ItemList<Line>, key: Key, window_w: usize, cmdline: &str) -> Result<(), Box<dyn Error>> {
     match key {
-        Key::Byte(b'\n') => {
+        Key::Byte(b'\n') | Key::Code(KEY_ENTER) => {
             // TODO(#47): endwin() on Enter in LineList looks like a total hack and it's unclear why it even works
             endwin();
             // TODO(#40): shell is not customizable
@@ -304,7 +317,7 @@ fn handle_line_list_key(line_list: &mut ItemList<Line>, key: Key, cmdline: &str)
                 .wait_with_output()?;
         }
         key => {
-            line_list.handle_key(key);
+            line_list.handle_key(key, window_w);
         }
     }
 
@@ -324,6 +337,14 @@ impl Focus {
             Focus::LineList  => Focus::RegexList,
             Focus::RegexList => Focus::CmdList,
             Focus::CmdList   => Focus::LineList,
+        }
+    }
+
+    fn prev(self) -> Self {
+        match self {
+            Focus::LineList  => Focus::CmdList,
+            Focus::RegexList => Focus::LineList,
+            Focus::CmdList   => Focus::RegexList,
         }
     }
 }
@@ -376,6 +397,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     let screen = newterm(None, file, file);
     set_term(screen);
 
+    // enable special keys
+    keypad(stdscr(), true);
+
     start_color();
     init_pair(REGULAR_PAIR, COLOR_WHITE, COLOR_BLACK);
     init_pair(CURSOR_PAIR, COLOR_BLACK, COLOR_WHITE);
@@ -395,6 +419,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             getmaxyx(stdscr(), &mut y, &mut x);
             (x as usize, y as usize)
         };
+        let pane_w = w / 2;
 
         erase();
 
@@ -407,11 +432,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             // TODO(#31): no way to switch regex
             // TODO(#32): no way to add new regex
             // TODO(#51): no way to delete a regex
-            profile.regex_list.render(Rect { x: 0, y: list_h, w: w / 2, h: working_h - list_h},
+            profile.regex_list.render(Rect { x: 0, y: list_h, w: pane_w, h: working_h - list_h },
                                       focus == Focus::RegexList);
             // TODO(#34): no way to add new cmd
             // TODO(#52): no way to delete a cmd
-            profile.cmd_list.render(Rect { x: w / 2, y: list_h, w: w - w / 2, h: working_h - list_h},
+            profile.cmd_list.render(Rect { x: pane_w, y: list_h, w: w - pane_w, h: working_h - list_h },
                                     focus == Focus::CmdList);
         } else {
             line_list.render(Rect { x: 0, y: 0, w: w, h: h - 1 }, true);
@@ -425,18 +450,18 @@ fn main() -> Result<(), Box<dyn Error>> {
         refresh();
 
         match Key::getch() {
-            Key::Byte(b'e')  => { profile_pane = !profile_pane; }
-            Key::Byte(b'q')  => { quit = true; }
-            // TODO(#43): cm does not handle Shift+TAB to scroll backwards through the panels
-            Key::Byte(b'\t') => { focus = focus.next(); }
+            Key::Byte(b'e')     => { profile_pane = !profile_pane; }
+            Key::Byte(b'q')     => { quit = true; }
+            Key::Byte(b'\t')    => { focus = focus.next(); }
+            Key::Code(KEY_BTAB) => { focus = focus.prev(); }
             key => {
                 if !profile_pane {
-                    handle_line_list_key(&mut line_list, key, &cmdline)?;
+                    handle_line_list_key(&mut line_list, key, w, &cmdline)?;
                 } else {
                     match focus {
-                        Focus::LineList  => { handle_line_list_key(&mut line_list, key, &cmdline)?; }
-                        Focus::RegexList => { profile.regex_list.handle_key(key); }
-                        Focus::CmdList   => { profile.cmd_list.handle_key(key); }
+                        Focus::LineList  => { handle_line_list_key(&mut line_list, key, w, &cmdline)?; }
+                        Focus::RegexList => { profile.regex_list.handle_key(key, pane_w); }
+                        Focus::CmdList   => { profile.cmd_list.handle_key(key, pane_w); }
                     }
                 }
             }
