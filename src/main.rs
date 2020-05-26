@@ -9,6 +9,20 @@ use std::process::Command;
 use std::ops::Range;
 use std::path::{Path, PathBuf};
 use std::env::var;
+use std::cmp::{min, max};
+
+const KEY_E      : i32 = 0x65;
+const KEY_Q      : i32 = 0x71;
+const KEY_TAB    : i32 = 0x09;
+const KEY_RETURN : i32 = 0x0a;
+const KEY_S      : i32 = 0x73;
+const KEY_W      : i32 = 0x77;
+const KEY_D      : i32 = 0x64;
+const KEY_A      : i32 = 0x61;
+
+fn clamp<T: Ord>(x: T, low: T, high: T) -> T {
+    min(max(low, x), high)
+}
 
 trait RenderItem {
     fn render(&self, row: Row, cursor_x: usize,
@@ -44,12 +58,18 @@ impl<Item> ItemList<Item> where Item: RenderItem {
         self.cursor_x += 1;
     }
 
-    fn handle_key(&mut self, key: char) {
+    fn delete_current(&mut self) {
+        self.items.remove(self.cursor_y);
+        self.cursor_y = clamp(self.cursor_y, 0, self.items.len() - 1);
+    }
+
+    fn handle_key(&mut self, key: i32) {
         match key {
-            's' => self.down(),
-            'w' => self.up(),
-            'd' => self.right(),
-            'a' => self.left(),
+            KEY_S  => self.down(),
+            KEY_W  => self.up(),
+            KEY_D  => self.right(),
+            KEY_A  => self.left(),
+            KEY_DC => self.delete_current(),
             _ => {}
         }
     }
@@ -274,9 +294,9 @@ impl Default for Profile {
     }
 }
 
-fn handle_line_list_key(line_list: &mut ItemList<Line>, key: char, cmdline: &str) -> Result<(), Box<dyn Error>> {
+fn handle_line_list_key(line_list: &mut ItemList<Line>, key: i32, cmdline: &str) -> Result<(), Box<dyn Error>> {
     match key {
-        '\n' => {
+        KEY_RETURN => {
             // TODO(#47): endwin() on Enter in LineList looks like a total hack and it's unclear why it even works
             endwin();
             // TODO(#40): shell is not customizable
@@ -359,6 +379,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let screen = newterm(None, file, file);
     set_term(screen);
 
+    keypad(stdscr(), true);
+
     start_color();
     init_pair(REGULAR_PAIR, COLOR_WHITE, COLOR_BLACK);
     init_pair(CURSOR_PAIR, COLOR_BLACK, COLOR_WHITE);
@@ -406,13 +428,13 @@ fn main() -> Result<(), Box<dyn Error>> {
             render_status(h - 1, &cmdline);
         }
         refresh();
-        let key = getch() as u8 as char;
+        let key = getch();
         match key {
-            'e'  => profile_pane = !profile_pane,
-            'q'  => quit = true,
+            KEY_E   => profile_pane = !profile_pane,
+            KEY_Q   => quit = true,
             // TODO(#43): cm does not handle Shift+TAB to scroll backwards through the panels
-            '\t' => focus = focus.next(),
-            key  => if !profile_pane {
+            KEY_TAB => focus = focus.next(),
+            key     => if !profile_pane {
                 handle_line_list_key(&mut line_list, key, &cmdline)?;
             } else {
                 match focus {
