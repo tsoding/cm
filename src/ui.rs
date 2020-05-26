@@ -79,11 +79,16 @@ impl<Item> ItemList<Item> where Item: RenderItem {
         }
     }
 
+    pub fn current_row(&self, Rect {x, y, w, h}: Rect) -> Row {
+        Row {x: x, y: self.cursor_y % h + y, w: w}
+    }
+
     pub fn current_item(&self) -> &Item {
         &self.items[self.cursor_y]
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct Rect {
     pub x: usize,
     pub y: usize,
@@ -91,6 +96,7 @@ pub struct Rect {
     pub h: usize,
 }
 
+#[derive(Clone, Copy)]
 pub struct Row {
     pub x: usize,
     pub y: usize,

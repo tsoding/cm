@@ -90,6 +90,7 @@ impl RenderItem for Line {
     }
 }
 
+#[derive(PartialEq)]
 enum StringListState {
     Navigate,
     Editing,
@@ -118,16 +119,26 @@ impl StringList {
 
     fn render(&self, rect: Rect, focused: bool) {
         self.list.render(rect, focused);
+        if self.state == StringListState::Editing {
+            self.edit_field.render(self.list.current_row(rect));
+        }
     }
 
     fn handle_key(&mut self, key: i32) {
         match self.state {
             StringListState::Navigate => match key {
-                KEY_I => unimplemented!(),
+                KEY_I => {
+                    self.list.items.insert(self.list.cursor_y, String::new());
+                    self.edit_field.data.clear();
+                    self.state = StringListState::Editing;
+                },
                 key   => self.list.handle_key(key),
             },
             StringListState::Editing => match key {
-                KEY_RETURN => unimplemented!(),
+                KEY_RETURN => {
+                    self.list.items[self.list.cursor_y] = self.edit_field.data.clone();
+                    self.state = StringListState::Navigate;
+                },
                 key => self.edit_field.handle_key(key)
             }
         }
@@ -342,6 +353,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         erase();
 
+        if h <= 1 {
+            render_status(0, "MAKE THE WINDOW BIGGER YOU FOOL!");
+        } else {
+            render_status(h - 1, &cmdline);
+        }
+
         if profile_pane {
             let working_h = h - 1;
             let list_h = working_h / 3 * 2;
@@ -361,11 +378,6 @@ fn main() -> Result<(), Box<dyn Error>> {
             line_list.render(Rect { x: 0, y: 0, w: w, h: h - 1 }, true);
         }
 
-        if h <= 1 {
-            render_status(0, "MAKE THE WINDOW BIGGER YOU FOOL!");
-        } else {
-            render_status(h - 1, &cmdline);
-        }
         refresh();
         let key = getch();
         match key {
