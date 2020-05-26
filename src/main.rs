@@ -370,7 +370,6 @@ fn main() -> Result<(), Box<dyn Error>> {
             line_list.render(Rect { x: 0, y: 0, w: w, h: list_h},
                              focus == Focus::LineList);
             // TODO(#31): no way to switch regex
-            // TODO(#32): no way to add new regex
             profile.regex_list.render(Rect { x: 0, y: list_h, w: w / 2, h: working_h - list_h},
                                       focus == Focus::RegexList);
             profile.cmd_list.render(Rect { x: w / 2, y: list_h, w: w - w / 2, h: working_h - list_h},
