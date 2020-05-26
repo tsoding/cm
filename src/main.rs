@@ -374,7 +374,6 @@ fn main() -> Result<(), Box<dyn Error>> {
             // TODO(#51): no way to delete a regex
             profile.regex_list.render(Rect { x: 0, y: list_h, w: w / 2, h: working_h - list_h},
                                       focus == Focus::RegexList);
-            // TODO(#34): no way to add new cmd
             profile.cmd_list.render(Rect { x: w / 2, y: list_h, w: w - w / 2, h: working_h - list_h},
                                     focus == Focus::CmdList);
         } else {
