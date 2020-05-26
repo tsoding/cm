@@ -1,3 +1,5 @@
+mod ui;
+
 use libc::*;
 use ncurses::*;
 use regex::Regex;
@@ -9,84 +11,21 @@ use std::process::Command;
 use std::ops::Range;
 use std::path::{Path, PathBuf};
 use std::env::var;
-use std::cmp::{min, max};
+use ui::*;
+use ui::keycodes::*;
 
-const KEY_E      : i32 = 0x65;
-const KEY_Q      : i32 = 0x71;
-const KEY_TAB    : i32 = 0x09;
-const KEY_RETURN : i32 = 0x0a;
-const KEY_S      : i32 = 0x73;
-const KEY_W      : i32 = 0x77;
-const KEY_D      : i32 = 0x64;
-const KEY_A      : i32 = 0x61;
-
-fn clamp<T: Ord>(x: T, low: T, high: T) -> T {
-    min(max(low, x), high)
+#[derive(Debug)]
+struct Line {
+    text: String,
+    caps: Vec<Range<usize>>,
 }
 
-trait RenderItem {
-    fn render(&self, row: Row, cursor_x: usize,
-              selected: bool, focused: bool);
-}
-
-struct ItemList<Item> {
-    items: Vec<Item>,
-    cursor_x: usize,
-    cursor_y: usize,
-}
-
-impl<Item> ItemList<Item> where Item: RenderItem {
-    fn up(&mut self) {
-        if self.cursor_y > 0 {
-            self.cursor_y -= 1
+impl Line {
+    fn from_string(text: &str) -> Self {
+        Self {
+            text: String::from(text),
+            caps: Vec::new(),
         }
-    }
-
-    fn down(&mut self) {
-        if self.cursor_y + 1 < self.items.len() {
-            self.cursor_y += 1;
-        }
-    }
-
-    fn left(&mut self) {
-        if self.cursor_x > 0 {
-            self.cursor_x -= 1;
-        }
-    }
-
-    fn right(&mut self) {
-        self.cursor_x += 1;
-    }
-
-    fn delete_current(&mut self) {
-        self.items.remove(self.cursor_y);
-        self.cursor_y = clamp(self.cursor_y, 0, self.items.len() - 1);
-    }
-
-    fn handle_key(&mut self, key: i32) {
-        match key {
-            KEY_S  => self.down(),
-            KEY_W  => self.up(),
-            KEY_D  => self.right(),
-            KEY_A  => self.left(),
-            KEY_DC => self.delete_current(),
-            _ => {}
-        }
-    }
-
-    fn render(&self, Rect {x, y, w, h}: Rect, focused: bool) {
-        if h > 0 {
-            // TODO(#16): word wrapping for long lines
-            for (i, item) in self.items.iter().skip(self.cursor_y / h * h).enumerate().take_while(|(i, _)| *i < h) {
-                item.render(Row {x: x, y: i + y, w: w}, self.cursor_x,
-                            i == (self.cursor_y % h),
-                            focused);
-            }
-        }
-    }
-
-    fn current_item(&self) -> &Item {
-        &self.items[self.cursor_y]
     }
 }
 
@@ -120,21 +59,6 @@ impl RenderItem for String {
         attron(COLOR_PAIR(pair));
         addstr(&line_to_render);
         attroff(COLOR_PAIR(pair));
-    }
-}
-
-#[derive(Debug)]
-struct Line {
-    text: String,
-    caps: Vec<Range<usize>>,
-}
-
-impl Line {
-    fn from_string(text: &str) -> Self {
-        Self {
-            text: String::from(text),
-            caps: Vec::new(),
-        }
     }
 }
 
@@ -176,19 +100,6 @@ const UNFOCUSED_MATCH_CURSOR_PAIR: i16 = 6;
 fn render_status(y: usize, text: &str) {
     mv(y as i32, 0);
     addstr(text);
-}
-
-struct Rect {
-    x: usize,
-    y: usize,
-    w: usize,
-    h: usize,
-}
-
-struct Row {
-    x: usize,
-    y: usize,
-    w: usize,
 }
 
 struct Profile {
@@ -327,42 +238,6 @@ impl Focus {
             Focus::LineList  => Focus::RegexList,
             Focus::RegexList => Focus::CmdList,
             Focus::CmdList   => Focus::LineList,
-        }
-    }
-}
-
-struct EditField {
-    data : String,
-    cursor_x : usize,
-}
-
-impl EditField {
-    fn render(&self, Row {x, y, w}: Row) {
-        let begin = self.cursor_x / w * w;
-        let end   = usize::min(begin + w, self.data.len());
-        mv(y as i32, x as i32);
-        for _ in 0..w {
-            addstr(" ");
-        }
-        mv(y as i32, x as i32);
-        addstr(&self.data.get(begin..end).unwrap_or(""));
-        mv(y as i32, (x + self.cursor_x % w) as i32);
-    }
-
-    fn handle_key(&mut self, key: i32) {
-        if 32 <= key && key <= 126 {
-            self.data.insert(self.cursor_x, key as u8 as char);
-            self.cursor_x += 1;
-        }
-
-        match key {
-            KEY_RIGHT     if self.cursor_x < self.data.len() => self.cursor_x += 1,
-            KEY_LEFT      if self.cursor_x > 0               => self.cursor_x -= 1,
-            KEY_BACKSPACE if self.cursor_x > 0               => {
-                self.cursor_x -= 1;
-                self.data.remove(self.cursor_x);
-            }
-            _ => {}
         }
     }
 }
