@@ -6,3 +6,4 @@ pub const KEY_S      : i32 = 0x73;
 pub const KEY_W      : i32 = 0x77;
 pub const KEY_D      : i32 = 0x64;
 pub const KEY_A      : i32 = 0x61;
+pub const KEY_I      : i32 = 0x69;

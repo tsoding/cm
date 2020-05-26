@@ -19,6 +19,16 @@ pub struct ItemList<Item> {
     pub cursor_y: usize,
 }
 
+impl<Item> Default for ItemList<Item> {
+    fn default() -> Self {
+        Self {
+            items: Vec::<Item>::new(),
+            cursor_x: 0,
+            cursor_y: 0,
+        }
+    }
+}
+
 impl<Item> ItemList<Item> where Item: RenderItem {
     pub fn up(&mut self) {
         if self.cursor_y > 0 {
@@ -90,6 +100,15 @@ pub struct Row {
 pub struct EditField {
     pub data : String,
     pub cursor_x : usize,
+}
+
+impl Default for EditField {
+    fn default() -> Self {
+        Self {
+            data: String::default(),
+            cursor_x: 0,
+        }
+    }
 }
 
 impl EditField {

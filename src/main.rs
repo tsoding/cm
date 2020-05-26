@@ -90,6 +90,50 @@ impl RenderItem for Line {
     }
 }
 
+enum StringListState {
+    Navigate,
+    Editing,
+}
+
+struct StringList {
+    state      : StringListState,
+    list       : ItemList<String>,
+    edit_field : EditField,
+}
+
+impl Default for StringList {
+    fn default() -> Self {
+        Self {
+            state: StringListState::Navigate,
+            list: ItemList::<String>::default(),
+            edit_field: EditField::default()
+        }
+    }
+}
+
+impl StringList {
+    fn current_item(&self) -> &String {
+        self.list.current_item()
+    }
+
+    fn render(&self, rect: Rect, focused: bool) {
+        self.list.render(rect, focused);
+    }
+
+    fn handle_key(&mut self, key: i32) {
+        match self.state {
+            StringListState::Navigate => match key {
+                KEY_I => unimplemented!(),
+                key   => self.list.handle_key(key),
+            },
+            StringListState::Editing => match key {
+                KEY_RETURN => unimplemented!(),
+                key => self.edit_field.handle_key(key)
+            }
+        }
+    }
+}
+
 const REGULAR_PAIR: i16 = 1;
 const CURSOR_PAIR: i16 = 2;
 const UNFOCUSED_CURSOR_PAIR: i16 = 3;
@@ -103,28 +147,13 @@ fn render_status(y: usize, text: &str) {
 }
 
 struct Profile {
-    regex_list: ItemList<String>,
-    cmd_list: ItemList<String>,
+    regex_list: StringList,
+    cmd_list: StringList,
 }
 
 impl Profile {
-    fn empty() -> Self {
-        Self {
-            regex_list: ItemList::<String> {
-                items: vec![],
-                cursor_x: 0,
-                cursor_y: 0,
-            },
-            cmd_list: ItemList::<String> {
-                items: vec![],
-                cursor_x: 0,
-                cursor_y: 0
-            },
-        }
-    }
-
     fn from_file(file_path: &Path) -> Result<Self, Box<dyn Error>> {
-        let mut result = Profile::empty();
+        let mut result = Profile::default();
         let input = read_to_string(file_path)?;
         for (i, line) in input.lines().map(|x| x.trim_start()).enumerate() {
             let fail = |message| {
@@ -137,15 +166,15 @@ impl Profile {
                 let value = assign.next().ok_or(fail("Value is not provided"))?.trim();
                 match key {
                     "regexs"        =>
-                        result.regex_list.items.push(value.to_string()),
+                        result.regex_list.list.items.push(value.to_string()),
                     "cmds"          =>
-                        result.cmd_list.items.push(value.to_string()),
+                        result.cmd_list.list.items.push(value.to_string()),
                     // TODO(#49): cm crashes if current_regex or current_cmd from cm.conf is out-of-bound
                     //   I think we should simply clamp it to the allowed rage
-                    "current_regex" => result.regex_list.cursor_y = value
+                    "current_regex" => result.regex_list.list.cursor_y = value
                         .parse::<usize>()
                         .map_err(|_| fail("Not a number"))?,
-                    "current_cmd"   => result.cmd_list.cursor_y = value
+                    "current_cmd"   => result.cmd_list.list.cursor_y = value
                         .parse::<usize>()
                         .map_err(|_| fail("Not a number"))?,
                     _               =>
@@ -158,16 +187,16 @@ impl Profile {
     }
 
     fn to_file<F: Write>(&self, stream: &mut F) -> Result<(), Box<dyn Error>> {
-        for regex in self.regex_list.items.iter() {
+        for regex in self.regex_list.list.items.iter() {
             write!(stream, "regexs = {}\n", regex)?;
         }
 
-        for cmd in self.cmd_list.items.iter() {
+        for cmd in self.cmd_list.list.items.iter() {
             write!(stream, "cmds = {}\n", cmd)?;
         }
 
-        write!(stream, "current_regex = {}\n", self.regex_list.cursor_y)?;
-        write!(stream, "current_cmd = {}\n", self.cmd_list.cursor_y)?;
+        write!(stream, "current_regex = {}\n", self.regex_list.list.cursor_y)?;
+        write!(stream, "current_cmd = {}\n", self.cmd_list.list.cursor_y)?;
 
         Ok(())
     }
@@ -185,22 +214,21 @@ impl Profile {
         }
         cmdline
     }
+
+    fn initial() -> Self {
+        let mut result = Self::default();
+        result.regex_list.list.items.push(r"^(.*?):(\d+):".to_string());
+        result.cmd_list.list.items.push("vim +\\2 \\1".to_string());
+        result.cmd_list.list.items.push("emacs -nw +\\2 \\1".to_string());
+        result
+    }
 }
 
 impl Default for Profile {
     fn default() -> Self {
         Self {
-            regex_list: ItemList::<String> {
-                items: vec![r"^(.*?):(\d+):".to_string()],
-                cursor_x: 0,
-                cursor_y: 0,
-            },
-            cmd_list: ItemList::<String> {
-                items: vec!["vim +\\2 \\1".to_string(),
-                            "emacs -nw +\\2 \\1".to_string()],
-                cursor_x: 0,
-                cursor_y: 0
-            },
+            regex_list: StringList::default(),
+            cmd_list: StringList::default(),
         }
     }
 }
@@ -253,7 +281,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut profile = if config_path.exists() {
         Profile::from_file(&config_path)?
     } else {
-        Profile::default()
+        Profile::initial()
     };
 
     let re = profile.compile_current_regex()?;
