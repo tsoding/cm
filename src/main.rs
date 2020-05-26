@@ -132,6 +132,10 @@ impl StringList {
                     self.edit_field.data.clear();
                     self.state = StringListState::Editing;
                 },
+                KEY_F2 => {
+                    self.edit_field.data = self.list.items[self.list.cursor_y].clone();
+                    self.state = StringListState::Editing;
+                },
                 key   => self.list.handle_key(key),
             },
             StringListState::Editing => match key {
