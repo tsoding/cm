@@ -120,7 +120,9 @@ impl StringList {
     fn render(&self, rect: Rect, focused: bool) {
         self.list.render(rect, focused);
         if self.state == StringListState::Editing {
-            self.edit_field.render(self.list.current_row(rect));
+            self.edit_field.render(
+                self.list.current_item(),
+                self.list.current_row(rect));
         }
     }
 
@@ -129,21 +131,20 @@ impl StringList {
             StringListState::Navigate => match key {
                 KEY_I => {
                     self.list.items.insert(self.list.cursor_y, String::new());
-                    self.edit_field.data.clear();
+                    self.edit_field.cursor_x = 0;
                     self.state = StringListState::Editing;
                 },
                 KEY_F2 => {
-                    self.edit_field.data = self.list.items[self.list.cursor_y].clone();
+                    self.edit_field.cursor_x = self.list.current_item().len();
                     self.state = StringListState::Editing;
                 },
                 key   => self.list.handle_key(key),
             },
             StringListState::Editing => match key {
                 KEY_RETURN => {
-                    self.list.items[self.list.cursor_y] = self.edit_field.data.clone();
                     self.state = StringListState::Navigate;
                 },
-                key => self.edit_field.handle_key(key)
+                key => self.edit_field.handle_key(self.list.current_item_mut(), key)
             }
         }
     }

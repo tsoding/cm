@@ -86,6 +86,10 @@ impl<Item> ItemList<Item> where Item: RenderItem {
     pub fn current_item(&self) -> &Item {
         &self.items[self.cursor_y]
     }
+
+    pub fn current_item_mut(&mut self) -> &mut Item {
+        &mut self.items[self.cursor_y]
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -104,44 +108,42 @@ pub struct Row {
 }
 
 pub struct EditField {
-    pub data : String,
     pub cursor_x : usize,
 }
 
 impl Default for EditField {
     fn default() -> Self {
         Self {
-            data: String::default(),
             cursor_x: 0,
         }
     }
 }
 
 impl EditField {
-    pub fn render(&self, Row {x, y, w}: Row) {
+    pub fn render(&self, buffer: &str, Row {x, y, w}: Row) {
         let begin = self.cursor_x / w * w;
-        let end   = usize::min(begin + w, self.data.len());
+        let end   = usize::min(begin + w, buffer.len());
         mv(y as i32, x as i32);
         for _ in 0..w {
             addstr(" ");
         }
         mv(y as i32, x as i32);
-        addstr(&self.data.get(begin..end).unwrap_or(""));
+        addstr(&buffer.get(begin..end).unwrap_or(""));
         mv(y as i32, (x + self.cursor_x % w) as i32);
     }
 
-    pub fn handle_key(&mut self, key: i32) {
+    pub fn handle_key(&mut self, buffer: &mut String, key: i32) {
         if 32 <= key && key <= 126 {
-            self.data.insert(self.cursor_x, key as u8 as char);
+            buffer.insert(self.cursor_x, key as u8 as char);
             self.cursor_x += 1;
         }
 
         match key {
-            KEY_RIGHT     if self.cursor_x < self.data.len() => self.cursor_x += 1,
-            KEY_LEFT      if self.cursor_x > 0               => self.cursor_x -= 1,
-            KEY_BACKSPACE if self.cursor_x > 0               => {
+            KEY_RIGHT     if self.cursor_x < buffer.len() => self.cursor_x += 1,
+            KEY_LEFT      if self.cursor_x > 0            => self.cursor_x -= 1,
+            KEY_BACKSPACE if self.cursor_x > 0            => {
                 self.cursor_x -= 1;
-                self.data.remove(self.cursor_x);
+                buffer.remove(self.cursor_x);
             }
             _ => {}
         }
