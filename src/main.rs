@@ -358,9 +358,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         erase();
 
-        if h <= 1 {
-            render_status(0, "MAKE THE WINDOW BIGGER YOU FOOL!");
-        } else {
+        if h >= 1 {
             render_status(h - 1, &cmdline);
         }
 
