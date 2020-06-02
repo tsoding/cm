@@ -7,3 +7,4 @@ pub const KEY_W      : i32 = 0x77;
 pub const KEY_D      : i32 = 0x64;
 pub const KEY_A      : i32 = 0x61;
 pub const KEY_I      : i32 = 0x69;
+pub const KEY_ESCAPE : i32 = 0x1B;

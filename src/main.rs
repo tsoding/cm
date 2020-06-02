@@ -120,9 +120,7 @@ impl StringList {
     fn render(&self, rect: Rect, focused: bool) {
         self.list.render(rect, focused);
         if self.state == StringListState::Editing {
-            self.edit_field.render(
-                self.list.current_item(),
-                self.list.current_row(rect));
+            self.edit_field.render(self.list.current_row(rect));
         }
     }
 
@@ -131,11 +129,13 @@ impl StringList {
             StringListState::Navigate => match key {
                 KEY_I => {
                     self.list.items.insert(self.list.cursor_y, String::new());
+                    self.edit_field.buffer.clear();
                     self.edit_field.cursor_x = 0;
                     self.state = StringListState::Editing;
                 },
                 KEY_F2 => {
                     self.edit_field.cursor_x = self.list.current_item().len();
+                    self.edit_field.buffer = self.list.current_item().clone();
                     self.state = StringListState::Editing;
                 },
                 key   => self.list.handle_key(key),
@@ -143,8 +143,12 @@ impl StringList {
             StringListState::Editing => match key {
                 KEY_RETURN => {
                     self.state = StringListState::Navigate;
+                    self.list.items[self.list.cursor_y] = self.edit_field.buffer.clone();
                 },
-                key => self.edit_field.handle_key(self.list.current_item_mut(), key)
+                KEY_ESCAPE => {
+                    self.state = StringListState::Navigate;
+                },
+                key => self.edit_field.handle_key(key)
             }
         }
     }
@@ -384,13 +388,15 @@ fn main() -> Result<(), Box<dyn Error>> {
             KEY_Q   => quit = true,
             // TODO(#43): cm does not handle Shift+TAB to scroll backwards through the panels
             KEY_TAB => focus = focus.next(),
-            key     => if !profile_pane {
-                handle_line_list_key(&mut line_list, key, &cmdline)?;
-            } else {
-                match focus {
-                    Focus::LineList  => handle_line_list_key(&mut line_list, key, &cmdline)?,
-                    Focus::RegexList => profile.regex_list.handle_key(key),
-                    Focus::CmdList   => profile.cmd_list.handle_key(key),
+            key     => {
+                if !profile_pane {
+                    handle_line_list_key(&mut line_list, key, &cmdline)?;
+                } else {
+                    match focus {
+                        Focus::LineList  => handle_line_list_key(&mut line_list, key, &cmdline)?,
+                        Focus::RegexList => profile.regex_list.handle_key(key),
+                        Focus::CmdList   => profile.cmd_list.handle_key(key),
+                    }
                 }
             }
         }
