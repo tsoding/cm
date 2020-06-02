@@ -48,14 +48,12 @@ impl RenderItem for String {
 
 struct LineList {
     list  : ItemList<String>,
-    regex : Regex,
 }
 
 impl LineList {
-    fn new (regex : Regex) -> Self {
+    fn new () -> Self {
         Self {
             list: ItemList::<String>::default(),
-            regex: regex,
         }
     }
 
@@ -63,7 +61,7 @@ impl LineList {
         self.list.current_item()
     }
 
-    fn render(&self, rect: Rect, focused: bool) {
+    fn render(&self, rect: Rect, focused: bool, regex_result: &Result<Regex, regex::Error>) {
         self.list.render(rect, focused);
 
         let Rect {x, y, w, h} = rect;
@@ -82,19 +80,21 @@ impl LineList {
                     MATCH_PAIR
                 };
 
-                let caps = self.regex.captures_iter(item).next();
-                for cap in caps {
-                    // NOTE: we are skiping first cap because it contains the
-                    // whole match which is not needed in our case
-                    for mat_opt in cap.iter().skip(1) {
-                        if let Some(mat) = mat_opt {
-                            let start = usize::max(self.list.cursor_x, mat.start());
-                            let end = usize::min(self.list.cursor_x + w, mat.end());
-                            if start != end {
-                                mv((y + i) as i32, (start - self.list.cursor_x + x) as i32);
-                                attron(COLOR_PAIR(cap_pair));
-                                addstr(item.get(start..end).unwrap_or(""));
-                                attroff(COLOR_PAIR(cap_pair));
+                if let Ok(regex) = regex_result {
+                    let caps = regex.captures_iter(item).next();
+                    for cap in caps {
+                        // NOTE: we are skiping first cap because it contains the
+                        // whole match which is not needed in our case
+                        for mat_opt in cap.iter().skip(1) {
+                            if let Some(mat) = mat_opt {
+                                let start = usize::max(self.list.cursor_x, mat.start());
+                                let end = usize::min(self.list.cursor_x + w, mat.end());
+                                if start != end {
+                                    mv((y + i) as i32, (start - self.list.cursor_x + x) as i32);
+                                    attron(COLOR_PAIR(cap_pair));
+                                    addstr(item.get(start..end).unwrap_or(""));
+                                    attroff(COLOR_PAIR(cap_pair));
+                                }
                             }
                         }
                     }
@@ -103,21 +103,23 @@ impl LineList {
         }
     }
 
-    fn handle_key(&mut self, key: i32, cmdline: &str,
+    fn handle_key(&mut self, key: i32, cmdline_result: &Result<String, regex::Error>,
                   global: &mut Global) -> Result<(), Box<dyn Error>> {
         if !global.handle_key(key) {
             match key {
                 KEY_RETURN => {
-                    // TODO(#47): endwin() on Enter in LineList looks like a total hack and it's unclear why it even works
-                    endwin();
-                    // TODO(#40): shell is not customizable
-                    // TODO(#50): cm doesn't say anything if the executed command has failed
-                    Command::new("sh")
-                        .stdin(File::open("/dev/tty")?)
-                        .arg("-c")
-                        .arg(cmdline)
-                        .spawn()?
-                        .wait_with_output()?;
+                    if let Ok(cmdline) = cmdline_result {
+                        // TODO(#47): endwin() on Enter in LineList looks like a total hack and it's unclear why it even works
+                        endwin();
+                        // TODO(#40): shell is not customizable
+                        // TODO(#50): cm doesn't say anything if the executed command has failed
+                        Command::new("sh")
+                            .stdin(File::open("/dev/tty")?)
+                            .arg("-c")
+                            .arg(cmdline)
+                            .spawn()?
+                            .wait_with_output()?;
+                    }
                 }
                 key => self.list.handle_key(key)
             }
@@ -260,7 +262,7 @@ impl Profile {
         Ok(())
     }
 
-    fn compile_current_regex(&self) -> Result<Regex, impl Error> {
+    fn compile_current_regex(&self) -> Result<Regex, regex::Error> {
         Regex::new(self.regex_list.current_item())
     }
 
@@ -348,8 +350,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         Profile::initial()
     };
 
-    let re = profile.compile_current_regex()?;
-    let mut line_list = LineList::new(re);
+    let mut re = profile.compile_current_regex();
+    let mut line_list = LineList::new();
     let mut line_text: String = String::new();
 
     while stdin().read_line(&mut line_text)? > 0 {
@@ -381,8 +383,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         focus: Focus::RegexList,
     };
     while !global.quit {
-        let cmdline = profile.render_cmdline(line_list.current_item(), &line_list.regex);
-
         let (w, h) = {
             let mut x: i32 = 0;
             let mut y: i32 = 0;
@@ -392,8 +392,20 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         erase();
 
+        let cmdline: Result<String, regex::Error> = match &re {
+            Ok(regex) => Ok(profile.render_cmdline(line_list.current_item(), regex)),
+            Err(err) => Err(err.clone())
+        };
+
         if h >= 1 {
-            render_status(h - 1, &cmdline);
+            match &cmdline {
+                Ok(line) =>  {
+                    render_status(h - 1, line);
+                },
+                Err(err) => {
+                    render_status(h - 1, &format!("{}", err));
+                }
+            }
         }
 
         if global.profile_pane {
@@ -401,14 +413,15 @@ fn main() -> Result<(), Box<dyn Error>> {
             let list_h = working_h / 3 * 2;
 
             line_list.render(Rect { x: 0, y: 0, w: w, h: list_h},
-                             global.focus == Focus::LineList);
+                             global.focus == Focus::LineList,
+                             &re);
             // TODO(#31): no way to switch regex
             profile.regex_list.render(Rect { x: 0, y: list_h, w: w / 2, h: working_h - list_h},
                                       global.focus == Focus::RegexList);
             profile.cmd_list.render(Rect { x: w / 2, y: list_h, w: w - w / 2, h: working_h - list_h},
                                     global.focus == Focus::CmdList);
         } else {
-            line_list.render(Rect { x: 0, y: 0, w: w, h: h - 1 }, true);
+            line_list.render(Rect { x: 0, y: 0, w: w, h: h - 1 }, true, &re);
         }
 
         refresh();
@@ -420,7 +433,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         } else {
             match global.focus {
                 Focus::LineList => line_list.handle_key(key, &cmdline, &mut global)?,
-                Focus::RegexList => profile.regex_list.handle_key(key, &mut global),
+                Focus::RegexList => {
+                    profile.regex_list.handle_key(key, &mut global);
+                    re = profile.compile_current_regex();
+                },
                 Focus::CmdList => profile.cmd_list.handle_key(key, &mut global),
             }
         }
