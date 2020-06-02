@@ -187,6 +187,7 @@ impl StringList {
                     self.list.items[self.list.cursor_y] = self.edit_field.buffer.clone();
                 },
                 KEY_ESCAPE => {
+                    // TODO: Escape in editing mode should delete the current element if we are adding a new element
                     self.state = StringListState::Navigate;
                 },
                 key => self.edit_field.handle_key(key)
@@ -406,6 +407,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     render_status(h - 1, line);
                 },
                 Err(err) => {
+                    // TODO: regex compilation error is not very descriptive
                     render_status(h - 1, &format!("{}", err));
                 }
             }
