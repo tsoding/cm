@@ -90,6 +90,76 @@ impl RenderItem for Line {
     }
 }
 
+struct LineList {
+    list  : ItemList<String>,
+    regex : Regex,
+}
+
+impl LineList {
+    fn render(&self, rect: Rect, focused: bool) {
+        self.list.render(rect, focused);
+
+        let Rect {x, y, w, h} = rect;
+        if h > 0 {
+            // TODO(#16): word wrapping for long lines
+            for (i, item) in self.list.items.iter().skip(self.list.cursor_y / h * h).enumerate().take_while(|(i, _)| *i < h) {
+                let selected = i == (self.list.cursor_y % h);
+
+                let cap_pair = if selected {
+                    if focused {
+                        MATCH_CURSOR_PAIR
+                    } else {
+                        UNFOCUSED_MATCH_CURSOR_PAIR
+                    }
+                } else {
+                    MATCH_PAIR
+                };
+
+                let caps = self.regex.captures_iter(item).next();
+                for cap in caps {
+                    // NOTE: we are skiping first cap because it contains the
+                    // whole match which is not needed in our case
+                    for mat_opt in cap.iter().skip(1) {
+                        if let Some(mat) = mat_opt {
+                            let start = usize::max(self.list.cursor_x, mat.start());
+                            let end = usize::min(self.list.cursor_x + w, mat.end());
+                            if start != end {
+                                mv(y as i32, (start - self.list.cursor_x + x) as i32);
+                                attron(COLOR_PAIR(cap_pair));
+                                addstr(item.get(start..end).unwrap_or(""));
+                                attroff(COLOR_PAIR(cap_pair));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fn handle_key(&mut self, key: i32, cmdline: &str,
+                  global: &mut Global) -> Result<(), Box<dyn Error>> {
+        if !global.handle_key(key) {
+            match key {
+                KEY_RETURN => {
+                    // TODO(#47): endwin() on Enter in LineList looks like a total hack and it's unclear why it even works
+                    endwin();
+                    // TODO(#40): shell is not customizable
+                    // TODO(#50): cm doesn't say anything if the executed command has failed
+                    Command::new("sh")
+                        .stdin(File::open("/dev/tty")?)
+                        .arg("-c")
+                        .arg(cmdline)
+                        .spawn()?
+                        .wait_with_output()?;
+                }
+                key => self.list.handle_key(key)
+            }
+        }
+
+        Ok(())
+    }
+}
+
 #[derive(PartialEq)]
 enum StringListState {
     Navigate,
