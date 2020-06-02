@@ -124,21 +124,23 @@ impl StringList {
         }
     }
 
-    fn handle_key(&mut self, key: i32) {
+    fn handle_key(&mut self, key: i32, global: &mut Global) {
         match self.state {
-            StringListState::Navigate => match key {
-                KEY_I => {
-                    self.list.items.insert(self.list.cursor_y, String::new());
-                    self.edit_field.buffer.clear();
-                    self.edit_field.cursor_x = 0;
-                    self.state = StringListState::Editing;
-                },
-                KEY_F2 => {
-                    self.edit_field.cursor_x = self.list.current_item().len();
-                    self.edit_field.buffer = self.list.current_item().clone();
-                    self.state = StringListState::Editing;
-                },
-                key   => self.list.handle_key(key),
+            StringListState::Navigate => if !global.handle_key(key) {
+                match key {
+                    KEY_I => {
+                        self.list.items.insert(self.list.cursor_y, String::new());
+                        self.edit_field.buffer.clear();
+                        self.edit_field.cursor_x = 0;
+                        self.state = StringListState::Editing;
+                    },
+                    KEY_F2 => {
+                        self.edit_field.cursor_x = self.list.current_item().len();
+                        self.edit_field.buffer = self.list.current_item().clone();
+                        self.state = StringListState::Editing;
+                    },
+                    key   => self.list.handle_key(key),
+                }
             },
             StringListState::Editing => match key {
                 KEY_RETURN => {
@@ -253,27 +255,32 @@ impl Default for Profile {
     }
 }
 
-fn handle_line_list_key(line_list: &mut ItemList<Line>, key: i32, cmdline: &str) -> Result<(), Box<dyn Error>> {
-    match key {
-        KEY_RETURN => {
-            // TODO(#47): endwin() on Enter in LineList looks like a total hack and it's unclear why it even works
-            endwin();
-            // TODO(#40): shell is not customizable
-            // TODO(#50): cm doesn't say anything if the executed command has failed
-            Command::new("sh")
-                .stdin(File::open("/dev/tty")?)
-                .arg("-c")
-                .arg(cmdline)
-                .spawn()?
-                .wait_with_output()?;
+fn handle_line_list_key(line_list: &mut ItemList<Line>,
+                        key: i32,
+                        cmdline: &str,
+                        global: &mut Global) -> Result<(), Box<dyn Error>> {
+    if !global.handle_key(key) {
+        match key {
+            KEY_RETURN => {
+                // TODO(#47): endwin() on Enter in LineList looks like a total hack and it's unclear why it even works
+                endwin();
+                // TODO(#40): shell is not customizable
+                // TODO(#50): cm doesn't say anything if the executed command has failed
+                Command::new("sh")
+                    .stdin(File::open("/dev/tty")?)
+                    .arg("-c")
+                    .arg(cmdline)
+                    .spawn()?
+                    .wait_with_output()?;
+            }
+            key => line_list.handle_key(key)
         }
-        key => line_list.handle_key(key)
-    };
+    }
 
     Ok(())
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone, Copy)]
 enum Focus {
     LineList,
     RegexList,
@@ -286,6 +293,23 @@ impl Focus {
             Focus::LineList  => Focus::RegexList,
             Focus::RegexList => Focus::CmdList,
             Focus::CmdList   => Focus::LineList,
+        }
+    }
+}
+
+struct Global {
+    profile_pane : bool,
+    quit         : bool,
+    focus        : Focus,
+}
+
+impl Global {
+    fn handle_key(&mut self, key: i32) -> bool {
+        match key {
+            KEY_E   => {self.profile_pane = !self.profile_pane; true},
+            KEY_Q   => {self.quit = true; true},
+            KEY_TAB => {self.focus = self.focus.next(); true},
+            _       => false,
         }
     }
 }
@@ -311,7 +335,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         cursor_y: 0,
     };
     let mut line_text: String = String::new();
-    let mut focus = Focus::RegexList;
+
     while stdin().read_line(&mut line_text)? > 0 {
         let caps = re.captures_iter(line_text.as_str()).next();
         let mut line = Line::from_string(line_text.as_str());
@@ -348,9 +372,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     init_pair(MATCH_CURSOR_PAIR, COLOR_RED, COLOR_WHITE);
     init_pair(UNFOCUSED_MATCH_CURSOR_PAIR, COLOR_BLACK, COLOR_CYAN);
 
-    let mut quit = false;
-    let mut profile_pane = false;
-    while !quit {
+    let mut global = Global {
+        quit: false,
+        profile_pane: false,
+        focus: Focus::RegexList,
+    };
+    while !global.quit {
         let cmdline = profile.render_cmdline(line_list.current_item());
 
         let (w, h) = {
@@ -366,38 +393,32 @@ fn main() -> Result<(), Box<dyn Error>> {
             render_status(h - 1, &cmdline);
         }
 
-        if profile_pane {
+        if global.profile_pane {
             let working_h = h - 1;
             let list_h = working_h / 3 * 2;
 
             line_list.render(Rect { x: 0, y: 0, w: w, h: list_h},
-                             focus == Focus::LineList);
+                             global.focus == Focus::LineList);
             // TODO(#31): no way to switch regex
             profile.regex_list.render(Rect { x: 0, y: list_h, w: w / 2, h: working_h - list_h},
-                                      focus == Focus::RegexList);
+                                      global.focus == Focus::RegexList);
             profile.cmd_list.render(Rect { x: w / 2, y: list_h, w: w - w / 2, h: working_h - list_h},
-                                    focus == Focus::CmdList);
+                                    global.focus == Focus::CmdList);
         } else {
             line_list.render(Rect { x: 0, y: 0, w: w, h: h - 1 }, true);
         }
 
         refresh();
         let key = getch();
-        match key {
-            KEY_E   => profile_pane = !profile_pane,
-            KEY_Q   => quit = true,
-            // TODO(#43): cm does not handle Shift+TAB to scroll backwards through the panels
-            KEY_TAB => focus = focus.next(),
-            key     => {
-                if !profile_pane {
-                    handle_line_list_key(&mut line_list, key, &cmdline)?;
-                } else {
-                    match focus {
-                        Focus::LineList  => handle_line_list_key(&mut line_list, key, &cmdline)?,
-                        Focus::RegexList => profile.regex_list.handle_key(key),
-                        Focus::CmdList   => profile.cmd_list.handle_key(key),
-                    }
-                }
+
+        // TODO(#43): cm does not handle Shift+TAB to scroll backwards through the panels
+        if !global.profile_pane {
+            handle_line_list_key(&mut line_list, key, &cmdline, &mut global)?;
+        } else {
+            match global.focus {
+                Focus::LineList => handle_line_list_key(&mut line_list, key, &cmdline, &mut global)?,
+                Focus::RegexList => profile.regex_list.handle_key(key, &mut global),
+                Focus::CmdList => profile.cmd_list.handle_key(key, &mut global),
             }
         }
     }
