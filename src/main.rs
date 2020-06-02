@@ -407,7 +407,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     render_status(h - 1, line);
                 },
                 Err(err) => {
-                    // TODO: regex compilation error is not very descriptive
+                    // TODO(#68): regex compilation error is not very descriptive
                     render_status(h - 1, &format!("{}", err));
                 }
             }
