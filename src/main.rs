@@ -187,7 +187,7 @@ impl StringList {
                     self.list.items[self.list.cursor_y] = self.edit_field.buffer.clone();
                 },
                 KEY_ESCAPE => {
-                    // TODO: Escape in editing mode should delete the current element if we are adding a new element
+                    // TODO(#67): Escape in editing mode should delete the current element if we are adding a new element
                     self.state = StringListState::Navigate;
                 },
                 key => self.edit_field.handle_key(key)
