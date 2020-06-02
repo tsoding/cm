@@ -263,7 +263,10 @@ impl Profile {
     }
 
     fn compile_current_regex(&self) -> Result<Regex, regex::Error> {
-        Regex::new(self.regex_list.current_item())
+        match self.regex_list.state {
+            StringListState::Navigate => Regex::new(self.regex_list.current_item()),
+            StringListState::Editing => Regex::new(&self.regex_list.edit_field.buffer),
+        }
     }
 
     fn render_cmdline(&self, line: &str, regex: &Regex) -> String {
