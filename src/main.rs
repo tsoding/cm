@@ -8,26 +8,10 @@ use std::ffi::CString;
 use std::fs::{File, read_to_string, create_dir_all};
 use std::io::{stdin, Write};
 use std::process::Command;
-use std::ops::Range;
 use std::path::{Path, PathBuf};
 use std::env::var;
 use ui::*;
 use ui::keycodes::*;
-
-#[derive(Debug)]
-struct Line {
-    text: String,
-    caps: Vec<Range<usize>>,
-}
-
-impl Line {
-    fn from_string(text: &str) -> Self {
-        Self {
-            text: String::from(text),
-            caps: Vec::new(),
-        }
-    }
-}
 
 impl RenderItem for String {
     fn render(&self, Row {x, y, w} : Row, cursor_x: usize, selected: bool, focused: bool) {
@@ -62,31 +46,86 @@ impl RenderItem for String {
     }
 }
 
-impl RenderItem for Line {
-    fn render(&self, row : Row, cursor_x: usize, selected: bool, focused: bool) {
-        let Row {x, y, w} = row;
-        self.text.render(row, cursor_x, selected, focused);
+struct LineList {
+    list  : ItemList<String>,
+}
 
-        let cap_pair = if selected {
-            if focused {
-                MATCH_CURSOR_PAIR
-            } else {
-                UNFOCUSED_MATCH_CURSOR_PAIR
-            }
-        } else {
-            MATCH_PAIR
-        };
+impl LineList {
+    fn new () -> Self {
+        Self {
+            list: ItemList::<String>::default(),
+        }
+    }
 
-        for cap in &self.caps {
-            let start = usize::max(cursor_x, cap.start);
-            let end = usize::min(cursor_x + w, cap.end);
-            if start != end {
-                mv(y as i32, (start - cursor_x + x) as i32);
-                attron(COLOR_PAIR(cap_pair));
-                addstr(self.text.get(start..end).unwrap_or(""));
-                attroff(COLOR_PAIR(cap_pair));
+    fn current_item(&self) -> &str {
+        self.list.current_item()
+    }
+
+    fn render(&self, rect: Rect, focused: bool, regex_result: &Result<Regex, regex::Error>) {
+        self.list.render(rect, focused);
+
+        let Rect {x, y, w, h} = rect;
+        if h > 0 {
+            // TODO(#16): word wrapping for long lines
+            for (i, item) in self.list.items.iter().skip(self.list.cursor_y / h * h).enumerate().take_while(|(i, _)| *i < h) {
+                let selected = i == (self.list.cursor_y % h);
+
+                let cap_pair = if selected {
+                    if focused {
+                        MATCH_CURSOR_PAIR
+                    } else {
+                        UNFOCUSED_MATCH_CURSOR_PAIR
+                    }
+                } else {
+                    MATCH_PAIR
+                };
+
+                if let Ok(regex) = regex_result {
+                    let caps = regex.captures_iter(item).next();
+                    for cap in caps {
+                        // NOTE: we are skiping first cap because it contains the
+                        // whole match which is not needed in our case
+                        for mat_opt in cap.iter().skip(1) {
+                            if let Some(mat) = mat_opt {
+                                let start = usize::max(self.list.cursor_x, mat.start());
+                                let end = usize::min(self.list.cursor_x + w, mat.end());
+                                if start != end {
+                                    mv((y + i) as i32, (start - self.list.cursor_x + x) as i32);
+                                    attron(COLOR_PAIR(cap_pair));
+                                    addstr(item.get(start..end).unwrap_or(""));
+                                    attroff(COLOR_PAIR(cap_pair));
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
+    }
+
+    fn handle_key(&mut self, key: i32, cmdline_result: &Result<String, regex::Error>,
+                  global: &mut Global) -> Result<(), Box<dyn Error>> {
+        if !global.handle_key(key) {
+            match key {
+                KEY_RETURN => {
+                    if let Ok(cmdline) = cmdline_result {
+                        // TODO(#47): endwin() on Enter in LineList looks like a total hack and it's unclear why it even works
+                        endwin();
+                        // TODO(#40): shell is not customizable
+                        // TODO(#50): cm doesn't say anything if the executed command has failed
+                        Command::new("sh")
+                            .stdin(File::open("/dev/tty")?)
+                            .arg("-c")
+                            .arg(cmdline)
+                            .spawn()?
+                            .wait_with_output()?;
+                    }
+                }
+                key => self.list.handle_key(key)
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -148,6 +187,7 @@ impl StringList {
                     self.list.items[self.list.cursor_y] = self.edit_field.buffer.clone();
                 },
                 KEY_ESCAPE => {
+                    // TODO(#67): Escape in editing mode should delete the current element if we are adding a new element
                     self.state = StringListState::Navigate;
                 },
                 key => self.edit_field.handle_key(key)
@@ -223,16 +263,27 @@ impl Profile {
         Ok(())
     }
 
-    fn compile_current_regex(&self) -> Result<Regex, impl Error> {
-        Regex::new(self.regex_list.current_item())
+    fn compile_current_regex(&self) -> Result<Regex, regex::Error> {
+        match self.regex_list.state {
+            StringListState::Navigate => Regex::new(self.regex_list.current_item()),
+            StringListState::Editing => Regex::new(&self.regex_list.edit_field.buffer),
+        }
     }
 
-    fn render_cmdline(&self, line: &Line) -> String {
+    fn render_cmdline(&self, line: &str, regex: &Regex) -> String {
         let mut cmdline = self.cmd_list.current_item().clone();
-        for (i, cap) in line.caps.iter().enumerate() {
-            cmdline = cmdline.replace(
-                format!("\\{}", i + 1).as_str(),
-                line.text.get(cap.clone()).unwrap_or(""))
+
+        let caps = regex.captures_iter(line).next();
+        for cap in caps {
+            // NOTE: we are skiping first cap because it contains the
+            // whole match which is not needed in our case
+            for (i, mat_opt) in cap.iter().skip(1).enumerate() {
+                if let Some(mat) = mat_opt {
+                    cmdline = cmdline.replace(
+                        format!("\\{}", i + 1).as_str(),
+                        line.get(mat.start()..mat.end()).unwrap_or(""))
+                }
+            }
         }
         cmdline
     }
@@ -253,31 +304,6 @@ impl Default for Profile {
             cmd_list: StringList::default(),
         }
     }
-}
-
-fn handle_line_list_key(line_list: &mut ItemList<Line>,
-                        key: i32,
-                        cmdline: &str,
-                        global: &mut Global) -> Result<(), Box<dyn Error>> {
-    if !global.handle_key(key) {
-        match key {
-            KEY_RETURN => {
-                // TODO(#47): endwin() on Enter in LineList looks like a total hack and it's unclear why it even works
-                endwin();
-                // TODO(#40): shell is not customizable
-                // TODO(#50): cm doesn't say anything if the executed command has failed
-                Command::new("sh")
-                    .stdin(File::open("/dev/tty")?)
-                    .arg("-c")
-                    .arg(cmdline)
-                    .spawn()?
-                    .wait_with_output()?;
-            }
-            key => line_list.handle_key(key)
-        }
-    }
-
-    Ok(())
 }
 
 #[derive(PartialEq, Clone, Copy)]
@@ -328,29 +354,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         Profile::initial()
     };
 
-    let re = profile.compile_current_regex()?;
-    let mut line_list = ItemList::<Line> {
-        items: Vec::new(),
-        cursor_x: 0,
-        cursor_y: 0,
-    };
+    let mut re = profile.compile_current_regex();
+    let mut line_list = LineList::new();
     let mut line_text: String = String::new();
 
     while stdin().read_line(&mut line_text)? > 0 {
-        let caps = re.captures_iter(line_text.as_str()).next();
-        let mut line = Line::from_string(line_text.as_str());
-
-        for cap in caps {
-            // NOTE: we are skiping first cap because it contains the
-            // whole match which is not needed in our case
-            for mat_opt in cap.iter().skip(1) {
-                if let Some(mat) = mat_opt {
-                    line.caps.push(mat.into())
-                }
-            }
-        }
-
-        line_list.items.push(line);
+        line_list.list.items.push(line_text.clone());
         line_text.clear();
     }
 
@@ -378,8 +387,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         focus: Focus::RegexList,
     };
     while !global.quit {
-        let cmdline = profile.render_cmdline(line_list.current_item());
-
         let (w, h) = {
             let mut x: i32 = 0;
             let mut y: i32 = 0;
@@ -389,8 +396,21 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         erase();
 
+        let cmdline: Result<String, regex::Error> = match &re {
+            Ok(regex) => Ok(profile.render_cmdline(line_list.current_item(), regex)),
+            Err(err) => Err(err.clone())
+        };
+
         if h >= 1 {
-            render_status(h - 1, &cmdline);
+            match &cmdline {
+                Ok(line) =>  {
+                    render_status(h - 1, line);
+                },
+                Err(err) => {
+                    // TODO(#68): regex compilation error is not very descriptive
+                    render_status(h - 1, &format!("{}", err));
+                }
+            }
         }
 
         if global.profile_pane {
@@ -398,14 +418,15 @@ fn main() -> Result<(), Box<dyn Error>> {
             let list_h = working_h / 3 * 2;
 
             line_list.render(Rect { x: 0, y: 0, w: w, h: list_h},
-                             global.focus == Focus::LineList);
+                             global.focus == Focus::LineList,
+                             &re);
             // TODO(#31): no way to switch regex
             profile.regex_list.render(Rect { x: 0, y: list_h, w: w / 2, h: working_h - list_h},
                                       global.focus == Focus::RegexList);
             profile.cmd_list.render(Rect { x: w / 2, y: list_h, w: w - w / 2, h: working_h - list_h},
                                     global.focus == Focus::CmdList);
         } else {
-            line_list.render(Rect { x: 0, y: 0, w: w, h: h - 1 }, true);
+            line_list.render(Rect { x: 0, y: 0, w: w, h: h - 1 }, true, &re);
         }
 
         refresh();
@@ -413,11 +434,14 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         // TODO(#43): cm does not handle Shift+TAB to scroll backwards through the panels
         if !global.profile_pane {
-            handle_line_list_key(&mut line_list, key, &cmdline, &mut global)?;
+            line_list.handle_key(key, &cmdline, &mut global)?;
         } else {
             match global.focus {
-                Focus::LineList => handle_line_list_key(&mut line_list, key, &cmdline, &mut global)?,
-                Focus::RegexList => profile.regex_list.handle_key(key, &mut global),
+                Focus::LineList => line_list.handle_key(key, &cmdline, &mut global)?,
+                Focus::RegexList => {
+                    profile.regex_list.handle_key(key, &mut global);
+                    re = profile.compile_current_regex();
+                },
                 Focus::CmdList => profile.cmd_list.handle_key(key, &mut global),
             }
         }
