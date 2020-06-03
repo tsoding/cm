@@ -19,17 +19,15 @@ pub struct ItemList<Item> {
     pub cursor_y: usize,
 }
 
-impl<Item> Default for ItemList<Item> {
-    fn default() -> Self {
+impl<Item> ItemList<Item> where Item: RenderItem {
+    pub fn new() -> Self {
         Self {
             items: Vec::<Item>::new(),
             cursor_x: 0,
             cursor_y: 0,
         }
     }
-}
 
-impl<Item> ItemList<Item> where Item: RenderItem {
     pub fn up(&mut self) {
         if self.cursor_y > 0 {
             self.cursor_y -= 1
@@ -108,16 +106,14 @@ pub struct EditField {
     pub buffer : String,
 }
 
-impl Default for EditField {
-    fn default() -> Self {
+impl EditField {
+    pub fn new() -> Self {
         Self {
             cursor_x: 0,
             buffer: String::new(),
         }
     }
-}
 
-impl EditField {
     pub fn render(&self, Row {x, y, w}: Row) {
         let begin = self.cursor_x / w * w;
         let end   = usize::min(begin + w, self.buffer.len());
