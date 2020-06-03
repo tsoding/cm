@@ -53,7 +53,7 @@ struct LineList {
 impl LineList {
     fn new () -> Self {
         Self {
-            list: ItemList::<String>::default(),
+            list: ItemList::<String>::new(),
         }
     }
 
@@ -141,17 +141,15 @@ struct StringList {
     edit_field : EditField,
 }
 
-impl Default for StringList {
-    fn default() -> Self {
+impl StringList {
+    fn new() -> Self {
         Self {
             state: StringListState::Navigate,
-            list: ItemList::<String>::default(),
-            edit_field: EditField::default()
+            list: ItemList::<String>::new(),
+            edit_field: EditField::new()
         }
     }
-}
 
-impl StringList {
     fn current_item(&self) -> &String {
         self.list.current_item()
     }
@@ -214,8 +212,15 @@ struct Profile {
 }
 
 impl Profile {
+    fn new() -> Self {
+        Self {
+            regex_list: StringList::new(),
+            cmd_list: StringList::new(),
+        }
+    }
+
     fn from_file(file_path: &Path) -> Result<Self, Box<dyn Error>> {
-        let mut result = Profile::default();
+        let mut result = Profile::new();
         let input = read_to_string(file_path)?;
         for (i, line) in input.lines().map(|x| x.trim_start()).enumerate() {
             let fail = |message| {
@@ -289,20 +294,11 @@ impl Profile {
     }
 
     fn initial() -> Self {
-        let mut result = Self::default();
+        let mut result = Self::new();
         result.regex_list.list.items.push(r"^(.*?):(\d+):".to_string());
         result.cmd_list.list.items.push("vim +\\2 \\1".to_string());
         result.cmd_list.list.items.push("emacs -nw +\\2 \\1".to_string());
         result
-    }
-}
-
-impl Default for Profile {
-    fn default() -> Self {
-        Self {
-            regex_list: StringList::default(),
-            cmd_list: StringList::default(),
-        }
     }
 }
 
