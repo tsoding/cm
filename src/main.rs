@@ -119,7 +119,6 @@ impl LineList {
                     if let Ok(cmdline) = cmdline_result {
                         // TODO(#47): endwin() on Enter in LineList looks like a total hack and it's unclear why it even works
                         endwin();
-                        // TODO(#40): shell is not customizable
                         // TODO(#50): cm doesn't say anything if the executed command has failed
                         let shell = profile.shell.as_ref();
                         Command::new(shell.unwrap_or(&"sh".to_string()))
