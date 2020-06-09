@@ -15,3 +15,8 @@ $ grep -rn 'String' src/ | cargo run
 ```
 
 [compilation-mode]: https://www.gnu.org/software/emacs/manual/html_node/emacs/Compilation-Mode.html
+
+## Examples
+
+**Fixing compilation errors**
+[![asciicast](https://asciinema.org/a/337846.svg)](https://asciinema.org/a/337846)
