@@ -385,6 +385,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         line_text.clear();
     }
 
+    if line_list.list.items.len() == 0 {
+      return Err(Box::<dyn Error>::from("No input provided!"));
+    }
+
     // NOTE: stolen from https://stackoverflow.com/a/44884859
     // TODO(#3): the terminal redirection is too hacky
     let tty_path = CString::new("/dev/tty")?;
