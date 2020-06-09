@@ -140,13 +140,13 @@ impl LineList {
 #[derive(PartialEq)]
 enum StringListState {
     Navigate,
-    Editing,
+    Editing { new: bool },
 }
 
 struct StringList {
-    state      : StringListState,
-    list       : ItemList<String>,
-    edit_field : EditField,
+    state           : StringListState,
+    list            : ItemList<String>,
+    edit_field      : EditField,
 }
 
 impl StringList {
@@ -164,7 +164,7 @@ impl StringList {
 
     fn render(&self, rect: Rect, focused: bool) {
         self.list.render(rect, focused);
-        if self.state == StringListState::Editing {
+        if let StringListState::Editing {..} = self.state {
             self.edit_field.render(self.list.current_row(rect));
         }
     }
@@ -177,24 +177,26 @@ impl StringList {
                         self.list.items.insert(self.list.cursor_y, String::new());
                         self.edit_field.buffer.clear();
                         self.edit_field.cursor_x = 0;
-                        self.state = StringListState::Editing;
+                        self.state = StringListState::Editing { new: true };
                     },
                     KEY_F2 => {
                         self.edit_field.cursor_x = self.list.current_item().len();
                         self.edit_field.buffer = self.list.current_item().clone();
-                        self.state = StringListState::Editing;
+                        self.state = StringListState::Editing { new: false };
                     },
                     key   => self.list.handle_key(key),
                 }
             },
-            StringListState::Editing => match key {
+            StringListState::Editing { new } => match key {
                 KEY_RETURN => {
                     self.state = StringListState::Navigate;
                     self.list.items[self.list.cursor_y] = self.edit_field.buffer.clone();
                 },
                 KEY_ESCAPE => {
-                    // TODO(#67): Escape in editing mode should delete the current element if we are adding a new element
                     self.state = StringListState::Navigate;
+                    if new {
+                        self.list.delete_current()
+                    }
                 },
                 key => self.edit_field.handle_key(key)
             }
@@ -292,14 +294,14 @@ impl Profile {
     fn compile_current_regex(&self) -> Result<Regex, pcre2::Error> {
         match self.regex_list.state {
             StringListState::Navigate => Regex::new(self.regex_list.current_item()),
-            StringListState::Editing => Regex::new(&self.regex_list.edit_field.buffer),
+            StringListState::Editing {..} => Regex::new(&self.regex_list.edit_field.buffer),
         }
     }
 
     fn render_cmdline(&self, line: &str, regex: &Regex) -> String {
         let mut cmdline = match self.cmd_list.state {
             StringListState::Navigate => self.cmd_list.current_item().clone(),
-            StringListState::Editing =>  self.cmd_list.edit_field.buffer.clone(),
+            StringListState::Editing {..} =>  self.cmd_list.edit_field.buffer.clone(),
         };
 
         let cap_mats = regex.captures_iter(line.as_bytes()).next();
