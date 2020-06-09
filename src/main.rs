@@ -200,10 +200,23 @@ const UNFOCUSED_CURSOR_PAIR: i16 = 3;
 const MATCH_PAIR: i16 = 4;
 const MATCH_CURSOR_PAIR: i16 = 5;
 const UNFOCUSED_MATCH_CURSOR_PAIR: i16 = 6;
+const STATUS_ERROR_PAIR: i16 = 7;
 
-fn render_status(y: usize, text: &str) {
+#[derive(Copy, Clone)]
+enum Status {
+    Info,
+    Error
+}
+
+fn render_status(status: Status, y: usize, text: &str) {
+    let pair = match status {
+        Status::Info => REGULAR_PAIR,
+        Status::Error => STATUS_ERROR_PAIR,
+    };
+    attron(COLOR_PAIR(pair));
     mv(y as i32, 0);
     addstr(text);
+    attroff(COLOR_PAIR(pair));
 }
 
 struct Profile {
@@ -379,6 +392,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     init_pair(MATCH_PAIR, COLOR_YELLOW, COLOR_BLACK);
     init_pair(MATCH_CURSOR_PAIR, COLOR_RED, COLOR_WHITE);
     init_pair(UNFOCUSED_MATCH_CURSOR_PAIR, COLOR_BLACK, COLOR_CYAN);
+    init_pair(STATUS_ERROR_PAIR, COLOR_RED, COLOR_BLACK);
 
     let mut global = Global {
         quit: false,
@@ -403,12 +417,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         if h >= 1 {
             match &cmdline {
                 Ok(line) =>  {
-                    render_status(h - 1, line);
+                    render_status(Status::Info, h - 1, line);
                 },
-                Err(err) => {
+                Err(_) => {
                     // TODO(#68): regex compilation error is not very descriptive
-                    render_status(h - 1, &format!("{}", err));
-                }
+                    render_status(Status::Error, h - 1, "regex compilation error");
+                },
             }
         }
 
