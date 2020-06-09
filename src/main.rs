@@ -428,7 +428,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     render_status(Status::Info, h - 1, line);
                 },
                 Err(err) => {
-                    // TODO: highlight the place where regex failed in regex_list
+                    // TODO(#73): highlight the place where regex failed in regex_list
                     render_status(Status::Error, h - 1, &err.to_string());
                 },
             }
