@@ -2,7 +2,7 @@ mod ui;
 
 use libc::*;
 use ncurses::*;
-use regex::Regex;
+use pcre2::bytes::Regex;
 use std::error::Error;
 use std::ffi::CString;
 use std::fs::{File, read_to_string, create_dir_all};
@@ -61,7 +61,7 @@ impl LineList {
         self.list.current_item()
     }
 
-    fn render(&self, rect: Rect, focused: bool, regex_result: &Result<Regex, regex::Error>) {
+    fn render(&self, rect: Rect, focused: bool, regex_result: &Result<Regex, pcre2::Error>) {
         self.list.render(rect, focused);
 
         let Rect {x, y, w, h} = rect;
@@ -81,19 +81,27 @@ impl LineList {
                 };
 
                 if let Ok(regex) = regex_result {
-                    let caps = regex.captures_iter(item).next();
-                    for cap in caps {
-                        // NOTE: we are skiping first cap because it contains the
-                        // whole match which is not needed in our case
-                        for mat_opt in cap.iter().skip(1) {
-                            if let Some(mat) = mat_opt {
-                                let start = usize::max(self.list.cursor_x, mat.start());
-                                let end = usize::min(self.list.cursor_x + w, mat.end());
-                                if start != end {
-                                    mv((y + i) as i32, (start - self.list.cursor_x + x) as i32);
-                                    attron(COLOR_PAIR(cap_pair));
-                                    addstr(item.get(start..end).unwrap_or(""));
-                                    attroff(COLOR_PAIR(cap_pair));
+                    // NOTE: we are ignoring any further potential
+                    // capture matches (I don't like this term but
+                    // that's what PCRE2 lib is calling it). For no
+                    // particular reason. Just to simplify the
+                    // implementation. Maybe in the future it will
+                    // make sense.
+                    let cap_mats = regex.captures_iter(item.as_bytes()).next();
+                    for cap_mat in cap_mats {
+                        if let Ok(caps) = cap_mat {
+                            // NOTE: we are skiping first cap because it contains the
+                            // whole match which is not needed in our case
+                            for j in 1..caps.len() {
+                                if let Some(mat) = caps.get(j) {
+                                    let start = usize::max(self.list.cursor_x, mat.start());
+                                    let end = usize::min(self.list.cursor_x + w, mat.end());
+                                    if start != end {
+                                        mv((y + i) as i32, (start - self.list.cursor_x + x) as i32);
+                                        attron(COLOR_PAIR(cap_pair));
+                                        addstr(item.get(start..end).unwrap_or(""));
+                                        attroff(COLOR_PAIR(cap_pair));
+                                    }
                                 }
                             }
                         }
@@ -103,7 +111,7 @@ impl LineList {
         }
     }
 
-    fn handle_key(&mut self, key: i32, cmdline_result: &Result<String, regex::Error>,
+    fn handle_key(&mut self, key: i32, cmdline_result: &Result<String, pcre2::Error>,
                   global: &mut Global) -> Result<(), Box<dyn Error>> {
         if !global.handle_key(key) {
             match key {
@@ -200,10 +208,23 @@ const UNFOCUSED_CURSOR_PAIR: i16 = 3;
 const MATCH_PAIR: i16 = 4;
 const MATCH_CURSOR_PAIR: i16 = 5;
 const UNFOCUSED_MATCH_CURSOR_PAIR: i16 = 6;
+const STATUS_ERROR_PAIR: i16 = 7;
 
-fn render_status(y: usize, text: &str) {
+#[derive(Copy, Clone)]
+enum Status {
+    Info,
+    Error
+}
+
+fn render_status(status: Status, y: usize, text: &str) {
+    let pair = match status {
+        Status::Info => REGULAR_PAIR,
+        Status::Error => STATUS_ERROR_PAIR,
+    };
+    attron(COLOR_PAIR(pair));
     mv(y as i32, 0);
     addstr(text);
+    attroff(COLOR_PAIR(pair));
 }
 
 struct Profile {
@@ -268,7 +289,7 @@ impl Profile {
         Ok(())
     }
 
-    fn compile_current_regex(&self) -> Result<Regex, regex::Error> {
+    fn compile_current_regex(&self) -> Result<Regex, pcre2::Error> {
         match self.regex_list.state {
             StringListState::Navigate => Regex::new(self.regex_list.current_item()),
             StringListState::Editing => Regex::new(&self.regex_list.edit_field.buffer),
@@ -281,15 +302,15 @@ impl Profile {
             StringListState::Editing =>  self.cmd_list.edit_field.buffer.clone(),
         };
 
-        let caps = regex.captures_iter(line).next();
-        for cap in caps {
-            // NOTE: we are skiping first cap because it contains the
-            // whole match which is not needed in our case
-            for (i, mat_opt) in cap.iter().skip(1).enumerate() {
-                if let Some(mat) = mat_opt {
-                    cmdline = cmdline.replace(
-                        format!("\\{}", i + 1).as_str(),
-                        line.get(mat.start()..mat.end()).unwrap_or(""))
+        let cap_mats = regex.captures_iter(line.as_bytes()).next();
+        for cap_mat in cap_mats {
+            if let Ok(caps) = cap_mat {
+                for i in 1..caps.len() {
+                    if let Some(mat) = caps.get(i) {
+                        cmdline = cmdline.replace(
+                            format!("\\{}", i).as_str(),
+                            line.get(mat.start()..mat.end()).unwrap_or(""))
+                    }
                 }
             }
         }
@@ -379,6 +400,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     init_pair(MATCH_PAIR, COLOR_YELLOW, COLOR_BLACK);
     init_pair(MATCH_CURSOR_PAIR, COLOR_RED, COLOR_WHITE);
     init_pair(UNFOCUSED_MATCH_CURSOR_PAIR, COLOR_BLACK, COLOR_CYAN);
+    init_pair(STATUS_ERROR_PAIR, COLOR_RED, COLOR_BLACK);
 
     let mut global = Global {
         quit: false,
@@ -395,7 +417,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         erase();
 
-        let cmdline: Result<String, regex::Error> = match &re {
+        let cmdline: Result<String, pcre2::Error> = match &re {
             Ok(regex) => Ok(profile.render_cmdline(line_list.current_item(), regex)),
             Err(err) => Err(err.clone())
         };
@@ -403,12 +425,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         if h >= 1 {
             match &cmdline {
                 Ok(line) =>  {
-                    render_status(h - 1, line);
+                    render_status(Status::Info, h - 1, line);
                 },
                 Err(err) => {
-                    // TODO(#68): regex compilation error is not very descriptive
-                    render_status(h - 1, &format!("{}", err));
-                }
+                    // TODO(#73): highlight the place where regex failed in regex_list
+                    render_status(Status::Error, h - 1, &err.to_string());
+                },
             }
         }
 

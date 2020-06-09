@@ -9,4 +9,4 @@ edition = "2018"
 [dependencies]
 ncurses = "5.99.0"
 libc = "0.2.69"
-regex = "1"
+pcre2 = "0.2"
