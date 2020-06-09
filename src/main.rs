@@ -276,7 +276,10 @@ impl Profile {
     }
 
     fn render_cmdline(&self, line: &str, regex: &Regex) -> String {
-        let mut cmdline = self.cmd_list.current_item().clone();
+        let mut cmdline = match self.cmd_list.state {
+            StringListState::Navigate => self.cmd_list.current_item().clone(),
+            StringListState::Editing =>  self.cmd_list.edit_field.buffer.clone(),
+        };
 
         let caps = regex.captures_iter(line).next();
         for cap in caps {
