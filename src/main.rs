@@ -280,12 +280,12 @@ impl Profile {
 
         // NOTE: regex_count-1 converts value from count to 0-based index
         if result.regex_list.list.cursor_y > regex_count-1 {
-            return Err(Box::<dyn Error>::from(format!("{}: current_regex is out of bounds!", file_path.display())));
+            result.regex_list.list.cursor_y = regex_count-1;
         }
 
         // NOTE: cmd_count-1 converts value from count to 0-based index
         if result.cmd_list.list.cursor_y > cmd_count-1 {
-            return Err(Box::<dyn Error>::from(format!("{}: current_cmd is out of bounds!", file_path.display())));
+            result.cmd_list.list.cursor_y = cmd_count-1;
         }
 
         Ok(result)
