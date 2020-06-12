@@ -112,16 +112,16 @@ impl LineList {
     }
 
     fn handle_key(&mut self, key: i32, cmdline_result: &Result<String, pcre2::Error>,
-                  global: &mut Global) -> Result<(), Box<dyn Error>> {
+                  global: &mut Global, profile: &Profile) -> Result<(), Box<dyn Error>> {
         if !global.handle_key(key) {
             match key {
                 KEY_RETURN => {
                     if let Ok(cmdline) = cmdline_result {
                         // TODO(#47): endwin() on Enter in LineList looks like a total hack and it's unclear why it even works
                         endwin();
-                        // TODO(#40): shell is not customizable
                         // TODO(#50): cm doesn't say anything if the executed command has failed
-                        Command::new("sh")
+                        let shell = profile.shell.as_ref();
+                        Command::new(shell.unwrap_or(&"sh".to_string()))
                             .stdin(File::open("/dev/tty")?)
                             .arg("-c")
                             .arg(cmdline)
@@ -232,6 +232,7 @@ fn render_status(status: Status, y: usize, text: &str) {
 struct Profile {
     regex_list: StringList,
     cmd_list: StringList,
+    shell: Option<String>,
 }
 
 impl Profile {
@@ -239,6 +240,7 @@ impl Profile {
         Self {
             regex_list: StringList::new(),
             cmd_list: StringList::new(),
+            shell: None,
         }
     }
 
@@ -272,6 +274,7 @@ impl Profile {
                     "current_cmd"   => result.cmd_list.list.cursor_y = value
                         .parse::<usize>()
                         .map_err(|_| fail("Not a number"))?,
+                    "shell" => result.shell = Some(value.into()),
                     _               =>
                         Err(fail(&format!("Unknown key {}", key))).unwrap(),
                 }
@@ -302,6 +305,10 @@ impl Profile {
 
         write!(stream, "current_regex = {}\n", self.regex_list.list.cursor_y)?;
         write!(stream, "current_cmd = {}\n", self.cmd_list.list.cursor_y)?;
+
+        if let Some(shell) = &self.shell {
+          write!(stream, "shell = {}\n", shell)?;
+        }
 
         Ok(())
     }
@@ -476,10 +483,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         // TODO(#43): cm does not handle Shift+TAB to scroll backwards through the panels
         if !global.profile_pane {
-            line_list.handle_key(key, &cmdline, &mut global)?;
+            line_list.handle_key(key, &cmdline, &mut global, &profile)?;
         } else {
             match global.focus {
-                Focus::LineList => line_list.handle_key(key, &cmdline, &mut global)?,
+                Focus::LineList => line_list.handle_key(key, &cmdline, &mut global, &profile)?,
                 Focus::RegexList => {
                     profile.regex_list.handle_key(key, &mut global);
                     re = profile.compile_current_regex();
