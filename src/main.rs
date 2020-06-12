@@ -245,6 +245,7 @@ impl Profile {
     fn from_file(file_path: &Path) -> Result<Self, Box<dyn Error>> {
         let mut result = Profile::new();
         let input = read_to_string(file_path)?;
+        let (mut regex_count, mut cmd_count) = (0, 0);
         for (i, line) in input.lines().map(|x| x.trim_start()).enumerate() {
             let fail = |message| {
                 format!("{}:{}: {}", file_path.display(), i + 1, message)
@@ -255,10 +256,14 @@ impl Profile {
                 let key   = assign.next().ok_or(fail("Key is not provided"))?.trim();
                 let value = assign.next().ok_or(fail("Value is not provided"))?.trim();
                 match key {
-                    "regexs"        =>
-                        result.regex_list.list.items.push(value.to_string()),
-                    "cmds"          =>
-                        result.cmd_list.list.items.push(value.to_string()),
+                    "regexs"        => {
+                        regex_count += 1;
+                        result.regex_list.list.items.push(value.to_string());
+                    },
+                    "cmds"          => {
+                        cmd_count += 1;
+                        result.cmd_list.list.items.push(value.to_string());
+                    }
                     // TODO(#49): cm crashes if current_regex or current_cmd from cm.conf is out-of-bound
                     //   I think we should simply clamp it to the allowed rage
                     "current_regex" => result.regex_list.list.cursor_y = value
@@ -271,6 +276,16 @@ impl Profile {
                         Err(fail(&format!("Unknown key {}", key))).unwrap(),
                 }
             }
+        }
+
+        // NOTE: regex_count-1 converts value from count to 0-based index
+        if result.regex_list.list.cursor_y > regex_count-1 {
+            result.regex_list.list.cursor_y = regex_count-1;
+        }
+
+        // NOTE: cmd_count-1 converts value from count to 0-based index
+        if result.cmd_list.list.cursor_y > cmd_count-1 {
+            result.cmd_list.list.cursor_y = cmd_count-1;
         }
 
         Ok(result)
