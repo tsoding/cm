@@ -114,10 +114,11 @@ impl LineList {
     }
 
     fn refresh_child_output(&mut self) -> Result<bool, Box<dyn Error>> {
-        let mut cli = std::env::args().skip(1);
-        if let Some(program) = cli.next() {
-            let mut command = Command::new(program);
-            command.args(cli);
+        if let Some(shell) = std::env::args().skip(1).next() {
+            // @shell
+            let mut command = Command::new("sh");
+            command.arg("-c");
+            command.arg(shell);
             let (reader, writer) = pipe()?;
             let writer_clone = writer.try_clone()?;
             command.stdout(writer);
@@ -145,6 +146,7 @@ impl LineList {
                         // TODO(#47): endwin() on Enter in LineList looks like a total hack and it's unclear why it even works
                         endwin();
                         // TODO(#40): shell is not customizable
+                        //   Grep for @shell
                         // TODO(#50): cm doesn't say anything if the executed command has failed
                         Command::new("sh")
                             .stdin(File::open("/dev/tty")?)
