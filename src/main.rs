@@ -393,12 +393,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut re = profile.compile_current_regex();
     let mut line_list = LineList::new();
-    let mut line_text: String = String::new();
-
-    while stdin().read_line(&mut line_text)? > 0 {
-        line_list.list.items.push(line_text.clone());
-        line_text.clear();
-    }
+    line_list.list.items =
+        stdin().lock().lines().collect::<Result<Vec<String>, _>>()?;
 
     if line_list.list.items.len() == 0 {
       return Err(Box::<dyn Error>::from("No input provided!"));
