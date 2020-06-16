@@ -113,6 +113,29 @@ impl LineList {
         }
     }
 
+    fn refresh_child_output(&mut self) -> Result<bool, Box<dyn Error>> {
+        let mut cli = std::env::args().skip(1);
+        if let Some(program) = cli.next() {
+            let mut command = Command::new(program);
+            command.args(cli);
+            let (reader, writer) = pipe()?;
+            let writer_clone = writer.try_clone()?;
+            command.stdout(writer);
+            command.stderr(writer_clone);
+            let mut handle = command.spawn()?;
+            drop(command);
+
+            self.list.items =
+                BufReader::new(reader).lines().collect::<Result<Vec<String>, _>>()?;
+
+            self.list.cursor_y = 0;
+            handle.wait()?;
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
     fn handle_key(&mut self, key: i32, cmdline_result: &Result<String, pcre2::Error>,
                   global: &mut Global) -> Result<(), Box<dyn Error>> {
         if !global.handle_key(key) {
@@ -131,25 +154,7 @@ impl LineList {
                             .wait_with_output()?;
                     }
                 },
-                KEY_F5  => {
-                    let mut cli = std::env::args().skip(1);
-                    if let Some(program) = cli.next() {
-                        let mut command = Command::new(program);
-                        command.args(cli);
-                        let (reader, writer) = pipe()?;
-                        let writer_clone = writer.try_clone()?;
-                        command.stdout(writer);
-                        command.stderr(writer_clone);
-                        let mut handle = command.spawn()?;
-                        drop(command);
-
-                        self.list.items =
-                            BufReader::new(reader).lines().collect::<Result<Vec<String>, _>>()?;
-
-                        self.list.cursor_y = 0;
-                        handle.wait()?;
-                    }
-                },
+                KEY_F5  => self.refresh_child_output().map(|_| ())?,
                 key => self.list.handle_key(key)
             }
         }
@@ -422,26 +427,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut line_list = LineList::new();
 
-    let mut cli = std::env::args().skip(1);
-    if let Some(program) = cli.next() {
-        let mut command = Command::new(program);
-        command.args(cli);
-        let (reader, writer) = pipe()?;
-        let writer_clone = writer.try_clone()?;
-        command.stdout(writer);
-        command.stderr(writer_clone);
-        let mut handle = command.spawn()?;
-        drop(command);
-
-        line_list.list.items =
-            BufReader::new(reader).lines().collect::<Result<Vec<String>, _>>()?;
-
-        handle.wait()?;
-    } else {
+    if !line_list.refresh_child_output()? {
         line_list.list.items =
             stdin().lock().lines().collect::<Result<Vec<String>, _>>()?;
     }
-
 
     if line_list.list.items.len() == 0 {
       return Err(Box::<dyn Error>::from("No input provided!"));
