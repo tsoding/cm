@@ -6,15 +6,17 @@ use pcre2::bytes::Regex;
 use std::error::Error;
 use std::ffi::CString;
 use std::fs::{File, read_to_string, create_dir_all};
-use std::io::{stdin, Write};
+use std::io::{stdin, Write, BufReader, BufRead};
 use std::process::Command;
 use std::path::{Path, PathBuf};
 use std::env::var;
 use ui::*;
 use ui::keycodes::*;
+use os_pipe::pipe;
 
 impl RenderItem for String {
-    fn render(&self, Row {x, y, w} : Row, cursor_x: usize, selected: bool, focused: bool) {
+    fn render(&self, Row {x, y, w} : Row, cursor_x: usize,
+              selected: bool, focused: bool) {
         let line_to_render = {
             let mut line_to_render = self
                 .trim_end()
@@ -128,7 +130,26 @@ impl LineList {
                             .spawn()?
                             .wait_with_output()?;
                     }
-                }
+                },
+                KEY_F5  => {
+                    let mut cli = std::env::args().skip(1);
+                    if let Some(program) = cli.next() {
+                        let mut command = Command::new(program);
+                        command.args(cli);
+                        let (reader, writer) = pipe()?;
+                        let writer_clone = writer.try_clone()?;
+                        command.stdout(writer);
+                        command.stderr(writer_clone);
+                        let mut handle = command.spawn()?;
+                        drop(command);
+
+                        self.list.items =
+                            BufReader::new(reader).lines().collect::<Result<Vec<String>, _>>()?;
+
+                        self.list.cursor_y = 0;
+                        handle.wait()?;
+                    }
+                },
                 key => self.list.handle_key(key)
             }
         }
@@ -169,7 +190,7 @@ impl StringList {
         }
     }
 
-    fn handle_key(&mut self, key: i32, global: &mut Global) {
+    fn handle_key(&mut self, key: i32, global: &mut Global) -> Result<(), Box<dyn Error>> {
         match self.state {
             StringListState::Navigate => if !global.handle_key(key) {
                 match key {
@@ -201,6 +222,7 @@ impl StringList {
                 key => self.edit_field.handle_key(key)
             }
         }
+        Ok(())
     }
 }
 
@@ -336,7 +358,7 @@ impl Profile {
 
     fn initial() -> Self {
         let mut result = Self::new();
-        result.regex_list.list.items.push(r"^(.*?):(\d+):".to_string());
+        result.regex_list.list.items.push(r"\b(.*?):(\d+):".to_string());
         result.cmd_list.list.items.push("vim +\\2 \\1".to_string());
         result.cmd_list.list.items.push("emacs -nw +\\2 \\1".to_string());
         result
@@ -392,9 +414,34 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
 
     let mut re = profile.compile_current_regex();
+    let mut global = Global {
+        quit: false,
+        profile_pane: false,
+        focus: Focus::RegexList,
+    };
+
     let mut line_list = LineList::new();
-    line_list.list.items =
-        stdin().lock().lines().collect::<Result<Vec<String>, _>>()?;
+
+    let mut cli = std::env::args().skip(1);
+    if let Some(program) = cli.next() {
+        let mut command = Command::new(program);
+        command.args(cli);
+        let (reader, writer) = pipe()?;
+        let writer_clone = writer.try_clone()?;
+        command.stdout(writer);
+        command.stderr(writer_clone);
+        let mut handle = command.spawn()?;
+        drop(command);
+
+        line_list.list.items =
+            BufReader::new(reader).lines().collect::<Result<Vec<String>, _>>()?;
+
+        handle.wait()?;
+    } else {
+        line_list.list.items =
+            stdin().lock().lines().collect::<Result<Vec<String>, _>>()?;
+    }
+
 
     if line_list.list.items.len() == 0 {
       return Err(Box::<dyn Error>::from("No input provided!"));
@@ -419,11 +466,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     init_pair(UNFOCUSED_MATCH_CURSOR_PAIR, COLOR_BLACK, COLOR_CYAN);
     init_pair(STATUS_ERROR_PAIR, COLOR_RED, COLOR_BLACK);
 
-    let mut global = Global {
-        quit: false,
-        profile_pane: false,
-        focus: Focus::RegexList,
-    };
     while !global.quit {
         let (w, h) = {
             let mut x: i32 = 0;
@@ -471,16 +513,17 @@ fn main() -> Result<(), Box<dyn Error>> {
         let key = getch();
 
         // TODO(#43): cm does not handle Shift+TAB to scroll backwards through the panels
-        if !global.profile_pane {
+        let profile_pane = global.profile_pane;
+        if !profile_pane {
             line_list.handle_key(key, &cmdline, &mut global)?;
         } else {
             match global.focus {
                 Focus::LineList => line_list.handle_key(key, &cmdline, &mut global)?,
                 Focus::RegexList => {
-                    profile.regex_list.handle_key(key, &mut global);
+                    profile.regex_list.handle_key(key, &mut global)?;
                     re = profile.compile_current_regex();
                 },
-                Focus::CmdList => profile.cmd_list.handle_key(key, &mut global),
+                Focus::CmdList => profile.cmd_list.handle_key(key, &mut global)?,
             }
         }
     }
