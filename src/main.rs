@@ -197,10 +197,13 @@ impl StringList {
         self.list.current_item()
     }
 
-    fn render(&self, rect: Rect, focused: bool) {
+    fn render(&self, rect: Rect, focused: bool, global: &mut Global) {
         self.list.render(rect, focused);
         if let StringListState::Editing { .. } = self.state {
-            self.edit_field.render(self.list.current_row(rect));
+            let row = self.list.current_row(rect);
+            self.edit_field.render(row);
+            global.cursor_y = row.y as i32;
+            global.cursor_x = (row.x + self.edit_field.cursor_x % row.w) as i32;
         }
     }
 
@@ -214,11 +217,13 @@ impl StringList {
                             self.edit_field.buffer.clear();
                             self.edit_field.cursor_x = 0;
                             self.state = StringListState::Editing { new: true };
+                            global.cursor_visible = true;
                         }
                         KEY_F2 => {
                             self.edit_field.cursor_x = self.list.current_item().len();
                             self.edit_field.buffer = self.list.current_item().clone();
                             self.state = StringListState::Editing { new: false };
+                            global.cursor_visible = true;
                         }
                         key => self.list.handle_key(key),
                     }
@@ -228,12 +233,14 @@ impl StringList {
                 KEY_RETURN => {
                     self.state = StringListState::Navigate;
                     self.list.items[self.list.cursor_y] = self.edit_field.buffer.clone();
+                    global.cursor_visible = false;
                 }
                 KEY_ESCAPE => {
                     self.state = StringListState::Navigate;
                     if new {
                         self.list.delete_current()
                     }
+                    global.cursor_visible = false;
                 }
                 key => self.edit_field.handle_key(key),
             },
@@ -414,6 +421,9 @@ struct Global {
     profile_pane: bool,
     quit: bool,
     focus: Focus,
+    cursor_visible: bool,
+    cursor_x: i32,
+    cursor_y: i32,
 }
 
 impl Global {
@@ -457,6 +467,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         quit: false,
         profile_pane: false,
         focus: Focus::RegexList,
+        cursor_x: 0,
+        cursor_y: 0,
+        cursor_visible: false,
     };
 
     let mut line_list = LineList::new();
@@ -538,6 +551,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     h: working_h - list_h,
                 },
                 global.focus == Focus::RegexList,
+                &mut global
             );
             profile.cmd_list.render(
                 Rect {
@@ -547,6 +561,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     h: working_h - list_h,
                 },
                 global.focus == Focus::CmdList,
+                &mut global
             );
         } else {
             line_list.render(
@@ -560,6 +575,13 @@ fn main() -> Result<(), Box<dyn Error>> {
                 &re,
             );
         }
+
+        curs_set(if global.cursor_visible {
+            ncurses::CURSOR_VISIBILITY::CURSOR_VISIBLE
+        } else {
+            ncurses::CURSOR_VISIBILITY::CURSOR_INVISIBLE
+        });
+        mv(global.cursor_y, global.cursor_x);
 
         refresh();
         let key = getch();
