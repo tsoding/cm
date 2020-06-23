@@ -37,7 +37,7 @@ TBD
 
 ### Shortcuts
 
-<!-- TODO: Document shortcuts -->
+<!-- TODO(#87): Document shortcuts -->
 TBD
 
 ### Configuration file cm.conf
