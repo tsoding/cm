@@ -1,16 +1,15 @@
 pub mod keycodes;
 
-use ncurses::*;
-use std::cmp::{min, max};
 use keycodes::*;
+use ncurses::*;
+use std::cmp::{max, min};
 
 fn clamp<T: Ord>(x: T, low: T, high: T) -> T {
     min(max(low, x), high)
 }
 
 pub trait RenderItem {
-    fn render(&self, row: Row, cursor_x: usize,
-              selected: bool, focused: bool);
+    fn render(&self, row: Row, cursor_x: usize, selected: bool, focused: bool);
 }
 
 pub struct ItemList<Item> {
@@ -19,7 +18,10 @@ pub struct ItemList<Item> {
     pub cursor_y: usize,
 }
 
-impl<Item> ItemList<Item> where Item: RenderItem {
+impl<Item> ItemList<Item>
+where
+    Item: RenderItem,
+{
     pub fn new() -> Self {
         Self {
             items: Vec::<Item>::new(),
@@ -57,28 +59,45 @@ impl<Item> ItemList<Item> where Item: RenderItem {
 
     pub fn handle_key(&mut self, key: i32) {
         match key {
-            KEY_S  => self.down(),
-            KEY_W  => self.up(),
-            KEY_D  => self.right(),
-            KEY_A  => self.left(),
+            KEY_S => self.down(),
+            KEY_W => self.up(),
+            KEY_D => self.right(),
+            KEY_A => self.left(),
             KEY_DC => self.delete_current(),
             _ => {}
         }
     }
 
-    pub fn render(&self, Rect {x, y, w, h}: Rect, focused: bool) {
+    pub fn render(&self, Rect { x, y, w, h }: Rect, focused: bool) {
         if h > 0 {
             // TODO(#16): word wrapping for long lines
-            for (i, item) in self.items.iter().skip(self.cursor_y / h * h).enumerate().take_while(|(i, _)| *i < h) {
-                item.render(Row {x: x, y: i + y, w: w}, self.cursor_x,
-                            i == (self.cursor_y % h),
-                            focused);
+            for (i, item) in self
+                .items
+                .iter()
+                .skip(self.cursor_y / h * h)
+                .enumerate()
+                .take_while(|(i, _)| *i < h)
+            {
+                item.render(
+                    Row {
+                        x: x,
+                        y: i + y,
+                        w: w,
+                    },
+                    self.cursor_x,
+                    i == (self.cursor_y % h),
+                    focused,
+                );
             }
         }
     }
 
-    pub fn current_row(&self, Rect {x, y, w, h}: Rect) -> Row {
-        Row {x: x, y: self.cursor_y % h + y, w: w}
+    pub fn current_row(&self, Rect { x, y, w, h }: Rect) -> Row {
+        Row {
+            x: x,
+            y: self.cursor_y % h + y,
+            w: w,
+        }
     }
 
     pub fn current_item(&self) -> &Item {
@@ -102,8 +121,8 @@ pub struct Row {
 }
 
 pub struct EditField {
-    pub cursor_x : usize,
-    pub buffer : String,
+    pub cursor_x: usize,
+    pub buffer: String,
 }
 
 impl EditField {
@@ -114,9 +133,9 @@ impl EditField {
         }
     }
 
-    pub fn render(&self, Row {x, y, w}: Row) {
+    pub fn render(&self, Row { x, y, w }: Row) {
         let begin = self.cursor_x / w * w;
-        let end   = usize::min(begin + w, self.buffer.len());
+        let end = usize::min(begin + w, self.buffer.len());
         mv(y as i32, x as i32);
         for _ in 0..w {
             addstr(" ");
@@ -133,9 +152,9 @@ impl EditField {
         }
 
         match key {
-            KEY_RIGHT     if self.cursor_x < self.buffer.len() => self.cursor_x += 1,
-            KEY_LEFT      if self.cursor_x > 0                 => self.cursor_x -= 1,
-            KEY_BACKSPACE if self.cursor_x > 0                 => {
+            KEY_RIGHT if self.cursor_x < self.buffer.len() => self.cursor_x += 1,
+            KEY_LEFT if self.cursor_x > 0 => self.cursor_x -= 1,
+            KEY_BACKSPACE if self.cursor_x > 0 => {
                 self.cursor_x -= 1;
                 self.buffer.remove(self.cursor_x);
             }
