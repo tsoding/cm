@@ -551,7 +551,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     h: working_h - list_h,
                 },
                 global.focus == Focus::RegexList,
-                &mut global
+                &mut global,
             );
             profile.cmd_list.render(
                 Rect {
@@ -561,7 +561,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     h: working_h - list_h,
                 },
                 global.focus == Focus::CmdList,
-                &mut global
+                &mut global,
             );
         } else {
             line_list.render(
