@@ -8,15 +8,46 @@
 
 The goal of this application is to recreate the [compilation-mode] of Emacs as a standalone TUI application.
 
-## Quick Start
+## Build
+
+### Dependencies
+
+- [rust](https://www.rust-lang.org/)
+- [ncurses](https://invisible-island.net/ncurses/)
+- [pcre2](https://www.pcre.org/)
+
+### Workflow
 
 ```console
-$ grep -rn 'String' src/ | cargo run
+$ cargo build
+$ ./target/debug/cm -c "grep -rn 'String' src/"
 ```
 
-[compilation-mode]: https://www.gnu.org/software/emacs/manual/html_node/emacs/Compilation-Mode.html
+## Usage
+
+### Starting up
+
+<!-- TODO: Document start up process -->
+TBD
+
+### Application layout
+
+<!-- TODO: Document application layout -->
+TBD
+
+### Shortcuts
+
+<!-- TODO: Document shortcuts -->
+TBD
+
+### Configuration file cm.conf
+
+<!-- TODO(#45): Document config format -->
+[TBD](https://github.com/tsoding/cm/issues/45)
 
 ## Examples
 
 **Fixing compilation errors**
 [![asciicast](https://asciinema.org/a/337846.svg)](https://asciinema.org/a/337846)
+
+[compilation-mode]: https://www.gnu.org/software/emacs/manual/html_node/emacs/Compilation-Mode.html
