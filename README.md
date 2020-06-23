@@ -28,17 +28,17 @@ $ ./target/debug/cm -c "grep -rn 'String' src/"
 ### Starting up
 
 <!-- TODO(#85): Document start up process -->
-TBD
+[TBD](https://github.com/tsoding/cm/issues/85)
 
 ### Application layout
 
 <!-- TODO(#86): Document application layout -->
-TBD
+[TBD](https://github.com/tsoding/cm/issues/86)
 
 ### Shortcuts
 
 <!-- TODO(#87): Document shortcuts -->
-TBD
+[TBD](https://github.com/tsoding/cm/issues/87)
 
 ### Configuration file cm.conf
 
