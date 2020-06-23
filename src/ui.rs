@@ -80,9 +80,9 @@ where
             {
                 item.render(
                     Row {
-                        x: x,
+                        x,
                         y: i + y,
-                        w: w,
+                        w,
                     },
                     self.cursor_x,
                     i == (self.cursor_y % h),
@@ -94,9 +94,9 @@ where
 
     pub fn current_row(&self, Rect { x, y, w, h }: Rect) -> Row {
         Row {
-            x: x,
+            x,
             y: self.cursor_y % h + y,
-            w: w,
+            w,
         }
     }
 
