@@ -10,7 +10,7 @@ jobs:
       - name: install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -qq libncurses-dev
+          sudo apt-get install -qq libncurses-dev libpcre2-dev
       - uses: actions-rs/cargo@v1
         with:
           command: build
