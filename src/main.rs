@@ -92,7 +92,7 @@ impl LineList {
                     // implementation. Maybe in the future it will
                     // make sense.
                     let cap_mats = regex.captures_iter(item.as_bytes()).next();
-                    for cap_mat in cap_mats {
+                    if let Some(cap_mat) = cap_mats {
                         if let Ok(caps) = cap_mat {
                             // NOTE: we are skiping first cap because it contains the
                             // whole match which is not needed in our case
@@ -116,7 +116,7 @@ impl LineList {
     }
 
     fn refresh_child_output(&mut self) -> Result<bool, Box<dyn Error>> {
-        if let Some(shell) = std::env::args().skip(1).next() {
+        if let Some(shell) = std::env::args().nth(1) {
             // @shell
             let mut command = Command::new("sh");
             command.arg("-c");
@@ -294,10 +294,16 @@ impl Profile {
         for (i, line) in input.lines().map(|x| x.trim_start()).enumerate() {
             let fail = |message| format!("{}:{}: {}", file_path.display(), i + 1, message);
 
-            if line.len() > 0 {
+            if !line.is_empty() {
                 let mut assign = line.split('=');
-                let key = assign.next().ok_or(fail("Key is not provided"))?.trim();
-                let value = assign.next().ok_or(fail("Value is not provided"))?.trim();
+                let key = assign
+                    .next()
+                    .ok_or_else(|| fail("Key is not provided"))?
+                    .trim();
+                let value = assign
+                    .next()
+                    .ok_or_else(|| fail("Value is not provided"))?
+                    .trim();
                 match key {
                     "regexs" => {
                         regex_count += 1;
@@ -337,19 +343,15 @@ impl Profile {
 
     fn to_file<F: Write>(&self, stream: &mut F) -> Result<(), Box<dyn Error>> {
         for regex in self.regex_list.list.items.iter() {
-            write!(stream, "regexs = {}\n", regex)?;
+            writeln!(stream, "regexs = {}", regex)?;
         }
 
         for cmd in self.cmd_list.list.items.iter() {
-            write!(stream, "cmds = {}\n", cmd)?;
+            writeln!(stream, "cmds = {}", cmd)?;
         }
 
-        write!(
-            stream,
-            "current_regex = {}\n",
-            self.regex_list.list.cursor_y
-        )?;
-        write!(stream, "current_cmd = {}\n", self.cmd_list.list.cursor_y)?;
+        writeln!(stream, "current_regex = {}", self.regex_list.list.cursor_y)?;
+        writeln!(stream, "current_cmd = {}", self.cmd_list.list.cursor_y)?;
 
         Ok(())
     }
@@ -368,7 +370,7 @@ impl Profile {
         };
 
         let cap_mats = regex.captures_iter(line.as_bytes()).next();
-        for cap_mat in cap_mats {
+        if let Some(cap_mat) = cap_mats {
             if let Ok(caps) = cap_mat {
                 for i in 1..caps.len() {
                     if let Some(mat) = caps.get(i) {
@@ -402,17 +404,17 @@ impl Profile {
 
 #[derive(PartialEq, Clone, Copy)]
 enum Focus {
-    LineList,
-    RegexList,
-    CmdList,
+    Lines,
+    Regexs,
+    Cmds,
 }
 
 impl Focus {
     fn next(self) -> Self {
         match self {
-            Focus::LineList => Focus::RegexList,
-            Focus::RegexList => Focus::CmdList,
-            Focus::CmdList => Focus::LineList,
+            Focus::Lines => Focus::Regexs,
+            Focus::Regexs => Focus::Cmds,
+            Focus::Cmds => Focus::Lines,
         }
     }
 }
@@ -448,7 +450,7 @@ impl Global {
 
 fn main() -> Result<(), Box<dyn Error>> {
     let config_path = {
-        const CONFIG_FILE_NAME: &'static str = "cm.conf";
+        const CONFIG_FILE_NAME: &str = "cm.conf";
         let xdg_config_dir = var("XDG_CONFIG_HOME").map(PathBuf::from);
         let home_config_dir = var("HOME").map(PathBuf::from).map(|x| x.join(".config"));
         xdg_config_dir
@@ -466,7 +468,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut global = Global {
         quit: false,
         profile_pane: false,
-        focus: Focus::RegexList,
+        focus: Focus::Regexs,
         cursor_x: 0,
         cursor_y: 0,
         cursor_visible: false,
@@ -478,7 +480,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         line_list.list.items = stdin().lock().lines().collect::<Result<Vec<String>, _>>()?;
     }
 
-    if line_list.list.items.len() == 0 {
+    if line_list.list.items.is_empty() {
         return Err(Box::<dyn Error>::from("No input provided!"));
     }
 
@@ -536,10 +538,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                 Rect {
                     x: 0,
                     y: 0,
-                    w: w,
+                    w,
                     h: list_h,
                 },
-                global.focus == Focus::LineList,
+                global.focus == Focus::Lines,
                 &re,
             );
             // TODO(#31): no way to switch regex
@@ -550,7 +552,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     w: w / 2,
                     h: working_h - list_h,
                 },
-                global.focus == Focus::RegexList,
+                global.focus == Focus::Regexs,
                 &mut global,
             );
             profile.cmd_list.render(
@@ -560,7 +562,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     w: w - w / 2,
                     h: working_h - list_h,
                 },
-                global.focus == Focus::CmdList,
+                global.focus == Focus::Cmds,
                 &mut global,
             );
         } else {
@@ -568,7 +570,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 Rect {
                     x: 0,
                     y: 0,
-                    w: w,
+                    w,
                     h: h - 1,
                 },
                 true,
@@ -592,12 +594,12 @@ fn main() -> Result<(), Box<dyn Error>> {
             line_list.handle_key(key, &cmdline, &mut global)?;
         } else {
             match global.focus {
-                Focus::LineList => line_list.handle_key(key, &cmdline, &mut global)?,
-                Focus::RegexList => {
+                Focus::Lines => line_list.handle_key(key, &cmdline, &mut global)?,
+                Focus::Regexs => {
                     profile.regex_list.handle_key(key, &mut global)?;
                     re = profile.compile_current_regex();
                 }
-                Focus::CmdList => profile.cmd_list.handle_key(key, &mut global)?,
+                Focus::Cmds => profile.cmd_list.handle_key(key, &mut global)?,
             }
         }
     }

@@ -79,11 +79,7 @@ where
                 .take_while(|(i, _)| *i < h)
             {
                 item.render(
-                    Row {
-                        x: x,
-                        y: i + y,
-                        w: w,
-                    },
+                    Row { x, y: i + y, w },
                     self.cursor_x,
                     i == (self.cursor_y % h),
                     focused,
@@ -94,9 +90,9 @@ where
 
     pub fn current_row(&self, Rect { x, y, w, h }: Rect) -> Row {
         Row {
-            x: x,
+            x,
             y: self.cursor_y % h + y,
-            w: w,
+            w,
         }
     }
 
