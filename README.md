@@ -51,3 +51,5 @@ $ ./target/debug/cm -c "grep -rn 'String' src/"
 [![asciicast](https://asciinema.org/a/337846.svg)](https://asciinema.org/a/337846)
 
 [compilation-mode]: https://www.gnu.org/software/emacs/manual/html_node/emacs/Compilation-Mode.html
+
+<!-- Useless change, because GitHub actions are stupid -->
