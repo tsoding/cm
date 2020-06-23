@@ -296,8 +296,14 @@ impl Profile {
 
             if !line.is_empty() {
                 let mut assign = line.split('=');
-                let key = assign.next().ok_or_else(|| fail("Key is not provided"))?.trim();
-                let value = assign.next().ok_or_else(|| fail("Value is not provided"))?.trim();
+                let key = assign
+                    .next()
+                    .ok_or_else(|| fail("Key is not provided"))?
+                    .trim();
+                let value = assign
+                    .next()
+                    .ok_or_else(|| fail("Value is not provided"))?
+                    .trim();
                 match key {
                     "regexs" => {
                         regex_count += 1;
@@ -344,11 +350,7 @@ impl Profile {
             writeln!(stream, "cmds = {}", cmd)?;
         }
 
-        writeln!(
-            stream,
-            "current_regex = {}",
-            self.regex_list.list.cursor_y
-        )?;
+        writeln!(stream, "current_regex = {}", self.regex_list.list.cursor_y)?;
         writeln!(stream, "current_cmd = {}", self.cmd_list.list.cursor_y)?;
 
         Ok(())

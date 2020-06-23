@@ -79,11 +79,7 @@ where
                 .take_while(|(i, _)| *i < h)
             {
                 item.render(
-                    Row {
-                        x,
-                        y: i + y,
-                        w,
-                    },
+                    Row { x, y: i + y, w },
                     self.cursor_x,
                     i == (self.cursor_y % h),
                     focused,
