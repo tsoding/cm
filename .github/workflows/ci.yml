@@ -20,7 +20,4 @@ jobs:
           command: clippy
       - uses: actions-rs/cargo@v1
         with:
-          command: fmt
-      - name: check fmt
-        run: |
-          git diff --exit-code
+          command: fmt -- --check
