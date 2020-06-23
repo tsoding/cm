@@ -32,7 +32,7 @@ TBD
 
 ### Application layout
 
-<!-- TODO: Document application layout -->
+<!-- TODO(#86): Document application layout -->
 TBD
 
 ### Shortcuts
