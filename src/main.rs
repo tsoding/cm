@@ -313,8 +313,6 @@ impl Profile {
                         cmd_count += 1;
                         result.cmd_list.list.items.push(value.to_string());
                     }
-                    // TODO(#49): cm crashes if current_regex or current_cmd from cm.conf is out-of-bound
-                    //   I think we should simply clamp it to the allowed rage
                     "current_regex" => {
                         result.regex_list.list.cursor_y =
                             value.parse::<usize>().map_err(|_| fail("Not a number"))?
