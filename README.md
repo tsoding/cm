@@ -4,8 +4,6 @@
 
 **WARNING! The application is in an active development state and is not even alpha yet. Use it at your own risk. Nothing is documented, anything can be changed at any moment or stop working at all.**
 
-[![asciicast](https://asciinema.org/a/327091.svg)](https://asciinema.org/a/327091)
-
 The goal of this application is to recreate the [compilation-mode] of Emacs as a standalone TUI application.
 
 ## Build
@@ -54,7 +52,12 @@ re-run the build process.
 
 ## Examples
 
-**Fixing compilation errors**
+## Searching with grep
+
+[![asciicast](https://asciinema.org/a/327091.svg)](https://asciinema.org/a/327091)
+
+## Fixing compilation errors
+
 [![asciicast](https://asciinema.org/a/337846.svg)](https://asciinema.org/a/337846)
 
 [compilation-mode]: https://www.gnu.org/software/emacs/manual/html_node/emacs/Compilation-Mode.html
