@@ -27,8 +27,15 @@ $ ./target/debug/cm -c "grep -rn 'String' src/"
 
 ### Starting up
 
-<!-- TODO(#85): Document start up process -->
-[TBD](https://github.com/tsoding/cm/issues/85)
+<!-- TODO: Allow the user to modify the shell command without restarting the application -->
+
+Right now there are two ways to start up cm:
+1. By giving it some data through stdin: `grep -rn String src/ | cm`
+2. By passing the shell command as an argument: `cm 'grep -rn String src/'`
+
+In the second case scenario it is possible to re-run command by pressing F5,
+which is convenient when you are fixing compilation errors and need to constatnly
+re-run the build process.
 
 ### Application layout
 
