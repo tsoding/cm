@@ -18,7 +18,7 @@ The goal of this application is to recreate the [compilation-mode] of Emacs as a
 
 ```console
 $ cargo build
-$ ./target/debug/cm -c "grep -rn 'String' src/"
+$ ./target/debug/cm 'grep -rn String src/'
 ```
 
 ## Usage
