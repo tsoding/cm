@@ -544,7 +544,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                 global.focus == Focus::Lines,
                 &re,
             );
-            // TODO(#31): no way to switch regex
             profile.regex_list.render(
                 Rect {
                     x: 0,
