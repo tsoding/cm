@@ -2,7 +2,7 @@ mod ui;
 
 use libc::*;
 use ncurses::*;
-use os_pipe::pipe;
+use os_pipe::{pipe, PipeReader};
 use pcre2::bytes::Regex;
 use std::env::var;
 use std::error::Error;
@@ -13,7 +13,14 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use ui::keycodes::*;
 use ui::*;
+use std::os::unix::io::AsRawFd;
 
+fn mark_nonblocking<Fd: AsRawFd>(fd: &mut Fd) {
+    unsafe {
+        let flags = libc::fcntl(fd.as_raw_fd(), F_GETFL, 0);
+        libc::fcntl(fd.as_raw_fd(), F_SETFL, flags | O_NONBLOCK);
+    }
+}
 impl RenderItem for String {
     fn render(&self, Row { x, y, w }: Row, cursor_x: usize, selected: bool, focused: bool) {
         let line_to_render = {
@@ -45,20 +52,22 @@ impl RenderItem for String {
 
 struct LineList {
     list: ItemList<String>,
+    output: Option<BufReader<PipeReader>>,
 }
 
 impl LineList {
     fn new() -> Self {
         Self {
             list: ItemList::<String>::new(),
+            output: None,
         }
     }
 
-    fn current_item(&self) -> &str {
-        self.list.current_item()
+    fn current_item(&self) -> Option<&str> {
+        self.list.current_item().map(|x| x.as_str())
     }
 
-    fn render(&self, rect: Rect, focused: bool, regex_result: &Result<Regex, pcre2::Error>) {
+    fn render(&self, rect: Rect, focused: bool, regex_result: &Option<Result<Regex, pcre2::Error>>) {
         self.list.render(rect, focused);
 
         let Rect { x, y, w, h } = rect;
@@ -84,7 +93,7 @@ impl LineList {
                     MATCH_PAIR
                 };
 
-                if let Ok(regex) = regex_result {
+                if let Some(Ok(regex)) = regex_result {
                     // NOTE: we are ignoring any further potential
                     // capture matches (I don't like this term but
                     // that's what PCRE2 lib is calling it). For no
@@ -121,19 +130,19 @@ impl LineList {
             let mut command = Command::new("sh");
             command.arg("-c");
             command.arg(shell);
-            let (reader, writer) = pipe()?;
+            let (mut reader, writer) = pipe()?;
             let writer_clone = writer.try_clone()?;
             command.stdout(writer);
             command.stderr(writer_clone);
-            let mut handle = command.spawn()?;
+            let _ = command.spawn()?;
             drop(command);
 
-            self.list.items = BufReader::new(reader)
-                .lines()
-                .collect::<Result<Vec<String>, _>>()?;
-
             self.list.cursor_y = 0;
-            handle.wait()?;
+            self.list.items.clear();
+
+            mark_nonblocking(&mut reader);
+            self.output = Some(BufReader::new(reader));
+
             Ok(true)
         } else {
             Ok(false)
@@ -143,13 +152,13 @@ impl LineList {
     fn handle_key(
         &mut self,
         key: i32,
-        cmdline_result: &Result<String, pcre2::Error>,
+        cmdline_result: &Option<Result<String, pcre2::Error>>,
         global: &mut Global,
     ) -> Result<(), Box<dyn Error>> {
         if !global.handle_key(key) {
             match key {
                 KEY_RETURN => {
-                    if let Ok(cmdline) = cmdline_result {
+                    if let Some(Ok(cmdline)) = cmdline_result {
                         // TODO(#47): endwin() on Enter in LineList looks like a total hack and it's unclear why it even works
                         endwin();
                         // TODO(#40): shell is not customizable
@@ -193,7 +202,7 @@ impl StringList {
         }
     }
 
-    fn current_item(&self) -> &String {
+    fn current_item(&self) -> Option<&String> {
         self.list.current_item()
     }
 
@@ -220,10 +229,12 @@ impl StringList {
                             global.cursor_visible = true;
                         }
                         KEY_F2 => {
-                            self.edit_field.cursor_x = self.list.current_item().len();
-                            self.edit_field.buffer = self.list.current_item().clone();
-                            self.state = StringListState::Editing { new: false };
-                            global.cursor_visible = true;
+                            if let Some(item) = self.list.current_item() {
+                                self.edit_field.cursor_x = item.len();
+                                self.edit_field.buffer = item.clone();
+                                self.state = StringListState::Editing { new: false };
+                                global.cursor_visible = true;
+                            }
                         }
                         key => self.list.handle_key(key),
                     }
@@ -354,33 +365,38 @@ impl Profile {
         Ok(())
     }
 
-    fn compile_current_regex(&self) -> Result<Regex, pcre2::Error> {
+    fn compile_current_regex(&self) -> Option<Result<Regex, pcre2::Error>> {
         match self.regex_list.state {
-            StringListState::Navigate => Regex::new(self.regex_list.current_item()),
-            StringListState::Editing { .. } => Regex::new(&self.regex_list.edit_field.buffer),
+            StringListState::Navigate => self.regex_list.current_item().map(|s| Regex::new(&s)),
+            StringListState::Editing { .. } => Some(Regex::new(&self.regex_list.edit_field.buffer)),
         }
     }
 
-    fn render_cmdline(&self, line: &str, regex: &Regex) -> String {
-        let mut cmdline = match self.cmd_list.state {
-            StringListState::Navigate => self.cmd_list.current_item().clone(),
-            StringListState::Editing { .. } => self.cmd_list.edit_field.buffer.clone(),
+    fn render_cmdline(&self, line: &str, regex: &Regex) -> Option<String> {
+        let probably_cmdline = match self.cmd_list.state {
+            StringListState::Navigate => self.cmd_list.current_item().map(|x| x.clone()),
+            StringListState::Editing { .. } => Some(self.cmd_list.edit_field.buffer.clone()),
         };
 
-        let cap_mats = regex.captures_iter(line.as_bytes()).next();
-        if let Some(cap_mat) = cap_mats {
-            if let Ok(caps) = cap_mat {
-                for i in 1..caps.len() {
-                    if let Some(mat) = caps.get(i) {
-                        cmdline = cmdline.replace(
-                            format!("\\{}", i).as_str(),
-                            line.get(mat.start()..mat.end()).unwrap_or(""),
-                        )
+        if let Some(cmdline) = probably_cmdline {
+            let mut result = cmdline;
+            let cap_mats = regex.captures_iter(line.as_bytes()).next();
+            if let Some(cap_mat) = cap_mats {
+                if let Ok(caps) = cap_mat {
+                    for i in 1..caps.len() {
+                        if let Some(mat) = caps.get(i) {
+                            result = result.replace(
+                                format!("\\{}", i).as_str(),
+                                line.get(mat.start()..mat.end()).unwrap_or(""),
+                                )
+                        }
                     }
                 }
             }
+            Some(result)
+        } else {
+            None
         }
-        cmdline
     }
 
     fn initial() -> Self {
@@ -478,10 +494,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         line_list.list.items = stdin().lock().lines().collect::<Result<Vec<String>, _>>()?;
     }
 
-    if line_list.list.items.is_empty() {
-        return Err(Box::<dyn Error>::from("No input provided!"));
-    }
-
     // NOTE: stolen from https://stackoverflow.com/a/44884859
     // TODO(#3): the terminal redirection is too hacky
     let tty_path = CString::new("/dev/tty")?;
@@ -502,6 +514,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     init_pair(UNFOCUSED_MATCH_CURSOR_PAIR, COLOR_BLACK, COLOR_CYAN);
     init_pair(STATUS_ERROR_PAIR, COLOR_RED, COLOR_BLACK);
 
+    let mut line = String::new();
     while !global.quit {
         let (w, h) = {
             let mut x: i32 = 0;
@@ -512,18 +525,22 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         erase();
 
-        let cmdline: Result<String, pcre2::Error> = match &re {
-            Ok(regex) => Ok(profile.render_cmdline(line_list.current_item(), regex)),
-            Err(err) => Err(err.clone()),
+        let cmdline: Option<Result<String, pcre2::Error>> = match &re {
+            Some(Ok(regex)) => line_list.current_item().and_then(|item| profile.render_cmdline(item, regex)).map(|x| Ok(x)),
+            Some(Err(err)) => Some(Err(err.clone())),
+            None => None
         };
 
         if h >= 1 {
             match &cmdline {
-                Ok(line) => {
+                Some(Ok(line)) => {
                     render_status(Status::Info, h - 1, line);
                 }
-                Err(err) => {
+                Some(Err(err)) => {
                     render_status(Status::Error, h - 1, &err.to_string());
+                }
+                None => {
+                    render_status(Status::Error, h - 1, "");
                 }
             }
         }
@@ -597,6 +614,17 @@ fn main() -> Result<(), Box<dyn Error>> {
                     re = profile.compile_current_regex();
                 }
                 Focus::Cmds => profile.cmd_list.handle_key(key, &mut global)?,
+            }
+        }
+
+        if let Some(reader) = &mut line_list.output {
+            line.clear();
+            match reader.read_line(&mut line) {
+                Ok(0) => {},
+                Ok(_) => {
+                    line_list.list.items.push(line.clone());
+                },
+                _ => {}
             }
         }
 
