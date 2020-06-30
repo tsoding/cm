@@ -522,7 +522,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut line = String::new();
     while !global.quit {
-        // TODO: Don't rerender the state of the app if nothing changed
+        // TODO(#95): Don't rerender the state of the app if nothing changed
         //   After introducing async input we are rerendering the whole application
         //   on each iteration of even loop. And the rendering operation is pretty
         //   expensive by itself.
