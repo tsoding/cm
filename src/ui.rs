@@ -46,7 +46,7 @@ impl ItemList {
     pub fn delete_current(&mut self) {
         if self.cursor_y < self.items.len() {
             self.items.remove(self.cursor_y);
-            if self.items.len() > 0 {
+            if !self.items.is_empty() {
                 self.cursor_y = min(max(0, self.cursor_y), self.items.len() - 1);
             }
         }
