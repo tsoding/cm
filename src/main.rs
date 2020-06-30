@@ -491,6 +491,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     set_term(screen);
 
     keypad(stdscr(), true);
+    timeout(0);
 
     start_color();
     init_pair(REGULAR_PAIR, COLOR_WHITE, COLOR_BLACK);
@@ -598,6 +599,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                 Focus::Cmds => profile.cmd_list.handle_key(key, &mut global)?,
             }
         }
+
+        std::thread::sleep(std::time::Duration::from_millis(16));
     }
 
     // TODO(#21): if application crashes it does not finalize the terminal
