@@ -15,6 +15,7 @@ use ui::keycodes::*;
 use ui::*;
 use std::os::unix::io::AsRawFd;
 
+// TODO: mark_nonblocking does not work on Windows
 fn mark_nonblocking<Fd: AsRawFd>(fd: &mut Fd) {
     unsafe {
         let flags = libc::fcntl(fd.as_raw_fd(), F_GETFL, 0);
@@ -516,6 +517,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut line = String::new();
     while !global.quit {
+        // TODO: Don't rerender the state of the app if nothing changed
+        //   After introducing async input we are rerendering the whole application
+        //   on each iteration of even loop. And the rendering operation is pretty 
+        //   expensive by itself.
         let (w, h) = {
             let mut x: i32 = 0;
             let mut y: i32 = 0;
