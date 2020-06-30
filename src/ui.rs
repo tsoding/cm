@@ -1,6 +1,8 @@
 pub mod keycodes;
+pub mod style;
 
 use keycodes::*;
+use style::*;
 use ncurses::*;
 use std::cmp::{max, min};
 
@@ -8,23 +10,16 @@ fn clamp<T: Ord>(x: T, low: T, high: T) -> T {
     min(max(low, x), high)
 }
 
-pub trait RenderItem {
-    fn render(&self, row: Row, cursor_x: usize, selected: bool, focused: bool);
-}
-
-pub struct ItemList<Item> {
-    pub items: Vec<Item>,
+pub struct ItemList {
+    pub items: Vec<String>,
     pub cursor_x: usize,
     pub cursor_y: usize,
 }
 
-impl<Item> ItemList<Item>
-where
-    Item: RenderItem,
-{
+impl ItemList {
     pub fn new() -> Self {
         Self {
-            items: Vec::<Item>::new(),
+            items: Vec::<String>::new(),
             cursor_x: 0,
             cursor_y: 0,
         }
@@ -78,12 +73,31 @@ where
                 .enumerate()
                 .take_while(|(i, _)| *i < h)
             {
-                item.render(
-                    Row { x, y: i + y, w },
-                    self.cursor_x,
-                    i == (self.cursor_y % h),
-                    focused,
-                );
+                let line_to_render = {
+                    let mut line_to_render = item.trim_end().get(self.cursor_x..).unwrap_or("").to_string();
+                    let n = line_to_render.len();
+                    if n < w {
+                        for _ in 0..(w - n) {
+                            line_to_render.push(' ');
+                        }
+                    }
+                    line_to_render
+                };
+
+                mv((y + i) as i32, x as i32);
+                let selected = i == (self.cursor_y % h);
+                let pair = if selected {
+                    if focused {
+                        CURSOR_PAIR
+                    } else {
+                        UNFOCUSED_CURSOR_PAIR
+                    }
+                } else {
+                    REGULAR_PAIR
+                };
+                attron(COLOR_PAIR(pair));
+                addstr(&line_to_render);
+                attroff(COLOR_PAIR(pair));
             }
         }
     }
@@ -96,7 +110,7 @@ where
         }
     }
 
-    pub fn current_item(&self) -> Option<&Item> {
+    pub fn current_item(&self) -> Option<&str> {
         if self.cursor_y < self.items.len() {
             Some(&self.items[self.cursor_y])
         } else {

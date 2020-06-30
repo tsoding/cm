@@ -13,6 +13,7 @@ use std::os::unix::io::AsRawFd;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use ui::keycodes::*;
+use ui::style::*;
 use ui::*;
 
 // TODO(#94): mark_nonblocking does not work on Windows
@@ -22,50 +23,22 @@ fn mark_nonblocking<Fd: AsRawFd>(fd: &mut Fd) {
         libc::fcntl(fd.as_raw_fd(), F_SETFL, flags | O_NONBLOCK);
     }
 }
-impl RenderItem for String {
-    fn render(&self, Row { x, y, w }: Row, cursor_x: usize, selected: bool, focused: bool) {
-        let line_to_render = {
-            let mut line_to_render = self.trim_end().get(cursor_x..).unwrap_or("").to_string();
-            let n = line_to_render.len();
-            if n < w {
-                for _ in 0..(w - n) {
-                    line_to_render.push(' ');
-                }
-            }
-            line_to_render
-        };
-
-        mv(y as i32, x as i32);
-        let pair = if selected {
-            if focused {
-                CURSOR_PAIR
-            } else {
-                UNFOCUSED_CURSOR_PAIR
-            }
-        } else {
-            REGULAR_PAIR
-        };
-        attron(COLOR_PAIR(pair));
-        addstr(&line_to_render);
-        attroff(COLOR_PAIR(pair));
-    }
-}
 
 struct LineList {
-    list: ItemList<String>,
+    list: ItemList,
     output: Option<BufReader<PipeReader>>,
 }
 
 impl LineList {
     fn new() -> Self {
         Self {
-            list: ItemList::<String>::new(),
+            list: ItemList::new(),
             output: None,
         }
     }
 
     fn current_item(&self) -> Option<&str> {
-        self.list.current_item().map(|x| x.as_str())
+        self.list.current_item()
     }
 
     fn render(
@@ -195,7 +168,7 @@ enum StringListState {
 
 struct StringList {
     state: StringListState,
-    list: ItemList<String>,
+    list: ItemList,
     edit_field: EditField,
 }
 
@@ -203,12 +176,12 @@ impl StringList {
     fn new() -> Self {
         Self {
             state: StringListState::Navigate,
-            list: ItemList::<String>::new(),
+            list: ItemList::new(),
             edit_field: EditField::new(),
         }
     }
 
-    fn current_item(&self) -> Option<&String> {
+    fn current_item(&self) -> Option<&str> {
         self.list.current_item()
     }
 
@@ -237,7 +210,7 @@ impl StringList {
                         KEY_F2 => {
                             if let Some(item) = self.list.current_item() {
                                 self.edit_field.cursor_x = item.len();
-                                self.edit_field.buffer = item.clone();
+                                self.edit_field.buffer = String::from(item);
                                 self.state = StringListState::Editing { new: false };
                                 global.cursor_visible = true;
                             }
@@ -265,14 +238,6 @@ impl StringList {
         Ok(())
     }
 }
-
-const REGULAR_PAIR: i16 = 1;
-const CURSOR_PAIR: i16 = 2;
-const UNFOCUSED_CURSOR_PAIR: i16 = 3;
-const MATCH_PAIR: i16 = 4;
-const MATCH_CURSOR_PAIR: i16 = 5;
-const UNFOCUSED_MATCH_CURSOR_PAIR: i16 = 6;
-const STATUS_ERROR_PAIR: i16 = 7;
 
 #[derive(Copy, Clone)]
 enum Status {
@@ -380,7 +345,7 @@ impl Profile {
 
     fn render_cmdline(&self, line: &str, regex: &Regex) -> Option<String> {
         let probably_cmdline = match self.cmd_list.state {
-            StringListState::Navigate => self.cmd_list.current_item().cloned(),
+            StringListState::Navigate => self.cmd_list.current_item().map(String::from),
             StringListState::Editing { .. } => Some(self.cmd_list.edit_field.buffer.clone()),
         };
 
@@ -511,14 +476,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     keypad(stdscr(), true);
     timeout(0);
 
-    start_color();
-    init_pair(REGULAR_PAIR, COLOR_WHITE, COLOR_BLACK);
-    init_pair(CURSOR_PAIR, COLOR_BLACK, COLOR_WHITE);
-    init_pair(UNFOCUSED_CURSOR_PAIR, COLOR_BLACK, COLOR_CYAN);
-    init_pair(MATCH_PAIR, COLOR_YELLOW, COLOR_BLACK);
-    init_pair(MATCH_CURSOR_PAIR, COLOR_RED, COLOR_WHITE);
-    init_pair(UNFOCUSED_MATCH_CURSOR_PAIR, COLOR_BLACK, COLOR_CYAN);
-    init_pair(STATUS_ERROR_PAIR, COLOR_RED, COLOR_BLACK);
+    init_style();
 
     let mut line = String::new();
     while !global.quit {
