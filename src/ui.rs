@@ -96,8 +96,12 @@ where
         }
     }
 
-    pub fn current_item(&self) -> &Item {
-        &self.items[self.cursor_y]
+    pub fn current_item(&self) -> Option<&Item> {
+        if self.cursor_y < self.items.len() {
+            Some(&self.items[self.cursor_y])
+        } else {
+            None
+        }
     }
 }
 
