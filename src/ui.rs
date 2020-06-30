@@ -2,9 +2,9 @@ pub mod keycodes;
 pub mod style;
 
 use keycodes::*;
-use style::*;
 use ncurses::*;
 use std::cmp::{max, min};
+use style::*;
 
 pub struct ItemList {
     pub items: Vec<String>,
@@ -74,7 +74,11 @@ impl ItemList {
                 .take_while(|(i, _)| *i < h)
             {
                 let line_to_render = {
-                    let mut line_to_render = item.trim_end().get(self.cursor_x..).unwrap_or("").to_string();
+                    let mut line_to_render = item
+                        .trim_end()
+                        .get(self.cursor_x..)
+                        .unwrap_or("")
+                        .to_string();
                     let n = line_to_render.len();
                     if n < w {
                         for _ in 0..(w - n) {
