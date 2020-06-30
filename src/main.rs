@@ -380,7 +380,7 @@ impl Profile {
 
     fn render_cmdline(&self, line: &str, regex: &Regex) -> Option<String> {
         let probably_cmdline = match self.cmd_list.state {
-            StringListState::Navigate => self.cmd_list.current_item().map(|x| x.clone()),
+            StringListState::Navigate => self.cmd_list.current_item().cloned(),
             StringListState::Editing { .. } => Some(self.cmd_list.edit_field.buffer.clone()),
         };
 
@@ -539,7 +539,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             Some(Ok(regex)) => line_list
                 .current_item()
                 .and_then(|item| profile.render_cmdline(item, regex))
-                .map(|x| Ok(x)),
+                .map(Ok),
             Some(Err(err)) => Some(Err(err.clone())),
             None => None,
         };
