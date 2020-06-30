@@ -9,11 +9,11 @@ use std::error::Error;
 use std::ffi::CString;
 use std::fs::{create_dir_all, read_to_string, File};
 use std::io::{stdin, BufRead, BufReader, Write};
+use std::os::unix::io::AsRawFd;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use ui::keycodes::*;
 use ui::*;
-use std::os::unix::io::AsRawFd;
 
 // TODO: mark_nonblocking does not work on Windows
 fn mark_nonblocking<Fd: AsRawFd>(fd: &mut Fd) {
@@ -68,7 +68,12 @@ impl LineList {
         self.list.current_item().map(|x| x.as_str())
     }
 
-    fn render(&self, rect: Rect, focused: bool, regex_result: &Option<Result<Regex, pcre2::Error>>) {
+    fn render(
+        &self,
+        rect: Rect,
+        focused: bool,
+        regex_result: &Option<Result<Regex, pcre2::Error>>,
+    ) {
         self.list.render(rect, focused);
 
         let Rect { x, y, w, h } = rect;
@@ -389,7 +394,7 @@ impl Profile {
                             result = result.replace(
                                 format!("\\{}", i).as_str(),
                                 line.get(mat.start()..mat.end()).unwrap_or(""),
-                                )
+                            )
                         }
                     }
                 }
@@ -519,7 +524,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     while !global.quit {
         // TODO: Don't rerender the state of the app if nothing changed
         //   After introducing async input we are rerendering the whole application
-        //   on each iteration of even loop. And the rendering operation is pretty 
+        //   on each iteration of even loop. And the rendering operation is pretty
         //   expensive by itself.
         let (w, h) = {
             let mut x: i32 = 0;
@@ -531,9 +536,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         erase();
 
         let cmdline: Option<Result<String, pcre2::Error>> = match &re {
-            Some(Ok(regex)) => line_list.current_item().and_then(|item| profile.render_cmdline(item, regex)).map(|x| Ok(x)),
+            Some(Ok(regex)) => line_list
+                .current_item()
+                .and_then(|item| profile.render_cmdline(item, regex))
+                .map(|x| Ok(x)),
             Some(Err(err)) => Some(Err(err.clone())),
-            None => None
+            None => None,
         };
 
         if h >= 1 {
@@ -625,10 +633,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         if let Some(reader) = &mut line_list.output {
             line.clear();
             match reader.read_line(&mut line) {
-                Ok(0) => {},
+                Ok(0) => {}
                 Ok(_) => {
                     line_list.list.items.push(line.clone());
-                },
+                }
                 _ => {}
             }
         }
