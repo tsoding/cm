@@ -15,7 +15,7 @@ use std::process::Command;
 use ui::keycodes::*;
 use ui::*;
 
-// TODO: mark_nonblocking does not work on Windows
+// TODO(#94): mark_nonblocking does not work on Windows
 fn mark_nonblocking<Fd: AsRawFd>(fd: &mut Fd) {
     unsafe {
         let flags = libc::fcntl(fd.as_raw_fd(), F_GETFL, 0);
