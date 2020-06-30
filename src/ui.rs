@@ -44,8 +44,12 @@ impl ItemList {
     }
 
     pub fn delete_current(&mut self) {
-        self.items.remove(self.cursor_y);
-        self.cursor_y = min(max(0, self.cursor_y), self.items.len() - 1);
+        if self.cursor_y < self.items.len() {
+            self.items.remove(self.cursor_y);
+            if self.items.len() > 0 {
+                self.cursor_y = min(max(0, self.cursor_y), self.items.len() - 1);
+            }
+        }
     }
 
     pub fn handle_key(&mut self, key: i32) {
