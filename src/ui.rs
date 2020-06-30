@@ -6,10 +6,6 @@ use style::*;
 use ncurses::*;
 use std::cmp::{max, min};
 
-fn clamp<T: Ord>(x: T, low: T, high: T) -> T {
-    min(max(low, x), high)
-}
-
 pub struct ItemList {
     pub items: Vec<String>,
     pub cursor_x: usize,
@@ -49,7 +45,7 @@ impl ItemList {
 
     pub fn delete_current(&mut self) {
         self.items.remove(self.cursor_y);
-        self.cursor_y = clamp(self.cursor_y, 0, self.items.len() - 1);
+        self.cursor_y = min(max(0, self.cursor_y), self.items.len() - 1);
     }
 
     pub fn handle_key(&mut self, key: i32) {
