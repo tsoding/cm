@@ -195,7 +195,7 @@ impl StringList {
         }
     }
 
-    fn handle_key(&mut self, key: i32, global: &mut Global) -> Result<(), Box<dyn Error>> {
+    fn handle_key(&mut self, key: i32, global: &mut Global) {
         match self.state {
             StringListState::Navigate => {
                 if !global.handle_key(key) {
@@ -235,7 +235,6 @@ impl StringList {
                 key => self.edit_field.handle_key(key),
             },
         }
-        Ok(())
     }
 }
 
@@ -581,10 +580,10 @@ fn main() -> Result<(), Box<dyn Error>> {
             match global.focus {
                 Focus::Lines => line_list.handle_key(key, &cmdline, &mut global)?,
                 Focus::Regexs => {
-                    profile.regex_list.handle_key(key, &mut global)?;
+                    profile.regex_list.handle_key(key, &mut global);
                     re = profile.compile_current_regex();
                 }
-                Focus::Cmds => profile.cmd_list.handle_key(key, &mut global)?,
+                Focus::Cmds => profile.cmd_list.handle_key(key, &mut global),
             }
         }
 
