@@ -45,7 +45,7 @@ impl LineList {
         &self,
         rect: Rect,
         focused: bool,
-        regex_result: &Option<Result<Regex, pcre2::Error>>,
+        regex_result: Option<Result<Regex, pcre2::Error>>,
     ) {
         self.list.render(rect, focused);
 
@@ -72,7 +72,7 @@ impl LineList {
                     MATCH_PAIR
                 };
 
-                if let Some(Ok(regex)) = regex_result {
+                if let Some(Ok(regex)) = &regex_result {
                     // NOTE: we are ignoring any further potential
                     // capture matches (I don't like this term but
                     // that's what PCRE2 lib is calling it). For no
@@ -369,7 +369,7 @@ impl Profile {
         }
     }
 
-    fn render_cmdline(&self, line: &str, regex: &Regex) -> Option<String> {
+    fn render_cmdline(&self, line: &str, regex: Regex) -> Option<String> {
         let probably_cmdline = match self.cmd_list.state {
             StringListState::Navigate => self.cmd_list.current_item().map(String::from),
             StringListState::Editing { .. } => Some(self.cmd_list.edit_field.buffer.clone()),
@@ -477,7 +477,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         Profile::initial()
     };
 
-    let mut re = profile.compile_current_regex();
     let mut global = Global {
         quit: false,
         profile_pane: false,
@@ -509,7 +508,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     while !global.quit {
         // BEGIN CMDLINE RENDER SECTION //////////////////////////////
-        let cmdline: Option<Result<String, pcre2::Error>> = match &re {
+        let cmdline: Option<Result<String, pcre2::Error>> = match profile.compile_current_regex() {
             Some(Ok(regex)) => line_list
                 .current_item()
                 .and_then(|item| profile.render_cmdline(item, regex))
@@ -564,7 +563,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     h: list_h,
                 },
                 global.focus == Focus::Lines,
-                &re,
+                profile.compile_current_regex(),
             );
             profile.regex_list.render(
                 Rect {
@@ -595,7 +594,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     h: h - 1,
                 },
                 true,
-                &re,
+                profile.compile_current_regex(),
             );
         }
 
@@ -618,10 +617,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         } else {
             match global.focus {
                 Focus::Lines => line_list.handle_key(key, &cmdline, &mut global)?,
-                Focus::Regexs => {
-                    profile.regex_list.handle_key(key, &mut global);
-                    re = profile.compile_current_regex();
-                }
+                Focus::Regexs => profile.regex_list.handle_key(key, &mut global),
                 Focus::Cmds => profile.cmd_list.handle_key(key, &mut global),
             }
         }
