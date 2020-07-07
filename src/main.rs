@@ -549,7 +549,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     Some(cmdline)
                 },
                 None => {
-                    status_line.update("No match");
+                    status_line.update("No match (line doesn't match current regex, nothing happens on ENTER)");
                     None
                 },
             }
