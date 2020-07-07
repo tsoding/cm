@@ -41,12 +41,7 @@ impl LineList {
         self.list.current_item()
     }
 
-    fn render(
-        &self,
-        rect: Rect,
-        focused: bool,
-        regex_result: &Option<Result<Regex, pcre2::Error>>,
-    ) {
+    fn render(&self, rect: Rect, focused: bool, regex_result: Option<Result<Regex, pcre2::Error>>) {
         self.list.render(rect, focused);
 
         let Rect { x, y, w, h } = rect;
@@ -72,7 +67,7 @@ impl LineList {
                     MATCH_PAIR
                 };
 
-                if let Some(Ok(regex)) = regex_result {
+                if let Some(Ok(regex)) = &regex_result {
                     // NOTE: we are ignoring any further potential
                     // capture matches (I don't like this term but
                     // that's what PCRE2 lib is calling it). For no
@@ -143,13 +138,13 @@ impl LineList {
     fn handle_key(
         &mut self,
         key: i32,
-        cmdline_result: &Option<Result<String, pcre2::Error>>,
+        cmdline_result: &Option<String>,
         global: &mut Global,
     ) -> Result<(), Box<dyn Error>> {
         if !global.handle_key(key) {
             match key {
                 KEY_RETURN => {
-                    if let Some(Ok(cmdline)) = cmdline_result {
+                    if let Some(cmdline) = cmdline_result {
                         // TODO(#47): endwin() on Enter in LineList looks like a total hack and it's unclear why it even works
                         endwin();
                         // TODO(#40): shell is not customizable
@@ -251,34 +246,26 @@ impl StringList {
     }
 }
 
-#[derive(Copy, Clone)]
-enum Status {
-    Info,
-    Error,
-}
-
 struct StatusLine {
-    status: Status,
     text: String,
 }
 
 impl StatusLine {
     fn new() -> Self {
         Self {
-            status: Status::Info,
             text: String::new(),
         }
     }
 
     fn render(&self, y: usize) {
-        let pair = match self.status {
-            Status::Info => REGULAR_PAIR,
-            Status::Error => STATUS_ERROR_PAIR,
-        };
-        attron(COLOR_PAIR(pair));
+        attron(COLOR_PAIR(REGULAR_PAIR));
         mv(y as i32, 0);
         addstr(self.text.as_str());
-        attroff(COLOR_PAIR(pair));
+        attroff(COLOR_PAIR(REGULAR_PAIR));
+    }
+
+    fn update(&mut self, text: &str) {
+        self.text = text.to_string();
     }
 }
 
@@ -362,39 +349,17 @@ impl Profile {
         Ok(())
     }
 
-    fn compile_current_regex(&self) -> Option<Result<Regex, pcre2::Error>> {
+    fn current_regex(&self) -> Option<Result<Regex, pcre2::Error>> {
         match self.regex_list.state {
             StringListState::Navigate => self.regex_list.current_item().map(|s| Regex::new(&s)),
             StringListState::Editing { .. } => Some(Regex::new(&self.regex_list.edit_field.buffer)),
         }
     }
 
-    fn render_cmdline(&self, line: &str, regex: &Regex) -> Option<String> {
-        let probably_cmdline = match self.cmd_list.state {
+    fn current_cmd(&self) -> Option<String> {
+        match self.cmd_list.state {
             StringListState::Navigate => self.cmd_list.current_item().map(String::from),
             StringListState::Editing { .. } => Some(self.cmd_list.edit_field.buffer.clone()),
-        };
-
-        if let Some(cmdline) = probably_cmdline {
-            let mut result = cmdline;
-            let cap_mats = regex.captures_iter(line.as_bytes()).next();
-            if let Some(cap_mat) = cap_mats {
-                if let Ok(caps) = cap_mat {
-                    for i in 1..caps.len() {
-                        if let Some(mat) = caps.get(i) {
-                            result = result.replace(
-                                format!("\\{}", i).as_str(),
-                                line.get(mat.start()..mat.end()).unwrap_or(""),
-                            )
-                        }
-                    }
-                }
-                Some(result)
-            } else {
-                None
-            }
-        } else {
-            None
         }
     }
 
@@ -417,17 +382,34 @@ impl Profile {
 
 #[derive(PartialEq, Clone, Copy)]
 enum Focus {
-    Lines,
-    Regexs,
-    Cmds,
+    Lines = 0,
+    Regexs = 1,
+    Cmds = 2,
 }
 
+const FOCUS_COUNT: usize = 3;
+
 impl Focus {
+    fn from_number(n: usize) -> Option<Focus> {
+        match n {
+            0 => Some(Focus::Lines),
+            1 => Some(Focus::Regexs),
+            2 => Some(Focus::Cmds),
+            _ => None,
+        }
+    }
+
     fn next(self) -> Self {
-        match self {
-            Focus::Lines => Focus::Regexs,
-            Focus::Regexs => Focus::Cmds,
-            Focus::Cmds => Focus::Lines,
+        Focus::from_number((self as usize + 1) % FOCUS_COUNT).unwrap()
+    }
+
+    fn steps_to(self, target: Focus) -> usize {
+        let a = self as usize;
+        let b = target as usize;
+        if a <= b {
+            b - a
+        } else {
+            (b + FOCUS_COUNT) - a
         }
     }
 }
@@ -461,6 +443,26 @@ impl Global {
     }
 }
 
+fn render_cmdline(line: &str, cmd: &str, regex: Regex) -> Option<String> {
+    regex
+        .captures_iter(line.as_bytes())
+        .next()
+        .and_then(|cap_mat| {
+            let mut result = cmd.to_string();
+            if let Ok(caps) = cap_mat {
+                for i in 1..caps.len() {
+                    if let Some(mat) = caps.get(i) {
+                        result = result.replace(
+                            format!("\\{}", i).as_str(),
+                            line.get(mat.start()..mat.end()).unwrap_or(""),
+                        )
+                    }
+                }
+            }
+            Some(result)
+        })
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     let config_path = {
         const CONFIG_FILE_NAME: &str = "cm.conf";
@@ -477,7 +479,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         Profile::initial()
     };
 
-    let mut re = profile.compile_current_regex();
     let mut global = Global {
         quit: false,
         profile_pane: false,
@@ -508,6 +509,64 @@ fn main() -> Result<(), Box<dyn Error>> {
     init_style();
 
     while !global.quit {
+        // BEGIN CMDLINE RENDER SECTION //////////////////////////////
+        let cmdline = match (
+            profile.current_regex(),
+            profile.current_cmd(),
+            line_list.current_item(),
+        ) {
+            (None, _, _) => {
+                if global.profile_pane {
+                    match global.focus.steps_to(Focus::Regexs) {
+                        0 => status_line.update("No regex (press I to insert a regex)"),
+                        x => status_line.update(&format!(
+                            "No regex (press TAB {} times to focus on regex panel)",
+                            x
+                        )),
+                    }
+                } else {
+                    status_line.update("No regex (press E to add a regex)")
+                }
+                None
+            }
+            (Some(Err(err)), _, _) => {
+                status_line.update(&err.to_string());
+                None
+            }
+            (Some(Ok(_)), None, _) => {
+                if global.profile_pane {
+                    match global.focus.steps_to(Focus::Cmds) {
+                        0 => status_line.update("No command (press I to insert a command)"),
+                        x => status_line.update(&format!(
+                            "No command (press TAB {} times to focus on command panel)",
+                            x
+                        )),
+                    }
+                } else {
+                    status_line.update("No command (press E to add a command)");
+                }
+                None
+            }
+            (Some(Ok(_)), Some(_), None) => {
+                status_line.update("No line selected");
+                None
+            }
+            (Some(Ok(regex)), Some(cmd), Some(line)) => match render_cmdline(line, &cmd, regex) {
+                Some(cmdline) => {
+                    status_line.update(&cmdline);
+                    Some(cmdline)
+                }
+                None => {
+                    status_line.update(
+                        "No match (line doesn't match current regex, nothing happens on ENTER)",
+                    );
+                    None
+                }
+            },
+        };
+        // END CMDLINE RENDER SECTION //////////////////////////////
+
+        // BEGIN RENDER SECTION //////////////////////////////
         // TODO(#95): Don't rerender the state of the app if nothing changed
         //   After introducing async input we are rerendering the whole application
         //   on each iteration of even loop. And the rendering operation is pretty
@@ -520,30 +579,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         };
 
         erase();
-
-        let cmdline: Option<Result<String, pcre2::Error>> = match &re {
-            Some(Ok(regex)) => line_list
-                .current_item()
-                .and_then(|item| profile.render_cmdline(item, regex))
-                .map(Ok),
-            Some(Err(err)) => Some(Err(err.clone())),
-            None => None,
-        };
-
-        match &cmdline {
-            Some(Ok(line)) => {
-                status_line.text = line.to_string();
-                status_line.status = Status::Info;
-            }
-            Some(Err(err)) => {
-                status_line.text = err.to_string();
-                status_line.status = Status::Error;
-            }
-            None => {
-                status_line.text.clear();
-                status_line.status = Status::Error;
-            }
-        }
 
         if h >= 1 {
             status_line.render(h - 1);
@@ -561,7 +596,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     h: list_h,
                 },
                 global.focus == Focus::Lines,
-                &re,
+                profile.current_regex(),
             );
             profile.regex_list.render(
                 Rect {
@@ -592,7 +627,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     h: h - 1,
                 },
                 true,
-                &re,
+                profile.current_regex(),
             );
         }
 
@@ -604,24 +639,24 @@ fn main() -> Result<(), Box<dyn Error>> {
         mv(global.cursor_y, global.cursor_x);
 
         refresh();
+        // END RENDER SECTION //////////////////////////////
 
-        let key = getch();
-
+        // BEGIN INPUT SECTION //////////////////////////////
         // TODO(#43): cm does not handle Shift+TAB to scroll backwards through the panels
+        let key = getch();
         let profile_pane = global.profile_pane;
         if !profile_pane {
             line_list.handle_key(key, &cmdline, &mut global)?;
         } else {
             match global.focus {
                 Focus::Lines => line_list.handle_key(key, &cmdline, &mut global)?,
-                Focus::Regexs => {
-                    profile.regex_list.handle_key(key, &mut global);
-                    re = profile.compile_current_regex();
-                }
+                Focus::Regexs => profile.regex_list.handle_key(key, &mut global),
                 Focus::Cmds => profile.cmd_list.handle_key(key, &mut global),
             }
         }
+        // END INPUT SECTION //////////////////////////////
 
+        // BEGIN ASYNC CHILD OUTPUT SECTION //////////////////////////////
         if let Some((reader, child)) = &mut line_list.child {
             let mut line = String::new();
             loop {
@@ -647,6 +682,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 line_list.child = None
             }
         }
+        // END ASYNC CHILD OUTPUT SECTION //////////////////////////////
 
         std::thread::sleep(std::time::Duration::from_millis(16));
     }
