@@ -280,6 +280,11 @@ impl StatusLine {
         addstr(self.text.as_str());
         attroff(COLOR_PAIR(pair));
     }
+
+    fn update(&mut self, status: Status, text: String) {
+        self.status = status;
+        self.text = text;
+    }
 }
 
 struct Profile {
@@ -515,18 +520,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         };
 
         match &cmdline {
-            Some(Ok(line)) => {
-                status_line.text = line.to_string();
-                status_line.status = Status::Info;
-            }
-            Some(Err(err)) => {
-                status_line.text = err.to_string();
-                status_line.status = Status::Error;
-            }
-            None => {
-                status_line.text = "No match".to_string();
-                status_line.status = Status::Info;
-            }
+            Some(Ok(line)) => status_line.update(Status::Info, line.to_string()),
+            Some(Err(err)) => status_line.update(Status::Error, err.to_string()),
+            None => status_line.update(Status::Info, "No match".to_string()),
         }
         // END CMDLINE RENDER SECTION //////////////////////////////
 
