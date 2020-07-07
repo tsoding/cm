@@ -11,7 +11,7 @@ use std::fs::{create_dir_all, read_to_string, File};
 use std::io::{stdin, BufRead, BufReader, Write};
 use std::os::unix::io::AsRawFd;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Child};
 use ui::keycodes::*;
 use ui::style::*;
 use ui::*;
@@ -26,14 +26,14 @@ fn mark_nonblocking<Fd: AsRawFd>(fd: &mut Fd) {
 
 struct LineList {
     list: ItemList,
-    output: Option<BufReader<PipeReader>>,
+    child: Option<(BufReader<PipeReader>, Child)>,
 }
 
 impl LineList {
     fn new() -> Self {
         Self {
             list: ItemList::new(),
-            output: None,
+            child: None,
         }
     }
 
@@ -113,14 +113,17 @@ impl LineList {
             let writer_clone = writer.try_clone()?;
             command.stdout(writer);
             command.stderr(writer_clone);
-            let _ = command.spawn()?;
+            let child = command.spawn()?;
             drop(command);
 
             self.list.cursor_y = 0;
             self.list.items.clear();
+            self.list.items.push(format!("Pid: {}", child.id()));
 
             mark_nonblocking(&mut reader);
-            self.output = Some(BufReader::new(reader));
+            let output = BufReader::new(reader);
+
+            self.child = Some((output, child));
 
             Ok(true)
         } else {
@@ -477,7 +480,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     init_style();
 
-    let mut line = String::new();
     while !global.quit {
         // TODO(#95): Don't rerender the state of the app if nothing changed
         //   After introducing async input we are rerendering the whole application
@@ -587,14 +589,23 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
         }
 
-        if let Some(reader) = &mut line_list.output {
-            line.clear();
-            match reader.read_line(&mut line) {
-                Ok(0) => {}
-                Ok(_) => {
-                    line_list.list.items.push(line.clone());
+        if let Some((reader, child)) = &mut line_list.child {
+            let mut line = String::new();
+            loop {
+                line.clear();
+                match reader.read_line(&mut line) {
+                    Ok(0) => break,
+                    Ok(_) => line_list.list.items.push(line.clone()),
+                    _ => break,
                 }
-                _ => {}
+            }
+
+            if let Some(status) = child.try_wait()? {
+                match status.code() {
+                    Some(code) => line_list.list.items.push(format!("-- Execution Finished with status code: {} --", code)),
+                    None => line_list.list.items.push("-- Execution Terminated by a signal --".to_string())
+                }
+                line_list.child = None
             }
         }
 
