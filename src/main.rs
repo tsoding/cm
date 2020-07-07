@@ -41,12 +41,7 @@ impl LineList {
         self.list.current_item()
     }
 
-    fn render(
-        &self,
-        rect: Rect,
-        focused: bool,
-        regex_result: Option<Result<Regex, pcre2::Error>>,
-    ) {
+    fn render(&self, rect: Rect, focused: bool, regex_result: Option<Result<Regex, pcre2::Error>>) {
         self.list.render(rect, focused);
 
         let Rect { x, y, w, h } = rect;
@@ -449,20 +444,23 @@ impl Global {
 }
 
 fn render_cmdline(line: &str, cmd: &str, regex: Regex) -> Option<String> {
-    regex.captures_iter(line.as_bytes()).next().and_then(|cap_mat| {
-        let mut result = cmd.to_string();
-        if let Ok(caps) = cap_mat {
-            for i in 1..caps.len() {
-                if let Some(mat) = caps.get(i) {
-                    result = result.replace(
-                        format!("\\{}", i).as_str(),
-                        line.get(mat.start()..mat.end()).unwrap_or(""),
-                    )
+    regex
+        .captures_iter(line.as_bytes())
+        .next()
+        .and_then(|cap_mat| {
+            let mut result = cmd.to_string();
+            if let Ok(caps) = cap_mat {
+                for i in 1..caps.len() {
+                    if let Some(mat) = caps.get(i) {
+                        result = result.replace(
+                            format!("\\{}", i).as_str(),
+                            line.get(mat.start()..mat.end()).unwrap_or(""),
+                        )
+                    }
                 }
             }
-        }
-        Some(result)
-    })
+            Some(result)
+        })
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -512,47 +510,59 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     while !global.quit {
         // BEGIN CMDLINE RENDER SECTION //////////////////////////////
-        let cmdline = match (profile.current_regex(), profile.current_cmd(), line_list.current_item()) {
+        let cmdline = match (
+            profile.current_regex(),
+            profile.current_cmd(),
+            line_list.current_item(),
+        ) {
             (None, _, _) => {
                 if global.profile_pane {
                     match global.focus.steps_to(Focus::Regexs) {
                         0 => status_line.update("No regex (press I to insert a regex)"),
-                        x => status_line.update(&format!("No regex (press TAB {} times to focus on regex panel)", x)),
+                        x => status_line.update(&format!(
+                            "No regex (press TAB {} times to focus on regex panel)",
+                            x
+                        )),
                     }
                 } else {
                     status_line.update("No regex (press E to add a regex)")
                 }
                 None
-            },
+            }
             (Some(Err(err)), _, _) => {
                 status_line.update(&err.to_string());
                 None
-            },
+            }
             (Some(Ok(_)), None, _) => {
                 if global.profile_pane {
                     match global.focus.steps_to(Focus::Cmds) {
                         0 => status_line.update("No command (press I to insert a command)"),
-                        x => status_line.update(&format!("No command (press TAB {} times to focus on command panel)", x)),
+                        x => status_line.update(&format!(
+                            "No command (press TAB {} times to focus on command panel)",
+                            x
+                        )),
                     }
                 } else {
                     status_line.update("No command (press E to add a command)");
                 }
                 None
-            },
+            }
             (Some(Ok(_)), Some(_), None) => {
                 status_line.update("No line selected");
                 None
-            },
+            }
             (Some(Ok(regex)), Some(cmd), Some(line)) => match render_cmdline(line, &cmd, regex) {
                 Some(cmdline) => {
                     status_line.update(&cmdline);
                     Some(cmdline)
-                },
+                }
                 None => {
-                    status_line.update("No match (line doesn't match current regex, nothing happens on ENTER)");
+                    status_line.update(
+                        "No match (line doesn't match current regex, nothing happens on ENTER)",
+                    );
                     None
-                },
-            }
+                }
+            },
         };
         // END CMDLINE RENDER SECTION //////////////////////////////
 
