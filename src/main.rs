@@ -251,38 +251,25 @@ impl StringList {
     }
 }
 
-#[derive(Copy, Clone)]
-enum Status {
-    Info,
-    Error,
-}
-
 struct StatusLine {
-    status: Status,
     text: String,
 }
 
 impl StatusLine {
     fn new() -> Self {
         Self {
-            status: Status::Info,
             text: String::new(),
         }
     }
 
     fn render(&self, y: usize) {
-        let pair = match self.status {
-            Status::Info => REGULAR_PAIR,
-            Status::Error => STATUS_ERROR_PAIR,
-        };
-        attron(COLOR_PAIR(pair));
+        attron(COLOR_PAIR(REGULAR_PAIR));
         mv(y as i32, 0);
         addstr(self.text.as_str());
-        attroff(COLOR_PAIR(pair));
+        attroff(COLOR_PAIR(REGULAR_PAIR));
     }
 
-    fn update(&mut self, status: Status, text: &str) {
-        self.status = status;
+    fn update(&mut self, text: &str) {
         self.text = text.to_string();
     }
 }
@@ -529,40 +516,40 @@ fn main() -> Result<(), Box<dyn Error>> {
             (None, _, _) => {
                 if global.profile_pane {
                     match global.focus.steps_to(Focus::Regexs) {
-                        0 => status_line.update(Status::Info, "No regex (press I to insert a regex)"),
-                        x => status_line.update(Status::Info, &format!("No regex (press TAB {} times to focus on regex panel)", x)),
+                        0 => status_line.update("No regex (press I to insert a regex)"),
+                        x => status_line.update(&format!("No regex (press TAB {} times to focus on regex panel)", x)),
                     }
                 } else {
-                    status_line.update(Status::Info, "No regex (press E to add a regex)")
+                    status_line.update("No regex (press E to add a regex)")
                 }
                 None
             },
             (Some(Err(err)), _, _) => {
-                status_line.update(Status::Info, &err.to_string());
+                status_line.update(&err.to_string());
                 None
             },
             (Some(Ok(_)), None, _) => {
                 if global.profile_pane {
                     match global.focus.steps_to(Focus::Cmds) {
-                        0 => status_line.update(Status::Info, "No command (press I to insert a command)"),
-                        x => status_line.update(Status::Info, &format!("No command (press TAB {} times to focus on command panel)", x)),
+                        0 => status_line.update("No command (press I to insert a command)"),
+                        x => status_line.update(&format!("No command (press TAB {} times to focus on command panel)", x)),
                     }
                 } else {
-                    status_line.update(Status::Info, "No command (press E to add a command)");
+                    status_line.update("No command (press E to add a command)");
                 }
                 None
             },
             (Some(Ok(_)), Some(_), None) => {
-                status_line.update(Status::Info, "No line selected");
+                status_line.update("No line selected");
                 None
             },
             (Some(Ok(regex)), Some(cmd), Some(line)) => match render_cmdline(line, &cmd, regex) {
                 Some(cmdline) => {
-                    status_line.update(Status::Info, &cmdline);
+                    status_line.update(&cmdline);
                     Some(cmdline)
                 },
                 None => {
-                    status_line.update(Status::Info, "No match");
+                    status_line.update("No match");
                     None
                 },
             }
