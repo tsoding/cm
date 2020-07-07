@@ -143,13 +143,13 @@ impl LineList {
     fn handle_key(
         &mut self,
         key: i32,
-        cmdline_result: &Option<Result<String, pcre2::Error>>,
+        cmdline_result: &Option<String>,
         global: &mut Global,
     ) -> Result<(), Box<dyn Error>> {
         if !global.handle_key(key) {
             match key {
                 KEY_RETURN => {
-                    if let Some(Ok(cmdline)) = cmdline_result {
+                    if let Some(cmdline) = cmdline_result {
                         // TODO(#47): endwin() on Enter in LineList looks like a total hack and it's unclear why it even works
                         endwin();
                         // TODO(#40): shell is not customizable
@@ -281,9 +281,9 @@ impl StatusLine {
         attroff(COLOR_PAIR(pair));
     }
 
-    fn update(&mut self, status: Status, text: String) {
+    fn update(&mut self, status: Status, text: &str) {
         self.status = status;
-        self.text = text;
+        self.text = text.to_string();
     }
 }
 
@@ -381,25 +381,6 @@ impl Profile {
         }
     }
 
-    fn render_cmdline(&self, line: &str, regex: Regex) -> Option<String> {
-        self.current_cmd().and_then(|cmdline| {
-            regex.captures_iter(line.as_bytes()).next().and_then(|cap_mat| {
-                let mut result = cmdline;
-                if let Ok(caps) = cap_mat {
-                    for i in 1..caps.len() {
-                        if let Some(mat) = caps.get(i) {
-                            result = result.replace(
-                                format!("\\{}", i).as_str(),
-                                line.get(mat.start()..mat.end()).unwrap_or(""),
-                            )
-                        }
-                    }
-                }
-                Some(result)
-            })
-        })
-    }
-
     fn initial() -> Self {
         let mut result = Self::new();
         result
@@ -419,17 +400,34 @@ impl Profile {
 
 #[derive(PartialEq, Clone, Copy)]
 enum Focus {
-    Lines,
-    Regexs,
-    Cmds,
+    Lines = 0,
+    Regexs = 1,
+    Cmds = 2,
 }
 
+const FOCUS_COUNT: usize = 3;
+
 impl Focus {
+    fn from_number(n: usize) -> Option<Focus> {
+        match n {
+            0 => Some(Focus::Lines),
+            1 => Some(Focus::Regexs),
+            2 => Some(Focus::Cmds),
+            _ => None,
+        }
+    }
+
     fn next(self) -> Self {
-        match self {
-            Focus::Lines => Focus::Regexs,
-            Focus::Regexs => Focus::Cmds,
-            Focus::Cmds => Focus::Lines,
+        Focus::from_number((self as usize + 1) % FOCUS_COUNT).unwrap()
+    }
+
+    fn steps_to(self, target: Focus) -> usize {
+        let a = self as usize;
+        let b = target as usize;
+        if a <= b {
+            b - a
+        } else {
+            (b + FOCUS_COUNT) - a
         }
     }
 }
@@ -461,6 +459,23 @@ impl Global {
             _ => false,
         }
     }
+}
+
+fn render_cmdline(line: &str, cmd: &str, regex: Regex) -> Option<String> {
+    regex.captures_iter(line.as_bytes()).next().and_then(|cap_mat| {
+        let mut result = cmd.to_string();
+        if let Ok(caps) = cap_mat {
+            for i in 1..caps.len() {
+                if let Some(mat) = caps.get(i) {
+                    result = result.replace(
+                        format!("\\{}", i).as_str(),
+                        line.get(mat.start()..mat.end()).unwrap_or(""),
+                    )
+                }
+            }
+        }
+        Some(result)
+    })
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -510,20 +525,48 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     while !global.quit {
         // BEGIN CMDLINE RENDER SECTION //////////////////////////////
-        let cmdline: Option<Result<String, pcre2::Error>> = match profile.current_regex() {
-            Some(Ok(regex)) => line_list
-                .current_item()
-                .and_then(|item| profile.render_cmdline(item, regex))
-                .map(Ok),
-            Some(Err(err)) => Some(Err(err.clone())),
-            None => None,
+        let cmdline = match (profile.current_regex(), profile.current_cmd(), line_list.current_item()) {
+            (None, _, _) => {
+                if global.profile_pane {
+                    match global.focus.steps_to(Focus::Regexs) {
+                        0 => status_line.update(Status::Info, "No regex (press I to insert a regex)"),
+                        x => status_line.update(Status::Info, &format!("No regex (press TAB {} times to focus on regex panel)", x)),
+                    }
+                } else {
+                    status_line.update(Status::Info, "No regex (press E to add a regex)")
+                }
+                None
+            },
+            (Some(Err(err)), _, _) => {
+                status_line.update(Status::Info, &err.to_string());
+                None
+            },
+            (Some(Ok(_)), None, _) => {
+                if global.profile_pane {
+                    match global.focus.steps_to(Focus::Cmds) {
+                        0 => status_line.update(Status::Info, "No command (press I to insert a command)"),
+                        x => status_line.update(Status::Info, &format!("No command (press TAB {} times to focus on command panel)", x)),
+                    }
+                } else {
+                    status_line.update(Status::Info, "No command (press E to add a command)");
+                }
+                None
+            },
+            (Some(Ok(_)), Some(_), None) => {
+                status_line.update(Status::Info, "No line selected");
+                None
+            },
+            (Some(Ok(regex)), Some(cmd), Some(line)) => match render_cmdline(line, &cmd, regex) {
+                Some(cmdline) => {
+                    status_line.update(Status::Info, &cmdline);
+                    Some(cmdline)
+                },
+                None => {
+                    status_line.update(Status::Info, "No match");
+                    None
+                },
+            }
         };
-
-        match &cmdline {
-            Some(Ok(line)) => status_line.update(Status::Info, line.to_string()),
-            Some(Err(err)) => status_line.update(Status::Error, err.to_string()),
-            None => status_line.update(Status::Info, "No match".to_string()),
-        }
         // END CMDLINE RENDER SECTION //////////////////////////////
 
         // BEGIN RENDER SECTION //////////////////////////////
