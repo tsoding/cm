@@ -374,7 +374,7 @@ impl Profile {
         }
     }
 
-    fn current_command(&self) -> Option<String> {
+    fn current_cmd(&self) -> Option<String> {
         match self.cmd_list.state {
             StringListState::Navigate => self.cmd_list.current_item().map(String::from),
             StringListState::Editing { .. } => Some(self.cmd_list.edit_field.buffer.clone()),
@@ -382,7 +382,7 @@ impl Profile {
     }
 
     fn render_cmdline(&self, line: &str, regex: Regex) -> Option<String> {
-        self.current_command().and_then(|cmdline| {
+        self.current_cmd().and_then(|cmdline| {
             regex.captures_iter(line.as_bytes()).next().and_then(|cap_mat| {
                 let mut result = cmdline;
                 if let Ok(caps) = cap_mat {
