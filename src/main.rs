@@ -508,19 +508,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     init_style();
 
     while !global.quit {
-        // TODO(#95): Don't rerender the state of the app if nothing changed
-        //   After introducing async input we are rerendering the whole application
-        //   on each iteration of even loop. And the rendering operation is pretty
-        //   expensive by itself.
-        let (w, h) = {
-            let mut x: i32 = 0;
-            let mut y: i32 = 0;
-            getmaxyx(stdscr(), &mut y, &mut x);
-            (x as usize, y as usize)
-        };
-
-        erase();
-
+        // BEGIN CMDLINE RENDER SECTION //////////////////////////////
         let cmdline: Option<Result<String, pcre2::Error>> = match &re {
             Some(Ok(regex)) => line_list
                 .current_item()
@@ -544,6 +532,21 @@ fn main() -> Result<(), Box<dyn Error>> {
                 status_line.status = Status::Error;
             }
         }
+        // END CMDLINE RENDER SECTION //////////////////////////////
+
+        // BEGIN RENDER SECTION //////////////////////////////
+        // TODO(#95): Don't rerender the state of the app if nothing changed
+        //   After introducing async input we are rerendering the whole application
+        //   on each iteration of even loop. And the rendering operation is pretty
+        //   expensive by itself.
+        let (w, h) = {
+            let mut x: i32 = 0;
+            let mut y: i32 = 0;
+            getmaxyx(stdscr(), &mut y, &mut x);
+            (x as usize, y as usize)
+        };
+
+        erase();
 
         if h >= 1 {
             status_line.render(h - 1);
@@ -604,10 +607,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         mv(global.cursor_y, global.cursor_x);
 
         refresh();
+        // END RENDER SECTION //////////////////////////////
 
-        let key = getch();
-
+        // BEGIN INPUT SECTION //////////////////////////////
         // TODO(#43): cm does not handle Shift+TAB to scroll backwards through the panels
+        let key = getch();
         let profile_pane = global.profile_pane;
         if !profile_pane {
             line_list.handle_key(key, &cmdline, &mut global)?;
@@ -621,7 +625,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                 Focus::Cmds => profile.cmd_list.handle_key(key, &mut global),
             }
         }
+        // END INPUT SECTION //////////////////////////////
 
+        // BEGIN ASYNC CHILD OUTPUT SECTION //////////////////////////////
         if let Some((reader, child)) = &mut line_list.child {
             let mut line = String::new();
             loop {
@@ -647,6 +653,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 line_list.child = None
             }
         }
+        // END ASYNC CHILD OUTPUT SECTION //////////////////////////////
 
         std::thread::sleep(std::time::Duration::from_millis(16));
     }
