@@ -387,7 +387,7 @@ impl Profile {
             .regex_list
             .list
             .items
-            .push(r"\b(.*?):(\d+):".to_string());
+            .push(r"(\/?\b.*?):(\d+):".to_string());
         result.cmd_list.list.items.push("vim +\\2 \\1".to_string());
         result
             .cmd_list
