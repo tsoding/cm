@@ -524,8 +524,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                 status_line.status = Status::Error;
             }
             None => {
-                status_line.text.clear();
-                status_line.status = Status::Error;
+                status_line.text = "No match".to_string();
+                status_line.status = Status::Info;
             }
         }
         // END CMDLINE RENDER SECTION //////////////////////////////
