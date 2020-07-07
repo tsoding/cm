@@ -104,7 +104,7 @@ impl LineList {
     }
 
     fn refresh_child_output(&mut self) -> Result<bool, Box<dyn Error>> {
-        if let Some(shell) = std::env::args().nth(1) {
+        if let Some(shell) = &std::env::args().nth(1) {
             // @shell
             let mut command = Command::new("sh");
             command.arg("-c");
@@ -118,7 +118,7 @@ impl LineList {
 
             self.list.cursor_y = 0;
             self.list.items.clear();
-            self.list.items.push(format!("Pid: {}", child.id()));
+            self.list.items.push(format!("PID: {}, Command: {}", child.id(), shell));
 
             mark_nonblocking(&mut reader);
             let output = BufReader::new(reader);
