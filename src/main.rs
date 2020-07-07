@@ -256,15 +256,29 @@ enum Status {
     Error,
 }
 
-fn render_status(status: Status, y: usize, text: &str) {
-    let pair = match status {
-        Status::Info => REGULAR_PAIR,
-        Status::Error => STATUS_ERROR_PAIR,
-    };
-    attron(COLOR_PAIR(pair));
-    mv(y as i32, 0);
-    addstr(text);
-    attroff(COLOR_PAIR(pair));
+struct StatusLine {
+    status: Status,
+    text: String,
+}
+
+impl StatusLine {
+    fn new() -> Self {
+        Self {
+            status: Status::Info,
+            text: String::new(),
+        }
+    }
+
+    fn render(&self, y: usize) {
+        let pair = match self.status {
+            Status::Info => REGULAR_PAIR,
+            Status::Error => STATUS_ERROR_PAIR,
+        };
+        attron(COLOR_PAIR(pair));
+        mv(y as i32, 0);
+        addstr(self.text.as_str());
+        attroff(COLOR_PAIR(pair));
+    }
 }
 
 struct Profile {
@@ -473,6 +487,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
 
     let mut line_list = LineList::new();
+    let mut status_line = StatusLine::new();
 
     if !line_list.refresh_child_output()? {
         line_list.list.items = stdin().lock().lines().collect::<Result<Vec<String>, _>>()?;
@@ -514,18 +529,23 @@ fn main() -> Result<(), Box<dyn Error>> {
             None => None,
         };
 
-        if h >= 1 {
-            match &cmdline {
-                Some(Ok(line)) => {
-                    render_status(Status::Info, h - 1, line);
-                }
-                Some(Err(err)) => {
-                    render_status(Status::Error, h - 1, &err.to_string());
-                }
-                None => {
-                    render_status(Status::Error, h - 1, "");
-                }
+        match &cmdline {
+            Some(Ok(line)) => {
+                status_line.text = line.to_string();
+                status_line.status = Status::Info;
             }
+            Some(Err(err)) => {
+                status_line.text = err.to_string();
+                status_line.status = Status::Error;
+            }
+            None => {
+                status_line.text.clear();
+                status_line.status = Status::Error;
+            }
+        }
+
+        if h >= 1 {
+            status_line.render(h - 1);
         }
 
         if global.profile_pane {
@@ -583,6 +603,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         mv(global.cursor_y, global.cursor_x);
 
         refresh();
+
         let key = getch();
 
         // TODO(#43): cm does not handle Shift+TAB to scroll backwards through the panels
