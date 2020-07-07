@@ -362,7 +362,7 @@ impl Profile {
         Ok(())
     }
 
-    fn compile_current_regex(&self) -> Option<Result<Regex, pcre2::Error>> {
+    fn current_regex(&self) -> Option<Result<Regex, pcre2::Error>> {
         match self.regex_list.state {
             StringListState::Navigate => self.regex_list.current_item().map(|s| Regex::new(&s)),
             StringListState::Editing { .. } => Some(Regex::new(&self.regex_list.edit_field.buffer)),
@@ -508,7 +508,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     while !global.quit {
         // BEGIN CMDLINE RENDER SECTION //////////////////////////////
-        let cmdline: Option<Result<String, pcre2::Error>> = match profile.compile_current_regex() {
+        let cmdline: Option<Result<String, pcre2::Error>> = match profile.current_regex() {
             Some(Ok(regex)) => line_list
                 .current_item()
                 .and_then(|item| profile.render_cmdline(item, regex))
@@ -563,7 +563,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     h: list_h,
                 },
                 global.focus == Focus::Lines,
-                profile.compile_current_regex(),
+                profile.current_regex(),
             );
             profile.regex_list.render(
                 Rect {
@@ -594,7 +594,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     h: h - 1,
                 },
                 true,
-                profile.compile_current_regex(),
+                profile.current_regex(),
             );
         }
 
