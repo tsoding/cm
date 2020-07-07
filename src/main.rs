@@ -11,7 +11,7 @@ use std::fs::{create_dir_all, read_to_string, File};
 use std::io::{stdin, BufRead, BufReader, Write};
 use std::os::unix::io::AsRawFd;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Child};
+use std::process::{Child, Command};
 use ui::keycodes::*;
 use ui::style::*;
 use ui::*;
@@ -118,7 +118,9 @@ impl LineList {
 
             self.list.cursor_y = 0;
             self.list.items.clear();
-            self.list.items.push(format!("PID: {}, Command: {}", child.id(), shell));
+            self.list
+                .items
+                .push(format!("PID: {}, Command: {}", child.id(), shell));
 
             mark_nonblocking(&mut reader);
             let output = BufReader::new(reader);
@@ -602,8 +604,14 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             if let Some(status) = child.try_wait()? {
                 match status.code() {
-                    Some(code) => line_list.list.items.push(format!("-- Execution Finished with status code: {} --", code)),
-                    None => line_list.list.items.push("-- Execution Terminated by a signal --".to_string())
+                    Some(code) => line_list.list.items.push(format!(
+                        "-- Execution Finished with status code: {} --",
+                        code
+                    )),
+                    None => line_list
+                        .list
+                        .items
+                        .push("-- Execution Terminated by a signal --".to_string()),
                 }
                 line_list.child = None
             }
