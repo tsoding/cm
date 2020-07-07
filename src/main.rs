@@ -374,8 +374,10 @@ impl Profile {
                         }
                     }
                 }
+                Some(result)
+            } else {
+                None
             }
-            Some(result)
         } else {
             None
         }
