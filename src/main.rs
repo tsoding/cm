@@ -105,6 +105,13 @@ impl LineList {
 
     fn refresh_child_output(&mut self) -> Result<bool, Box<dyn Error>> {
         if let Some(shell) = &std::env::args().nth(1) {
+            // TODO(#102): cm does not warn the user when it kills the child process
+            if let Some((_, child)) = &mut self.child {
+                child.kill()?;
+                child.wait()?;
+                self.child = None;
+            }
+
             // @shell
             let mut command = Command::new("sh");
             command.arg("-c");
