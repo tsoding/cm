@@ -369,16 +369,17 @@ impl Profile {
         }
     }
 
-    fn render_cmdline(&self, line: &str, regex: Regex) -> Option<String> {
-        let probably_cmdline = match self.cmd_list.state {
+    fn current_command(&self) -> Option<String> {
+        match self.cmd_list.state {
             StringListState::Navigate => self.cmd_list.current_item().map(String::from),
             StringListState::Editing { .. } => Some(self.cmd_list.edit_field.buffer.clone()),
-        };
+        }
+    }
 
-        if let Some(cmdline) = probably_cmdline {
-            let mut result = cmdline;
-            let cap_mats = regex.captures_iter(line.as_bytes()).next();
-            if let Some(cap_mat) = cap_mats {
+    fn render_cmdline(&self, line: &str, regex: Regex) -> Option<String> {
+        self.current_command().and_then(|cmdline| {
+            regex.captures_iter(line.as_bytes()).next().and_then(|cap_mat| {
+                let mut result = cmdline;
                 if let Ok(caps) = cap_mat {
                     for i in 1..caps.len() {
                         if let Some(mat) = caps.get(i) {
@@ -390,12 +391,8 @@ impl Profile {
                     }
                 }
                 Some(result)
-            } else {
-                None
-            }
-        } else {
-            None
-        }
+            })
+        })
     }
 
     fn initial() -> Self {
