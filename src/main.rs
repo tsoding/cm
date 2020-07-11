@@ -458,7 +458,7 @@ fn render_cmdline(line: &str, cmd: &str, regex: Regex) -> Option<String> {
                         if match_str.contains('"') {
                             match_str = match_str.replace('"', "\\\"")
                         }
-                        if match_str.contains(' ') {
+                        if match_str.contains(' ') || match_str.contains('\'') {
                             match_str = format!("\"{}\"", match_str)
                         }
 
