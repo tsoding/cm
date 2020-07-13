@@ -157,7 +157,6 @@ impl LineList {
                             .spawn()?
                             .wait_with_output()?;
                     }
-                    // TODO(#105): print error in status line on enter when line does not match the regex
                 }
                 KEY_F5 => self.refresh_child_output().map(|_| ())?,
                 key => self.list.handle_key(key),
