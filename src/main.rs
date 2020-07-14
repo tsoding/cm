@@ -48,7 +48,8 @@ impl LineList {
             let Rect { x, y, w, h } = rect;
             if h > 0 {
                 // TODO(#16): word wrapping for long lines
-                for (i, item) in list.items
+                for (i, item) in list
+                    .items
                     .iter()
                     .skip(list.cursor_y / h * h)
                     .enumerate()
@@ -119,7 +120,9 @@ impl LineList {
             drop(command);
 
             let mut new_list = ItemList::new();
-            new_list.items.push(format!("PID: {}, Command: {}", child.id(), shell.as_str()));
+            new_list
+                .items
+                .push(format!("PID: {}, Command: {}", child.id(), shell.as_str()));
             self.list.push(new_list);
 
             mark_nonblocking(&mut reader);
@@ -163,7 +166,9 @@ impl LineList {
                         }
                     }
                 }
-                KeyStroke { key: KEY_BACKSPACE, .. } => {
+                KeyStroke {
+                    key: KEY_BACKSPACE, ..
+                } => {
                     self.list.pop();
                 }
                 KeyStroke { key: KEY_F5, .. } => self.refresh_child_output(None).map(|_| ())?,
@@ -171,7 +176,7 @@ impl LineList {
                     if let Some(list) = self.list.last_mut() {
                         list.handle_key(key_stroke);
                     }
-                },
+                }
             }
         }
 
@@ -688,7 +693,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                         if let Some(list) = line_list.list.last_mut() {
                             list.items.push(line.clone());
                         }
-                    },
+                    }
                     _ => break,
                 }
             }
@@ -705,7 +710,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                     }
                     None => {
                         if let Some(list) = line_list.list.last_mut() {
-                            list.items.push("-- Execution Terminated by a signal --".to_string());
+                            list.items
+                                .push("-- Execution Terminated by a signal --".to_string());
                         }
                     }
                 }
