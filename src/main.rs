@@ -39,7 +39,7 @@ impl LineList {
         Self {
             lists: Vec::<ItemList>::new(),
             child: None,
-            user_provided_cmdline: user_provided_cmdline
+            user_provided_cmdline
         }
     }
 
