@@ -56,14 +56,14 @@ impl ItemList {
         }
     }
 
-    pub fn handle_key(&mut self, key: i32) {
-        match key {
-            KEY_S => self.down(),
-            KEY_W => self.up(),
-            KEY_D => self.right(),
-            KEY_A => self.left(),
-            KEY_DC => self.delete_current(),
-            KEY_HOME => self.home(),
+    pub fn handle_key(&mut self, key_stroke: KeyStroke) {
+        match key_stroke {
+            KeyStroke { key: KEY_S, .. } => self.down(),
+            KeyStroke { key: KEY_W, .. } => self.up(),
+            KeyStroke { key: KEY_D, .. } => self.right(),
+            KeyStroke { key: KEY_A, .. } => self.left(),
+            KeyStroke { key: KEY_DC, .. } => self.delete_current(),
+            KeyStroke { key: KEY_HOME, .. } => self.home(),
             _ => {}
         }
     }
@@ -168,16 +168,16 @@ impl EditField {
         mv(y as i32, (x + self.cursor_x % w) as i32);
     }
 
-    pub fn handle_key(&mut self, key: i32) {
-        if 32 <= key && key <= 126 {
-            self.buffer.insert(self.cursor_x, key as u8 as char);
+    pub fn handle_key(&mut self, key_stroke: KeyStroke) {
+        if 32 <= key_stroke.key && key_stroke.key <= 126 {
+            self.buffer.insert(self.cursor_x, key_stroke.key as u8 as char);
             self.cursor_x += 1;
         }
 
-        match key {
-            KEY_RIGHT if self.cursor_x < self.buffer.len() => self.cursor_x += 1,
-            KEY_LEFT if self.cursor_x > 0 => self.cursor_x -= 1,
-            KEY_BACKSPACE if self.cursor_x > 0 => {
+        match key_stroke {
+            KeyStroke { key: KEY_RIGHT, .. } if self.cursor_x < self.buffer.len() => self.cursor_x += 1,
+            KeyStroke { key: KEY_LEFT, .. } if self.cursor_x > 0 => self.cursor_x -= 1,
+            KeyStroke { key: KEY_BACKSPACE, .. } if self.cursor_x > 0 => {
                 self.cursor_x -= 1;
                 self.buffer.remove(self.cursor_x);
             }
