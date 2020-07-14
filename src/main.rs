@@ -136,6 +136,47 @@ impl LineList {
         }
     }
 
+    fn poll_child_output(&mut self) -> Result<(), Box<dyn Error>> {
+        if let Some((reader, child)) = &mut self.child {
+            let mut line = String::new();
+            const FLUSH_BUFFER_LIMIT: usize = 1024;
+            for _ in 0..FLUSH_BUFFER_LIMIT {
+                line.clear();
+                match reader.read_line(&mut line) {
+                    Ok(0) => break,
+                    Ok(_) => {
+                        if let Some(list) = self.lists.last_mut() {
+                            list.items.push(line.clone());
+                        }
+                    }
+                    _ => break,
+                }
+            }
+
+            if let Some(status) = child.try_wait()? {
+                match status.code() {
+                    Some(code) => {
+                        if let Some(list) = self.lists.last_mut() {
+                            list.items.push(format!(
+                                "-- Execution Finished with status code: {} --",
+                                code
+                            ));
+                        }
+                    }
+                    None => {
+                        if let Some(list) = self.lists.last_mut() {
+                            list.items
+                                .push("-- Execution Terminated by a signal --".to_string());
+                        }
+                    }
+                }
+                self.child = None
+            }
+        }
+
+        Ok(())
+    }
+
     fn handle_key(
         &mut self,
         key_stroke: KeyStroke,
@@ -683,42 +724,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         // END INPUT SECTION //////////////////////////////
 
         // BEGIN ASYNC CHILD OUTPUT SECTION //////////////////////////////
-        if let Some((reader, child)) = &mut line_list.child {
-            let mut line = String::new();
-            const FLUSH_BUFFER_LIMIT: usize = 1024;
-            for _ in 0..FLUSH_BUFFER_LIMIT {
-                line.clear();
-                match reader.read_line(&mut line) {
-                    Ok(0) => break,
-                    Ok(_) => {
-                        if let Some(list) = line_list.lists.last_mut() {
-                            list.items.push(line.clone());
-                        }
-                    }
-                    _ => break,
-                }
-            }
-
-            if let Some(status) = child.try_wait()? {
-                match status.code() {
-                    Some(code) => {
-                        if let Some(list) = line_list.lists.last_mut() {
-                            list.items.push(format!(
-                                "-- Execution Finished with status code: {} --",
-                                code
-                            ));
-                        }
-                    }
-                    None => {
-                        if let Some(list) = line_list.lists.last_mut() {
-                            list.items
-                                .push("-- Execution Terminated by a signal --".to_string());
-                        }
-                    }
-                }
-                line_list.child = None
-            }
-        }
+        line_list.poll_child_output()?;
         // END ASYNC CHILD OUTPUT SECTION //////////////////////////////
 
         std::thread::sleep(std::time::Duration::from_millis(16));
