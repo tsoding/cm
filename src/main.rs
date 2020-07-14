@@ -136,7 +136,7 @@ impl LineList {
         }
     }
 
-    fn poll_child_output(&mut self) -> Result<(), Box<dyn Error>> {
+    fn poll_cmdline_output(&mut self) -> Result<(), Box<dyn Error>> {
         if let Some((reader, child)) = &mut self.child {
             let mut line = String::new();
             const FLUSH_BUFFER_LIMIT: usize = 1024;
@@ -724,7 +724,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         // END INPUT SECTION //////////////////////////////
 
         // BEGIN ASYNC CHILD OUTPUT SECTION //////////////////////////////
-        line_list.poll_child_output()?;
+        line_list.poll_cmdline_output()?;
         // END ASYNC CHILD OUTPUT SECTION //////////////////////////////
 
         std::thread::sleep(std::time::Duration::from_millis(16));
