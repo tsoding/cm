@@ -43,6 +43,10 @@ impl ItemList {
         self.cursor_x += 1;
     }
 
+    pub fn home(&mut self) {
+        self.cursor_x = 0;
+    }
+
     pub fn delete_current(&mut self) {
         if self.cursor_y < self.items.len() {
             self.items.remove(self.cursor_y);
@@ -59,6 +63,7 @@ impl ItemList {
             KEY_D => self.right(),
             KEY_A => self.left(),
             KEY_DC => self.delete_current(),
+            KEY_HOME => self.home(),
             _ => {}
         }
     }
