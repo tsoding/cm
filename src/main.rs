@@ -168,7 +168,9 @@ impl LineList {
                 }
                 KeyStroke { key: KEY_F5, .. } => self.refresh_child_output(None).map(|_| ())?,
                 key_stroke => {
-                    self.list.last_mut().map(|x| x.handle_key(key_stroke));
+                    if let Some(list) = self.list.last_mut() {
+                        list.handle_key(key_stroke);
+                    }
                 },
             }
         }
@@ -683,7 +685,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                 match reader.read_line(&mut line) {
                     Ok(0) => break,
                     Ok(_) => {
-                        line_list.list.last_mut().map(|x| x.items.push(line.clone()));
+                        if let Some(list) = line_list.list.last_mut() {
+                            list.items.push(line.clone());
+                        }
                     },
                     _ => break,
                 }
@@ -692,16 +696,17 @@ fn main() -> Result<(), Box<dyn Error>> {
             if let Some(status) = child.try_wait()? {
                 match status.code() {
                     Some(code) => {
-                        line_list.list.last_mut().map(|x| x.items.push(format!(
-                            "-- Execution Finished with status code: {} --",
-                            code
-                        )));
+                        if let Some(list) = line_list.list.last_mut() {
+                            list.items.push(format!(
+                                "-- Execution Finished with status code: {} --",
+                                code
+                            ));
+                        }
                     }
                     None => {
-                        line_list
-                            .list
-                            .last_mut()
-                            .map(|x| x.items.push("-- Execution Terminated by a signal --".to_string()));
+                        if let Some(list) = line_list.list.last_mut() {
+                            list.items.push("-- Execution Terminated by a signal --".to_string());
+                        }
                     }
                 }
                 line_list.child = None
