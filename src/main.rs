@@ -685,7 +685,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         // BEGIN ASYNC CHILD OUTPUT SECTION //////////////////////////////
         if let Some((reader, child)) = &mut line_list.child {
             let mut line = String::new();
-            loop {
+            const FLUSH_BUFFER_LIMIT: usize = 1024;
+            for _ in 0..FLUSH_BUFFER_LIMIT {
                 line.clear();
                 match reader.read_line(&mut line) {
                     Ok(0) => break,
