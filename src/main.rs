@@ -98,8 +98,8 @@ impl LineList {
         }
     }
 
-    fn refresh_child_output(&mut self, cmdline: &Option<String>) -> Result<bool, Box<dyn Error>> {
-        if let Some(shell) = cmdline.as_ref().or(std::env::args().nth(1).as_ref()) {
+    fn refresh_child_output(&mut self, cmdline: Option<String>) -> Result<bool, Box<dyn Error>> {
+        if let Some(shell) = &cmdline.or_else(|| std::env::args().nth(1)) {
             // TODO(#102): cm does not warn the user when it kills the child process
             if let Some((_, child)) = &mut self.child {
                 child.kill()?;
@@ -122,7 +122,7 @@ impl LineList {
             self.list.items.clear();
             self.list
                 .items
-                .push(format!("PID: {}, Command: {}", child.id(), shell));
+                .push(format!("PID: {}, Command: {}", child.id(), shell.as_str()));
 
             mark_nonblocking(&mut reader);
             let output = BufReader::new(reader);
@@ -143,10 +143,13 @@ impl LineList {
     ) -> Result<(), Box<dyn Error>> {
         if !global.handle_key(key_stroke) {
             match key_stroke {
-                KeyStroke { key: KEY_RETURN, alt } => {
+                KeyStroke {
+                    key: KEY_RETURN,
+                    alt,
+                } => {
                     if let Some(cmdline) = cmdline_result {
                         if alt {
-                            self.refresh_child_output(cmdline_result)?;
+                            self.refresh_child_output(cmdline_result.clone())?;
                         } else {
                             // TODO(#47): endwin() on Enter in LineList looks like a total hack and it's unclear why it even works
                             endwin();
@@ -162,10 +165,10 @@ impl LineList {
                         }
                     }
                 }
-                KeyStroke{ key: KEY_F5, .. } => self.refresh_child_output(&None).map(|_| ())?,
+                KeyStroke { key: KEY_F5, .. } => self.refresh_child_output(None).map(|_| ())?,
                 key_stroke => {
                     self.list.handle_key(key_stroke);
-                },
+                }
             }
         }
 
@@ -233,12 +236,16 @@ impl StringList {
                 }
             }
             StringListState::Editing { new } => match key_stroke {
-                KeyStroke { key: KEY_RETURN, .. } => {
+                KeyStroke {
+                    key: KEY_RETURN, ..
+                } => {
                     self.state = StringListState::Navigate;
                     self.list.items[self.list.cursor_y] = self.edit_field.buffer.clone();
                     global.cursor_visible = false;
                 }
-                KeyStroke { key: KEY_ESCAPE, .. } => {
+                KeyStroke {
+                    key: KEY_ESCAPE, ..
+                } => {
                     self.state = StringListState::Navigate;
                     if new {
                         self.list.delete_current()
@@ -468,7 +475,6 @@ fn render_cmdline(line: &str, cmd: &str, regex: Regex) -> Option<String> {
         })
 }
 
-
 fn main() -> Result<(), Box<dyn Error>> {
     let config_path = {
         const CONFIG_FILE_NAME: &str = "cm.conf";
@@ -497,7 +503,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut line_list = LineList::new();
     let mut status_line = StatusLine::new();
 
-    if !line_list.refresh_child_output(&None)? {
+    if !line_list.refresh_child_output(None)? {
         line_list.list.items = stdin().lock().lines().collect::<Result<Vec<String>, _>>()?;
     }
 

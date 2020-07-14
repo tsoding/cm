@@ -170,14 +170,19 @@ impl EditField {
 
     pub fn handle_key(&mut self, key_stroke: KeyStroke) {
         if 32 <= key_stroke.key && key_stroke.key <= 126 {
-            self.buffer.insert(self.cursor_x, key_stroke.key as u8 as char);
+            self.buffer
+                .insert(self.cursor_x, key_stroke.key as u8 as char);
             self.cursor_x += 1;
         }
 
         match key_stroke {
-            KeyStroke { key: KEY_RIGHT, .. } if self.cursor_x < self.buffer.len() => self.cursor_x += 1,
+            KeyStroke { key: KEY_RIGHT, .. } if self.cursor_x < self.buffer.len() => {
+                self.cursor_x += 1
+            }
             KeyStroke { key: KEY_LEFT, .. } if self.cursor_x > 0 => self.cursor_x -= 1,
-            KeyStroke { key: KEY_BACKSPACE, .. } if self.cursor_x > 0 => {
+            KeyStroke {
+                key: KEY_BACKSPACE, ..
+            } if self.cursor_x > 0 => {
                 self.cursor_x -= 1;
                 self.buffer.remove(self.cursor_x);
             }

@@ -21,36 +21,25 @@ pub struct KeyEscaper {
 
 impl KeyEscaper {
     pub fn new() -> Self {
-        Self {
-            escape: false
-        }
+        Self { escape: false }
     }
 
     // REFERENCE: https://en.wikipedia.org/wiki/ANSI_escape_code#Terminal_input_sequences
     pub fn feed(&mut self, key: i32) -> Option<KeyStroke> {
-        if self.escape {
-            self.escape = false;
-            if key == KEY_ESCAPE {
-                Some(KeyStroke {
-                    key: KEY_ESCAPE,
-                    alt: false,
-                })
-            } else {
-                Some(KeyStroke {
-                    key: key,
-                    alt: true
-                })
+        match (self.escape, key == KEY_ESCAPE) {
+            (true, true) => {
+                self.escape = false;
+                Some(KeyStroke { key, alt: false })
             }
-        } else {
-            if key == KEY_ESCAPE {
+            (true, false) => {
+                self.escape = false;
+                Some(KeyStroke { key, alt: true })
+            }
+            (false, true) => {
                 self.escape = true;
                 None
-            } else {
-                Some(KeyStroke {
-                    key: key,
-                    alt: false
-                })
             }
+            (false, false) => Some(KeyStroke { key, alt: false }),
         }
     }
 }
