@@ -25,69 +25,70 @@ fn mark_nonblocking<Fd: AsRawFd>(fd: &mut Fd) {
 }
 
 struct LineList {
-    list: ItemList,
+    list: Vec<ItemList>,
     child: Option<(BufReader<PipeReader>, Child)>,
 }
 
 impl LineList {
     fn new() -> Self {
         Self {
-            list: ItemList::new(),
+            list: Vec::<ItemList>::new(),
             child: None,
         }
     }
 
     fn current_item(&self) -> Option<&str> {
-        self.list.current_item()
+        self.list.last().and_then(|x| x.current_item())
     }
 
     fn render(&self, rect: Rect, focused: bool, regex_result: Option<Result<Regex, pcre2::Error>>) {
-        self.list.render(rect, focused);
+        if let Some(list) = self.list.last() {
+            list.render(rect, focused);
 
-        let Rect { x, y, w, h } = rect;
-        if h > 0 {
-            // TODO(#16): word wrapping for long lines
-            for (i, item) in self
-                .list
-                .items
-                .iter()
-                .skip(self.list.cursor_y / h * h)
-                .enumerate()
-                .take_while(|(i, _)| *i < h)
-            {
-                let selected = i == (self.list.cursor_y % h);
+            let Rect { x, y, w, h } = rect;
+            if h > 0 {
+                // TODO(#16): word wrapping for long lines
+                for (i, item) in list
+                    .items
+                    .iter()
+                    .skip(list.cursor_y / h * h)
+                    .enumerate()
+                    .take_while(|(i, _)| *i < h)
+                {
+                    let selected = i == (list.cursor_y % h);
 
-                let cap_pair = if selected {
-                    if focused {
-                        MATCH_CURSOR_PAIR
+                    let cap_pair = if selected {
+                        if focused {
+                            MATCH_CURSOR_PAIR
+                        } else {
+                            UNFOCUSED_MATCH_CURSOR_PAIR
+                        }
                     } else {
-                        UNFOCUSED_MATCH_CURSOR_PAIR
-                    }
-                } else {
-                    MATCH_PAIR
-                };
+                        MATCH_PAIR
+                    };
 
-                if let Some(Ok(regex)) = &regex_result {
-                    // NOTE: we are ignoring any further potential
-                    // capture matches (I don't like this term but
-                    // that's what PCRE2 lib is calling it). For no
-                    // particular reason. Just to simplify the
-                    // implementation. Maybe in the future it will
-                    // make sense.
-                    let cap_mats = regex.captures_iter(item.as_bytes()).next();
-                    if let Some(cap_mat) = cap_mats {
-                        if let Ok(caps) = cap_mat {
-                            // NOTE: we are skiping first cap because it contains the
-                            // whole match which is not needed in our case
-                            for j in 1..caps.len() {
-                                if let Some(mat) = caps.get(j) {
-                                    let start = usize::max(self.list.cursor_x, mat.start());
-                                    let end = usize::min(self.list.cursor_x + w, mat.end());
-                                    if start != end {
-                                        mv((y + i) as i32, (start - self.list.cursor_x + x) as i32);
-                                        attron(COLOR_PAIR(cap_pair));
-                                        addstr(item.get(start..end).unwrap_or(""));
-                                        attroff(COLOR_PAIR(cap_pair));
+                    if let Some(Ok(regex)) = &regex_result {
+                        // NOTE: we are ignoring any further potential
+                        // capture matches (I don't like this term but
+                        // that's what PCRE2 lib is calling it). For no
+                        // particular reason. Just to simplify the
+                        // implementation. Maybe in the future it will
+                        // make sense.
+                        let cap_mats = regex.captures_iter(item.as_bytes()).next();
+                        if let Some(cap_mat) = cap_mats {
+                            if let Ok(caps) = cap_mat {
+                                // NOTE: we are skiping first cap because it contains the
+                                // whole match which is not needed in our case
+                                for j in 1..caps.len() {
+                                    if let Some(mat) = caps.get(j) {
+                                        let start = usize::max(list.cursor_x, mat.start());
+                                        let end = usize::min(list.cursor_x + w, mat.end());
+                                        if start != end {
+                                            mv((y + i) as i32, (start - list.cursor_x + x) as i32);
+                                            attron(COLOR_PAIR(cap_pair));
+                                            addstr(item.get(start..end).unwrap_or(""));
+                                            attroff(COLOR_PAIR(cap_pair));
+                                        }
                                     }
                                 }
                             }
@@ -118,11 +119,11 @@ impl LineList {
             let child = command.spawn()?;
             drop(command);
 
-            self.list.cursor_y = 0;
-            self.list.items.clear();
-            self.list
+            let mut new_list = ItemList::new();
+            new_list
                 .items
                 .push(format!("PID: {}, Command: {}", child.id(), shell.as_str()));
+            self.list.push(new_list);
 
             mark_nonblocking(&mut reader);
             let output = BufReader::new(reader);
@@ -165,9 +166,16 @@ impl LineList {
                         }
                     }
                 }
+                KeyStroke {
+                    key: KEY_BACKSPACE, ..
+                } => {
+                    self.list.pop();
+                }
                 KeyStroke { key: KEY_F5, .. } => self.refresh_child_output(None).map(|_| ())?,
                 key_stroke => {
-                    self.list.handle_key(key_stroke);
+                    if let Some(list) = self.list.last_mut() {
+                        list.handle_key(key_stroke);
+                    }
                 }
             }
         }
@@ -504,7 +512,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut status_line = StatusLine::new();
 
     if !line_list.refresh_child_output(None)? {
-        line_list.list.items = stdin().lock().lines().collect::<Result<Vec<String>, _>>()?;
+        let mut new_list = ItemList::new();
+        new_list.items = stdin().lock().lines().collect::<Result<Vec<String>, _>>()?;
+        line_list.list.push(new_list);
     }
 
     // NOTE: stolen from https://stackoverflow.com/a/44884859
@@ -679,21 +689,31 @@ fn main() -> Result<(), Box<dyn Error>> {
                 line.clear();
                 match reader.read_line(&mut line) {
                     Ok(0) => break,
-                    Ok(_) => line_list.list.items.push(line.clone()),
+                    Ok(_) => {
+                        if let Some(list) = line_list.list.last_mut() {
+                            list.items.push(line.clone());
+                        }
+                    }
                     _ => break,
                 }
             }
 
             if let Some(status) = child.try_wait()? {
                 match status.code() {
-                    Some(code) => line_list.list.items.push(format!(
-                        "-- Execution Finished with status code: {} --",
-                        code
-                    )),
-                    None => line_list
-                        .list
-                        .items
-                        .push("-- Execution Terminated by a signal --".to_string()),
+                    Some(code) => {
+                        if let Some(list) = line_list.list.last_mut() {
+                            list.items.push(format!(
+                                "-- Execution Finished with status code: {} --",
+                                code
+                            ));
+                        }
+                    }
+                    None => {
+                        if let Some(list) = line_list.list.last_mut() {
+                            list.items
+                                .push("-- Execution Terminated by a signal --".to_string());
+                        }
+                    }
                 }
                 line_list.child = None
             }
