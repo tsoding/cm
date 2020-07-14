@@ -25,24 +25,24 @@ fn mark_nonblocking<Fd: AsRawFd>(fd: &mut Fd) {
 }
 
 struct LineList {
-    list: Vec<ItemList>,
+    lists: Vec<ItemList>,
     child: Option<(BufReader<PipeReader>, Child)>,
 }
 
 impl LineList {
     fn new() -> Self {
         Self {
-            list: Vec::<ItemList>::new(),
+            lists: Vec::<ItemList>::new(),
             child: None,
         }
     }
 
     fn current_item(&self) -> Option<&str> {
-        self.list.last().and_then(|x| x.current_item())
+        self.lists.last().and_then(|x| x.current_item())
     }
 
     fn render(&self, rect: Rect, focused: bool, regex_result: Option<Result<Regex, pcre2::Error>>) {
-        if let Some(list) = self.list.last() {
+        if let Some(list) = self.lists.last() {
             list.render(rect, focused);
 
             let Rect { x, y, w, h } = rect;
@@ -123,7 +123,7 @@ impl LineList {
             new_list
                 .items
                 .push(format!("PID: {}, Command: {}", child.id(), shell.as_str()));
-            self.list.push(new_list);
+            self.lists.push(new_list);
 
             mark_nonblocking(&mut reader);
             let output = BufReader::new(reader);
@@ -169,11 +169,11 @@ impl LineList {
                 KeyStroke {
                     key: KEY_BACKSPACE, ..
                 } => {
-                    self.list.pop();
+                    self.lists.pop();
                 }
                 KeyStroke { key: KEY_F5, .. } => self.refresh_child_output(None).map(|_| ())?,
                 key_stroke => {
-                    if let Some(list) = self.list.last_mut() {
+                    if let Some(list) = self.lists.last_mut() {
                         list.handle_key(key_stroke);
                     }
                 }
@@ -514,7 +514,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     if !line_list.refresh_child_output(None)? {
         let mut new_list = ItemList::new();
         new_list.items = stdin().lock().lines().collect::<Result<Vec<String>, _>>()?;
-        line_list.list.push(new_list);
+        line_list.lists.push(new_list);
     }
 
     // NOTE: stolen from https://stackoverflow.com/a/44884859
@@ -691,7 +691,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 match reader.read_line(&mut line) {
                     Ok(0) => break,
                     Ok(_) => {
-                        if let Some(list) = line_list.list.last_mut() {
+                        if let Some(list) = line_list.lists.last_mut() {
                             list.items.push(line.clone());
                         }
                     }
@@ -702,7 +702,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             if let Some(status) = child.try_wait()? {
                 match status.code() {
                     Some(code) => {
-                        if let Some(list) = line_list.list.last_mut() {
+                        if let Some(list) = line_list.lists.last_mut() {
                             list.items.push(format!(
                                 "-- Execution Finished with status code: {} --",
                                 code
@@ -710,7 +710,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                         }
                     }
                     None => {
-                        if let Some(list) = line_list.list.last_mut() {
+                        if let Some(list) = line_list.lists.last_mut() {
                             list.items
                                 .push("-- Execution Terminated by a signal --".to_string());
                         }
