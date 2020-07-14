@@ -26,14 +26,20 @@ fn mark_nonblocking<Fd: AsRawFd>(fd: &mut Fd) {
 
 struct LineList {
     lists: Vec<ItemList>,
+    /// currently running process that generates data for LineList.
+    /// See LineList::poll_cmdline_output()
     child: Option<(BufReader<PipeReader>, Child)>,
+    /// user_provided_cmdline is the line provided by the user through the CLI of cm:
+    /// `cm <user_provided_cmdline>`
+    user_provided_cmdline: Option<String>,
 }
 
 impl LineList {
-    fn new() -> Self {
+    fn new(user_provided_cmdline: Option<String>) -> Self {
         Self {
             lists: Vec::<ItemList>::new(),
             child: None,
+            user_provided_cmdline,
         }
     }
 
@@ -99,41 +105,87 @@ impl LineList {
         }
     }
 
-    fn refresh_child_output(&mut self, cmdline: Option<String>) -> Result<bool, Box<dyn Error>> {
-        if let Some(shell) = &cmdline.or_else(|| std::env::args().nth(1)) {
-            // TODO(#102): cm does not warn the user when it kills the child process
-            if let Some((_, child)) = &mut self.child {
-                child.kill()?;
-                child.wait()?;
-                self.child = None;
+    fn run_cmdline(&mut self, cmdline: String) -> Result<(), Box<dyn Error>> {
+        // TODO(#102): cm does not warn the user when it kills the child process
+        if let Some((_, child)) = &mut self.child {
+            child.kill()?;
+            child.wait()?;
+            self.child = None;
+        }
+
+        // @shell
+        let mut command = Command::new("sh");
+        command.arg("-c");
+        command.arg(cmdline.clone());
+        let (mut reader, writer) = pipe()?;
+        let writer_clone = writer.try_clone()?;
+        command.stdout(writer);
+        command.stderr(writer_clone);
+        let child = command.spawn()?;
+        drop(command);
+
+        let mut new_list = ItemList::new();
+        new_list.items.push(format!(
+            "PID: {}, Command: {}",
+            child.id(),
+            cmdline.as_str()
+        ));
+        self.lists.push(new_list);
+
+        mark_nonblocking(&mut reader);
+        let output = BufReader::new(reader);
+
+        self.child = Some((output, child));
+
+        Ok(())
+    }
+
+    fn run_user_provided_cmdline(&mut self) -> Result<(), Box<dyn Error>> {
+        if let Some(cmdline) = self.user_provided_cmdline.clone() {
+            self.run_cmdline(cmdline)?
+        }
+        Ok(())
+    }
+
+    fn poll_cmdline_output(&mut self) -> Result<(), Box<dyn Error>> {
+        if let Some((reader, child)) = &mut self.child {
+            let mut line = String::new();
+            const FLUSH_BUFFER_LIMIT: usize = 1024;
+            for _ in 0..FLUSH_BUFFER_LIMIT {
+                line.clear();
+                match reader.read_line(&mut line) {
+                    Ok(0) => break,
+                    Ok(_) => {
+                        if let Some(list) = self.lists.last_mut() {
+                            list.items.push(line.clone());
+                        }
+                    }
+                    _ => break,
+                }
             }
 
-            // @shell
-            let mut command = Command::new("sh");
-            command.arg("-c");
-            command.arg(shell);
-            let (mut reader, writer) = pipe()?;
-            let writer_clone = writer.try_clone()?;
-            command.stdout(writer);
-            command.stderr(writer_clone);
-            let child = command.spawn()?;
-            drop(command);
-
-            let mut new_list = ItemList::new();
-            new_list
-                .items
-                .push(format!("PID: {}, Command: {}", child.id(), shell.as_str()));
-            self.lists.push(new_list);
-
-            mark_nonblocking(&mut reader);
-            let output = BufReader::new(reader);
-
-            self.child = Some((output, child));
-
-            Ok(true)
-        } else {
-            Ok(false)
+            if let Some(status) = child.try_wait()? {
+                match status.code() {
+                    Some(code) => {
+                        if let Some(list) = self.lists.last_mut() {
+                            list.items.push(format!(
+                                "-- Execution Finished with status code: {} --",
+                                code
+                            ));
+                        }
+                    }
+                    None => {
+                        if let Some(list) = self.lists.last_mut() {
+                            list.items
+                                .push("-- Execution Terminated by a signal --".to_string());
+                        }
+                    }
+                }
+                self.child = None
+            }
         }
+
+        Ok(())
     }
 
     fn handle_key(
@@ -150,7 +202,7 @@ impl LineList {
                 } => {
                     if let Some(cmdline) = cmdline_result {
                         if alt {
-                            self.refresh_child_output(cmdline_result.clone())?;
+                            self.run_cmdline(cmdline.clone())?;
                         } else {
                             // TODO(#47): endwin() on Enter in LineList looks like a total hack and it's unclear why it even works
                             endwin();
@@ -171,7 +223,9 @@ impl LineList {
                 } => {
                     self.lists.pop();
                 }
-                KeyStroke { key: KEY_F5, .. } => self.refresh_child_output(None).map(|_| ())?,
+                KeyStroke { key: KEY_F5, .. } => {
+                    self.run_user_provided_cmdline()?;
+                }
                 key_stroke => {
                     if let Some(list) = self.lists.last_mut() {
                         list.handle_key(key_stroke);
@@ -508,10 +562,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         cursor_visible: false,
     };
 
-    let mut line_list = LineList::new();
+    let mut line_list = LineList::new(std::env::args().nth(1));
     let mut status_line = StatusLine::new();
 
-    if !line_list.refresh_child_output(None)? {
+    if line_list.user_provided_cmdline.is_some() {
+        line_list.run_user_provided_cmdline()?;
+    } else {
         let mut new_list = ItemList::new();
         new_list.items = stdin().lock().lines().collect::<Result<Vec<String>, _>>()?;
         line_list.lists.push(new_list);
@@ -683,42 +739,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         // END INPUT SECTION //////////////////////////////
 
         // BEGIN ASYNC CHILD OUTPUT SECTION //////////////////////////////
-        if let Some((reader, child)) = &mut line_list.child {
-            let mut line = String::new();
-            const FLUSH_BUFFER_LIMIT: usize = 1024;
-            for _ in 0..FLUSH_BUFFER_LIMIT {
-                line.clear();
-                match reader.read_line(&mut line) {
-                    Ok(0) => break,
-                    Ok(_) => {
-                        if let Some(list) = line_list.lists.last_mut() {
-                            list.items.push(line.clone());
-                        }
-                    }
-                    _ => break,
-                }
-            }
-
-            if let Some(status) = child.try_wait()? {
-                match status.code() {
-                    Some(code) => {
-                        if let Some(list) = line_list.lists.last_mut() {
-                            list.items.push(format!(
-                                "-- Execution Finished with status code: {} --",
-                                code
-                            ));
-                        }
-                    }
-                    None => {
-                        if let Some(list) = line_list.lists.last_mut() {
-                            list.items
-                                .push("-- Execution Terminated by a signal --".to_string());
-                        }
-                    }
-                }
-                line_list.child = None
-            }
-        }
+        line_list.poll_cmdline_output()?;
         // END ASYNC CHILD OUTPUT SECTION //////////////////////////////
 
         std::thread::sleep(std::time::Duration::from_millis(16));
