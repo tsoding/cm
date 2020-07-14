@@ -99,7 +99,7 @@ impl LineList {
         }
     }
 
-    fn refresh_child_output(&mut self, cmdline: Option<String>) -> Result<bool, Box<dyn Error>> {
+    fn run_cmdline(&mut self, cmdline: Option<String>) -> Result<bool, Box<dyn Error>> {
         if let Some(shell) = &cmdline.or_else(|| std::env::args().nth(1)) {
             // TODO(#102): cm does not warn the user when it kills the child process
             if let Some((_, child)) = &mut self.child {
@@ -191,7 +191,7 @@ impl LineList {
                 } => {
                     if let Some(cmdline) = cmdline_result {
                         if alt {
-                            self.refresh_child_output(cmdline_result.clone())?;
+                            self.run_cmdline(cmdline_result.clone())?;
                         } else {
                             // TODO(#47): endwin() on Enter in LineList looks like a total hack and it's unclear why it even works
                             endwin();
@@ -212,7 +212,7 @@ impl LineList {
                 } => {
                     self.lists.pop();
                 }
-                KeyStroke { key: KEY_F5, .. } => self.refresh_child_output(None).map(|_| ())?,
+                KeyStroke { key: KEY_F5, .. } => self.run_cmdline(None).map(|_| ())?,
                 key_stroke => {
                     if let Some(list) = self.lists.last_mut() {
                         list.handle_key(key_stroke);
@@ -552,7 +552,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut line_list = LineList::new();
     let mut status_line = StatusLine::new();
 
-    if !line_list.refresh_child_output(None)? {
+    if !line_list.run_cmdline(None)? {
         let mut new_list = ItemList::new();
         new_list.items = stdin().lock().lines().collect::<Result<Vec<String>, _>>()?;
         line_list.lists.push(new_list);
