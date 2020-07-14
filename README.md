@@ -50,6 +50,10 @@ re-run the build process.
 <!-- TODO(#45): Document config format -->
 [TBD](https://github.com/tsoding/cm/issues/45)
 
+### Self-recurring
+
+<!-- TODO: Document self-recurring -->
+
 ## Examples
 
 ## Searching with grep
