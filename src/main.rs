@@ -98,8 +98,8 @@ impl LineList {
         }
     }
 
-    fn refresh_child_output(&mut self) -> Result<bool, Box<dyn Error>> {
-        if let Some(shell) = &std::env::args().nth(1) {
+    fn refresh_child_output(&mut self, cmdline: Option<String>) -> Result<bool, Box<dyn Error>> {
+        if let Some(shell) = &cmdline.or_else(|| std::env::args().nth(1)) {
             // TODO(#102): cm does not warn the user when it kills the child process
             if let Some((_, child)) = &mut self.child {
                 child.kill()?;
@@ -122,7 +122,7 @@ impl LineList {
             self.list.items.clear();
             self.list
                 .items
-                .push(format!("PID: {}, Command: {}", child.id(), shell));
+                .push(format!("PID: {}, Command: {}", child.id(), shell.as_str()));
 
             mark_nonblocking(&mut reader);
             let output = BufReader::new(reader);
@@ -137,29 +137,38 @@ impl LineList {
 
     fn handle_key(
         &mut self,
-        key: i32,
+        key_stroke: KeyStroke,
         cmdline_result: &Option<String>,
         global: &mut Global,
     ) -> Result<(), Box<dyn Error>> {
-        if !global.handle_key(key) {
-            match key {
-                KEY_RETURN => {
+        if !global.handle_key(key_stroke) {
+            match key_stroke {
+                KeyStroke {
+                    key: KEY_RETURN,
+                    alt,
+                } => {
                     if let Some(cmdline) = cmdline_result {
-                        // TODO(#47): endwin() on Enter in LineList looks like a total hack and it's unclear why it even works
-                        endwin();
-                        // TODO(#40): shell is not customizable
-                        //   Grep for @shell
-                        // TODO(#50): cm doesn't say anything if the executed command has failed
-                        Command::new("sh")
-                            .stdin(File::open("/dev/tty")?)
-                            .arg("-c")
-                            .arg(cmdline)
-                            .spawn()?
-                            .wait_with_output()?;
+                        if alt {
+                            self.refresh_child_output(cmdline_result.clone())?;
+                        } else {
+                            // TODO(#47): endwin() on Enter in LineList looks like a total hack and it's unclear why it even works
+                            endwin();
+                            // TODO(#40): shell is not customizable
+                            //   Grep for @shell
+                            // TODO(#50): cm doesn't say anything if the executed command has failed
+                            Command::new("sh")
+                                .stdin(File::open("/dev/tty")?)
+                                .arg("-c")
+                                .arg(cmdline)
+                                .spawn()?
+                                .wait_with_output()?;
+                        }
                     }
                 }
-                KEY_F5 => self.refresh_child_output().map(|_| ())?,
-                key => self.list.handle_key(key),
+                KeyStroke { key: KEY_F5, .. } => self.refresh_child_output(None).map(|_| ())?,
+                key_stroke => {
+                    self.list.handle_key(key_stroke);
+                }
             }
         }
 
@@ -202,19 +211,19 @@ impl StringList {
         }
     }
 
-    fn handle_key(&mut self, key: i32, global: &mut Global) {
+    fn handle_key(&mut self, key_stroke: KeyStroke, global: &mut Global) {
         match self.state {
             StringListState::Navigate => {
-                if !global.handle_key(key) {
-                    match key {
-                        KEY_I => {
+                if !global.handle_key(key_stroke) {
+                    match key_stroke {
+                        KeyStroke { key: KEY_I, .. } => {
                             self.list.items.insert(self.list.cursor_y, String::new());
                             self.edit_field.buffer.clear();
                             self.edit_field.cursor_x = 0;
                             self.state = StringListState::Editing { new: true };
                             global.cursor_visible = true;
                         }
-                        KEY_F2 => {
+                        KeyStroke { key: KEY_F2, .. } => {
                             if let Some(item) = self.list.current_item() {
                                 self.edit_field.cursor_x = item.len();
                                 self.edit_field.buffer = String::from(item);
@@ -222,24 +231,28 @@ impl StringList {
                                 global.cursor_visible = true;
                             }
                         }
-                        key => self.list.handle_key(key),
+                        key_stroke => self.list.handle_key(key_stroke),
                     }
                 }
             }
-            StringListState::Editing { new } => match key {
-                KEY_RETURN => {
+            StringListState::Editing { new } => match key_stroke {
+                KeyStroke {
+                    key: KEY_RETURN, ..
+                } => {
                     self.state = StringListState::Navigate;
                     self.list.items[self.list.cursor_y] = self.edit_field.buffer.clone();
                     global.cursor_visible = false;
                 }
-                KEY_ESCAPE => {
+                KeyStroke {
+                    key: KEY_ESCAPE, ..
+                } => {
                     self.state = StringListState::Navigate;
                     if new {
                         self.list.delete_current()
                     }
                     global.cursor_visible = false;
                 }
-                key => self.edit_field.handle_key(key),
+                key_stroke => self.edit_field.handle_key(key_stroke),
             },
         }
     }
@@ -423,17 +436,17 @@ struct Global {
 }
 
 impl Global {
-    fn handle_key(&mut self, key: i32) -> bool {
-        match key {
-            KEY_E => {
+    fn handle_key(&mut self, key_stroke: KeyStroke) -> bool {
+        match key_stroke {
+            KeyStroke { key: KEY_E, .. } => {
                 self.profile_pane = !self.profile_pane;
                 true
             }
-            KEY_Q => {
+            KeyStroke { key: KEY_Q, .. } => {
                 self.quit = true;
                 true
             }
-            KEY_TAB => {
+            KeyStroke { key: KEY_TAB, .. } => {
                 self.focus = self.focus.next();
                 true
             }
@@ -490,7 +503,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut line_list = LineList::new();
     let mut status_line = StatusLine::new();
 
-    if !line_list.refresh_child_output()? {
+    if !line_list.refresh_child_output(None)? {
         line_list.list.items = stdin().lock().lines().collect::<Result<Vec<String>, _>>()?;
     }
 
@@ -507,6 +520,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     init_style();
 
+    let mut key_escaper = KeyEscaper::new();
     while !global.quit {
         // BEGIN CMDLINE RENDER SECTION //////////////////////////////
         let cmdline = match (
@@ -643,14 +657,17 @@ fn main() -> Result<(), Box<dyn Error>> {
         // BEGIN INPUT SECTION //////////////////////////////
         // TODO(#43): cm does not handle Shift+TAB to scroll backwards through the panels
         let key = getch();
-        let profile_pane = global.profile_pane;
-        if !profile_pane {
-            line_list.handle_key(key, &cmdline, &mut global)?;
-        } else {
-            match global.focus {
-                Focus::Lines => line_list.handle_key(key, &cmdline, &mut global)?,
-                Focus::Regexs => profile.regex_list.handle_key(key, &mut global),
-                Focus::Cmds => profile.cmd_list.handle_key(key, &mut global),
+        if key != -1 {
+            if let Some(key_stroke) = key_escaper.feed(key) {
+                if !global.profile_pane {
+                    line_list.handle_key(key_stroke, &cmdline, &mut global)?;
+                } else {
+                    match global.focus {
+                        Focus::Lines => line_list.handle_key(key_stroke, &cmdline, &mut global)?,
+                        Focus::Regexs => profile.regex_list.handle_key(key_stroke, &mut global),
+                        Focus::Cmds => profile.cmd_list.handle_key(key_stroke, &mut global),
+                    }
+                }
             }
         }
         // END INPUT SECTION //////////////////////////////
