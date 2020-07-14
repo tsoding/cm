@@ -39,7 +39,7 @@ impl LineList {
         Self {
             lists: Vec::<ItemList>::new(),
             child: None,
-            user_provided_cmdline
+            user_provided_cmdline,
         }
     }
 
@@ -125,9 +125,11 @@ impl LineList {
         drop(command);
 
         let mut new_list = ItemList::new();
-        new_list
-            .items
-            .push(format!("PID: {}, Command: {}", child.id(), cmdline.as_str()));
+        new_list.items.push(format!(
+            "PID: {}, Command: {}",
+            child.id(),
+            cmdline.as_str()
+        ));
         self.lists.push(new_list);
 
         mark_nonblocking(&mut reader);
