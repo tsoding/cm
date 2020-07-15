@@ -109,7 +109,7 @@ impl LineList {
         // TODO(#102): cm does not warn the user when it kills the child process
         if let Some((_, child)) = &mut self.child {
             child.kill().expect("Could not kill the currently running child process");
-            child.wait().expect("Tried to wait for child process that was not running");
+            child.wait().expect("Error waiting for currently running child process");
             self.child = None;
         }
 
@@ -204,7 +204,7 @@ impl LineList {
         key_stroke: KeyStroke,
         cmdline_result: &Option<String>,
         global: &mut Global,
-    ) -> Result<(), Box<dyn Error>> {
+    ) {
         if !global.handle_key(key_stroke) {
             match key_stroke {
                 KeyStroke {
@@ -221,11 +221,11 @@ impl LineList {
                             //   Grep for @ref(#40)
                             // TODO(#50): cm doesn't say anything if the executed command has failed
                             Command::new("sh")
-                                .stdin(File::open("/dev/tty")?)
+                                .stdin(File::open("/dev/tty").expect("Could not open /dev/tty as stdin for child process"))
                                 .arg("-c")
                                 .arg(cmdline)
-                                .spawn()?
-                                .wait_with_output()?;
+                                .spawn().expect("Could not spawn child process")
+                                .wait_with_output().expect("Error waiting for output of child process");
                         }
                     }
                 }
@@ -244,8 +244,6 @@ impl LineList {
                 }
             }
         }
-
-        Ok(())
     }
 }
 
@@ -668,10 +666,10 @@ fn main() -> Result<(), Box<dyn Error>> {
             if let Some(key_stroke) = key_escaper.feed(key) {
                 input_receved = true;
                 if !global.profile_pane {
-                    line_list.handle_key(key_stroke, &cmdline, &mut global)?;
+                    line_list.handle_key(key_stroke, &cmdline, &mut global);
                 } else {
                     match global.focus {
-                        Focus::Lines => line_list.handle_key(key_stroke, &cmdline, &mut global)?,
+                        Focus::Lines => line_list.handle_key(key_stroke, &cmdline, &mut global),
                         Focus::Regexs => profile.regex_list.handle_key(key_stroke, &mut global),
                         Focus::Cmds => profile.cmd_list.handle_key(key_stroke, &mut global),
                     }
