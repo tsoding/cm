@@ -365,22 +365,25 @@ impl Profile {
         }
     }
 
-    fn from_file(file_path: &Path) -> Result<Self, Box<dyn Error>> {
+    fn from_file(file_path: &Path) -> Self {
         let mut result = Profile::new();
-        let input = read_to_string(file_path)?;
+        let input = read_to_string(file_path).unwrap_or_else(|_| panic!("Could not read file {}", file_path.display()));
         let (mut regex_count, mut cmd_count) = (0, 0);
         for (i, line) in input.lines().map(|x| x.trim_start()).enumerate() {
-            let fail = |message| format!("{}:{}: {}", file_path.display(), i + 1, message);
+            // TODO: profile parsing errors should be application error messages instead of Rust panics
+            let fail = |message| {
+                panic!("{}:{}: {}", file_path.display(), i + 1, message)
+            };
 
             if !line.is_empty() {
                 let mut assign = line.split('=');
                 let key = assign
                     .next()
-                    .ok_or_else(|| fail("Key is not provided"))?
+                    .unwrap_or_else(|| fail("Key is not provided"))
                     .trim();
                 let value = assign
                     .next()
-                    .ok_or_else(|| fail("Value is not provided"))?
+                    .unwrap_or_else(|| fail("Value is not provided"))
                     .trim();
                 match key {
                     "regexs" => {
@@ -393,11 +396,17 @@ impl Profile {
                     }
                     "current_regex" => {
                         result.regex_list.list.cursor_y =
-                            value.parse::<usize>().map_err(|_| fail("Not a number"))?
+                            value.parse::<usize>().unwrap_or_else(|_| {
+                                fail("Not a number");
+                                0
+                            })
                     }
                     "current_cmd" => {
                         result.cmd_list.list.cursor_y =
-                            value.parse::<usize>().map_err(|_| fail("Not a number"))?
+                            value.parse::<usize>().unwrap_or_else(|_| {
+                                fail("Not a number");
+                                0
+                            })
                     }
                     _ => Err(fail(&format!("Unknown key {}", key))).unwrap(),
                 }
@@ -414,7 +423,7 @@ impl Profile {
             result.cmd_list.list.cursor_y = cmd_count - 1;
         }
 
-        Ok(result)
+        result
     }
 
     fn to_file<F: Write>(&self, stream: &mut F) -> Result<(), Box<dyn Error>> {
@@ -557,7 +566,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
 
     let mut profile = if config_path.exists() {
-        Profile::from_file(&config_path)?
+        Profile::from_file(&config_path)
     } else {
         Profile::initial()
     };
