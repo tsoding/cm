@@ -27,7 +27,7 @@ fn mark_nonblocking<Fd: AsRawFd>(fd: &mut Fd) {
 struct LineList {
     lists: Vec<ItemList>,
     /// currently running process that generates data for LineList.
-    /// See LineList::poll_cmdline_output()
+    /// See [LineList::poll_cmdline_output](struct.LineList.html#method.poll_cmdline_output)
     child: Option<(BufReader<PipeReader>, Child)>,
     /// user_provided_cmdline is the line provided by the user through the CLI of cm:
     /// `cm <user_provided_cmdline>`
@@ -147,7 +147,15 @@ impl LineList {
         Ok(())
     }
 
-    fn poll_cmdline_output(&mut self) -> Result<(), Box<dyn Error>> {
+    /// Polls changes from the currently running child (see
+    /// [LineList::run_cmdline](struct.LineList.html#method.run_cmdline),
+    /// [LineList::child](struct.LineList.html#structfield.child)).
+    ///
+    /// Returns `true` if new input was received, `false` when nothing
+    /// was received.
+    fn poll_cmdline_output(&mut self) -> Result<bool, Box<dyn Error>> {
+        let mut changed = false;
+
         if let Some((reader, child)) = &mut self.child {
             let mut line = String::new();
             const FLUSH_BUFFER_LIMIT: usize = 1024;
@@ -158,6 +166,7 @@ impl LineList {
                     Ok(_) => {
                         if let Some(list) = self.lists.last_mut() {
                             list.items.push(line.clone());
+                            changed = true;
                         }
                     }
                     _ => break,
@@ -172,12 +181,14 @@ impl LineList {
                                 "-- Execution Finished with status code: {} --",
                                 code
                             ));
+                            changed = true;
                         }
                     }
                     None => {
                         if let Some(list) = self.lists.last_mut() {
                             list.items
                                 .push("-- Execution Terminated by a signal --".to_string());
+                            changed = true;
                         }
                     }
                 }
@@ -185,7 +196,7 @@ impl LineList {
             }
         }
 
-        Ok(())
+        Ok(changed)
     }
 
     fn handle_key(
@@ -582,6 +593,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     set_term(screen);
 
     keypad(stdscr(), true);
+    // NOTE: timeout(0) is a very important setting of ncurses for our
+    // application. It makes getch() asynchronous, which is essential
+    // for non-blocking UI when receiving the output from the child
+    // process.
     timeout(0);
 
     init_style();
@@ -645,86 +660,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         };
         // END CMDLINE RENDER SECTION //////////////////////////////
 
-        // BEGIN RENDER SECTION //////////////////////////////
-        // TODO(#95): Don't rerender the state of the app if nothing changed
-        //   After introducing async input we are rerendering the whole application
-        //   on each iteration of even loop. And the rendering operation is pretty
-        //   expensive by itself.
-        let (w, h) = {
-            let mut x: i32 = 0;
-            let mut y: i32 = 0;
-            getmaxyx(stdscr(), &mut y, &mut x);
-            (x as usize, y as usize)
-        };
-
-        erase();
-
-        if h >= 1 {
-            status_line.render(h - 1);
-        }
-
-        if global.profile_pane {
-            let working_h = h - 1;
-            let list_h = working_h / 3 * 2;
-
-            line_list.render(
-                Rect {
-                    x: 0,
-                    y: 0,
-                    w,
-                    h: list_h,
-                },
-                global.focus == Focus::Lines,
-                profile.current_regex(),
-            );
-            profile.regex_list.render(
-                Rect {
-                    x: 0,
-                    y: list_h,
-                    w: w / 2,
-                    h: working_h - list_h,
-                },
-                global.focus == Focus::Regexs,
-                &mut global,
-            );
-            profile.cmd_list.render(
-                Rect {
-                    x: w / 2,
-                    y: list_h,
-                    w: w - w / 2,
-                    h: working_h - list_h,
-                },
-                global.focus == Focus::Cmds,
-                &mut global,
-            );
-        } else {
-            line_list.render(
-                Rect {
-                    x: 0,
-                    y: 0,
-                    w,
-                    h: h - 1,
-                },
-                true,
-                profile.current_regex(),
-            );
-        }
-
-        curs_set(if global.cursor_visible {
-            ncurses::CURSOR_VISIBILITY::CURSOR_VISIBLE
-        } else {
-            ncurses::CURSOR_VISIBILITY::CURSOR_INVISIBLE
-        });
-        mv(global.cursor_y, global.cursor_x);
-
-        refresh();
-        // END RENDER SECTION //////////////////////////////
-
         // BEGIN INPUT SECTION //////////////////////////////
         // TODO(#43): cm does not handle Shift+TAB to scroll backwards through the panels
+        let mut input_receved = false;
         let key = getch();
         if key != -1 {
             if let Some(key_stroke) = key_escaper.feed(key) {
+                input_receved = true;
                 if !global.profile_pane {
                     line_list.handle_key(key_stroke, &cmdline, &mut global)?;
                 } else {
@@ -739,8 +681,83 @@ fn main() -> Result<(), Box<dyn Error>> {
         // END INPUT SECTION //////////////////////////////
 
         // BEGIN ASYNC CHILD OUTPUT SECTION //////////////////////////////
-        line_list.poll_cmdline_output()?;
+        let line_list_changed = line_list.poll_cmdline_output()?;
         // END ASYNC CHILD OUTPUT SECTION //////////////////////////////
+
+        // BEGIN RENDER SECTION //////////////////////////////
+        // NOTE: Don't try to rerender anything unless user provided some
+        // input or the child process provided some output
+        if input_receved || line_list_changed {
+            let (w, h) = {
+                let mut x: i32 = 0;
+                let mut y: i32 = 0;
+                getmaxyx(stdscr(), &mut y, &mut x);
+                (x as usize, y as usize)
+            };
+
+            erase();
+
+            if h >= 1 {
+                status_line.render(h - 1);
+            }
+
+            if global.profile_pane {
+                let working_h = h - 1;
+                let list_h = working_h / 3 * 2;
+
+                line_list.render(
+                    Rect {
+                        x: 0,
+                        y: 0,
+                        w,
+                        h: list_h,
+                    },
+                    global.focus == Focus::Lines,
+                    profile.current_regex(),
+                );
+                profile.regex_list.render(
+                    Rect {
+                        x: 0,
+                        y: list_h,
+                        w: w / 2,
+                        h: working_h - list_h,
+                    },
+                    global.focus == Focus::Regexs,
+                    &mut global,
+                );
+                profile.cmd_list.render(
+                    Rect {
+                        x: w / 2,
+                        y: list_h,
+                        w: w - w / 2,
+                        h: working_h - list_h,
+                    },
+                    global.focus == Focus::Cmds,
+                    &mut global,
+                );
+            } else {
+                line_list.render(
+                    Rect {
+                        x: 0,
+                        y: 0,
+                        w,
+                        h: h - 1,
+                    },
+                    true,
+                    profile.current_regex(),
+                );
+            }
+
+            curs_set(if global.cursor_visible {
+                ncurses::CURSOR_VISIBILITY::CURSOR_VISIBLE
+            } else {
+                ncurses::CURSOR_VISIBILITY::CURSOR_INVISIBLE
+            });
+            mv(global.cursor_y, global.cursor_x);
+
+            refresh();
+        }
+        // END RENDER SECTION //////////////////////////////
 
         std::thread::sleep(std::time::Duration::from_millis(16));
     }
