@@ -105,23 +105,26 @@ impl LineList {
         }
     }
 
-    fn run_cmdline(&mut self, cmdline: String) -> Result<(), Box<dyn Error>> {
+    fn run_cmdline(&mut self, cmdline: String) {
         // TODO(#102): cm does not warn the user when it kills the child process
         if let Some((_, child)) = &mut self.child {
-            child.kill()?;
-            child.wait()?;
+            child.kill().expect("Could not kill the currently running child process");
+            child.wait().expect("Tried to wait for child process that was not running");
             self.child = None;
         }
 
-        // @shell
+        // @ref(#40) customize the argument of Command::new()
         let mut command = Command::new("sh");
         command.arg("-c");
         command.arg(cmdline.clone());
-        let (mut reader, writer) = pipe()?;
-        let writer_clone = writer.try_clone()?;
+        let (mut reader, writer) = pipe().expect("Could not create a pipe for collecting output from a child process");
+        let writer_clone = writer.try_clone().expect("Could not clone the pipe for collecting output from a child process");
         command.stdout(writer);
         command.stderr(writer_clone);
-        let child = command.spawn()?;
+        // @ref(#40) this part should fail if the user provided
+        // non-existing shell. So should probably do not unwrap it and
+        // properly report the fail somehow without crashing the app.
+        let child = command.spawn().expect("Could not spawn a child process");
         drop(command);
 
         let mut new_list = ItemList::new();
@@ -136,15 +139,12 @@ impl LineList {
         let output = BufReader::new(reader);
 
         self.child = Some((output, child));
-
-        Ok(())
     }
 
-    fn run_user_provided_cmdline(&mut self) -> Result<(), Box<dyn Error>> {
+    fn run_user_provided_cmdline(&mut self) {
         if let Some(cmdline) = self.user_provided_cmdline.clone() {
-            self.run_cmdline(cmdline)?
+            self.run_cmdline(cmdline)
         }
-        Ok(())
     }
 
     /// Polls changes from the currently running child (see
@@ -213,12 +213,12 @@ impl LineList {
                 } => {
                     if let Some(cmdline) = cmdline_result {
                         if alt {
-                            self.run_cmdline(cmdline.clone())?;
+                            self.run_cmdline(cmdline.clone());
                         } else {
                             // TODO(#47): endwin() on Enter in LineList looks like a total hack and it's unclear why it even works
                             endwin();
                             // TODO(#40): shell is not customizable
-                            //   Grep for @shell
+                            //   Grep for @ref(#40)
                             // TODO(#50): cm doesn't say anything if the executed command has failed
                             Command::new("sh")
                                 .stdin(File::open("/dev/tty")?)
@@ -235,7 +235,7 @@ impl LineList {
                     self.lists.pop();
                 }
                 KeyStroke { key: KEY_F5, .. } => {
-                    self.run_user_provided_cmdline()?;
+                    self.run_user_provided_cmdline();
                 }
                 key_stroke => {
                     if let Some(list) = self.lists.last_mut() {
@@ -577,7 +577,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut status_line = StatusLine::new();
 
     if line_list.user_provided_cmdline.is_some() {
-        line_list.run_user_provided_cmdline()?;
+        line_list.run_user_provided_cmdline();
     } else {
         let mut new_list = ItemList::new();
         new_list.items = stdin().lock().lines().collect::<Result<Vec<String>, _>>()?;
