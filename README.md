@@ -52,7 +52,7 @@ re-run the build process.
 
 ### Self-recurring
 
-<!-- TODO: Document self-recurring -->
+<!-- TODO(#125): Document self-recurring -->
 
 ## Examples
 
