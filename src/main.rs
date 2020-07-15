@@ -5,7 +5,6 @@ use ncurses::*;
 use os_pipe::{pipe, PipeReader};
 use pcre2::bytes::Regex;
 use std::env::var;
-use std::error::Error;
 use std::ffi::CString;
 use std::fs::{create_dir_all, read_to_string, File};
 use std::io::{stdin, BufRead, BufReader, Write};
@@ -555,14 +554,14 @@ fn render_cmdline(line: &str, cmd: &str, regex: Regex) -> Option<String> {
         })
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() {
     let config_path = {
         const CONFIG_FILE_NAME: &str = "cm.conf";
         let xdg_config_dir = var("XDG_CONFIG_HOME").map(PathBuf::from);
         let home_config_dir = var("HOME").map(PathBuf::from).map(|x| x.join(".config"));
         xdg_config_dir
             .or(home_config_dir)
-            .map(|p| p.join(CONFIG_FILE_NAME))?
+            .map(|p| p.join(CONFIG_FILE_NAME)).expect("Could not find path to configuration file")
     };
 
     let mut profile = if config_path.exists() {
@@ -587,14 +586,14 @@ fn main() -> Result<(), Box<dyn Error>> {
         line_list.run_user_provided_cmdline();
     } else {
         let mut new_list = ItemList::new();
-        new_list.items = stdin().lock().lines().collect::<Result<Vec<String>, _>>()?;
+        new_list.items = stdin().lock().lines().collect::<Result<Vec<String>, _>>().expect("Error reading stdin");
         line_list.lists.push(new_list);
     }
 
     // NOTE: stolen from https://stackoverflow.com/a/44884859
     // TODO(#3): the terminal redirection is too hacky
-    let tty_path = CString::new("/dev/tty")?;
-    let fopen_mode = CString::new("r+")?;
+    let tty_path = CString::new("/dev/tty").expect("Error trying to redirect stdin");
+    let fopen_mode = CString::new("r+").expect("Error trying to redirect stdin");
     let file = unsafe { fopen(tty_path.as_ptr(), fopen_mode.as_ptr()) };
     let screen = newterm(None, file, file);
     set_term(screen);
@@ -774,6 +773,4 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     config_path.parent().map(create_dir_all);
     profile.to_file(&mut File::create(config_path).expect("Could not open configuration file"));
-
-    Ok(())
 }
