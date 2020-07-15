@@ -370,7 +370,7 @@ impl Profile {
             .unwrap_or_else(|_| panic!("Could not read file {}", file_path.display()));
         let (mut regex_count, mut cmd_count) = (0, 0);
         for (i, line) in input.lines().map(|x| x.trim_start()).enumerate() {
-            // TODO: profile parsing errors should be application error messages instead of Rust panics
+            // TODO(#128): profile parsing errors should be application error messages instead of Rust panics
             let fail = |message| panic!("{}:{}: {}", file_path.display(), i + 1, message);
 
             if !line.is_empty() {
