@@ -426,19 +426,19 @@ impl Profile {
         result
     }
 
-    fn to_file<F: Write>(&self, stream: &mut F) -> Result<(), Box<dyn Error>> {
+    fn to_file<F: Write>(&self, stream: &mut F) {
+        let error_message = "Could not save configuration";
+
         for regex in self.regex_list.list.items.iter() {
-            writeln!(stream, "regexs = {}", regex)?;
+            writeln!(stream, "regexs = {}", regex).expect(error_message);
         }
 
         for cmd in self.cmd_list.list.items.iter() {
-            writeln!(stream, "cmds = {}", cmd)?;
+            writeln!(stream, "cmds = {}", cmd).expect(error_message);
         }
 
-        writeln!(stream, "current_regex = {}", self.regex_list.list.cursor_y)?;
-        writeln!(stream, "current_cmd = {}", self.cmd_list.list.cursor_y)?;
-
-        Ok(())
+        writeln!(stream, "current_regex = {}", self.regex_list.list.cursor_y).expect(error_message);
+        writeln!(stream, "current_cmd = {}", self.cmd_list.list.cursor_y).expect(error_message);
     }
 
     fn current_regex(&self) -> Option<Result<Regex, pcre2::Error>> {
@@ -773,7 +773,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     endwin();
 
     config_path.parent().map(create_dir_all);
-    profile.to_file(&mut File::create(config_path)?)?;
+    profile.to_file(&mut File::create(config_path).expect("Could not open configuration file"));
 
     Ok(())
 }
