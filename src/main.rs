@@ -558,10 +558,17 @@ fn render_cmdline(line: &str, cmd: &str, regex: Regex) -> Option<String> {
             if let Ok(caps) = cap_mat {
                 for i in 1..caps.len() {
                     if let Some(mat) = caps.get(i) {
-                        result = result.replace(
-                            format!("\\{}", i).as_str(),
-                            line.get(mat.start()..mat.end()).unwrap_or(""),
-                        )
+                        let mut match_str =
+                            line.get(mat.start()..mat.end()).unwrap_or("").to_string();
+
+                        if match_str.contains('"') {
+                            match_str = match_str.replace('"', "\\\"")
+                        }
+                        if match_str.contains(' ') || match_str.contains('\'') {
+                            match_str = format!("\"{}\"", match_str)
+                        }
+
+                        result = result.replace(format!("\\{}", i).as_str(), &match_str)
                     }
                 }
             }
