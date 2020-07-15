@@ -618,6 +618,7 @@ fn main() {
     let screen = newterm(None, file, file);
     set_term(screen);
 
+    noecho();
     keypad(stdscr(), true);
     // NOTE: timeout(0) is a very important setting of ncurses for our
     // application. It makes getch() asynchronous, which is essential
