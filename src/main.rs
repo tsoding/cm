@@ -153,7 +153,7 @@ impl LineList {
     ///
     /// Returns `true` if new input was received, `false` when nothing
     /// was received.
-    fn poll_cmdline_output(&mut self) -> Result<bool, Box<dyn Error>> {
+    fn poll_cmdline_output(&mut self) -> bool {
         let mut changed = false;
 
         if let Some((reader, child)) = &mut self.child {
@@ -173,7 +173,7 @@ impl LineList {
                 }
             }
 
-            if let Some(status) = child.try_wait()? {
+            if let Some(status) = child.try_wait().expect("Error attempting to wait for child output") {
                 match status.code() {
                     Some(code) => {
                         if let Some(list) = self.lists.last_mut() {
@@ -196,7 +196,7 @@ impl LineList {
             }
         }
 
-        Ok(changed)
+        changed
     }
 
     fn handle_key(
@@ -681,7 +681,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         // END INPUT SECTION //////////////////////////////
 
         // BEGIN ASYNC CHILD OUTPUT SECTION //////////////////////////////
-        let line_list_changed = line_list.poll_cmdline_output()?;
+        let line_list_changed = line_list.poll_cmdline_output();
         // END ASYNC CHILD OUTPUT SECTION //////////////////////////////
 
         // BEGIN RENDER SECTION //////////////////////////////
