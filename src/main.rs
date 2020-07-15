@@ -107,8 +107,12 @@ impl LineList {
     fn run_cmdline(&mut self, cmdline: String) {
         // TODO(#102): cm does not warn the user when it kills the child process
         if let Some((_, child)) = &mut self.child {
-            child.kill().expect("Could not kill the currently running child process");
-            child.wait().expect("Error waiting for currently running child process");
+            child
+                .kill()
+                .expect("Could not kill the currently running child process");
+            child
+                .wait()
+                .expect("Error waiting for currently running child process");
             self.child = None;
         }
 
@@ -116,8 +120,11 @@ impl LineList {
         let mut command = Command::new("sh");
         command.arg("-c");
         command.arg(cmdline.clone());
-        let (mut reader, writer) = pipe().expect("Could not create a pipe for collecting output from a child process");
-        let writer_clone = writer.try_clone().expect("Could not clone the pipe for collecting output from a child process");
+        let (mut reader, writer) =
+            pipe().expect("Could not create a pipe for collecting output from a child process");
+        let writer_clone = writer
+            .try_clone()
+            .expect("Could not clone the pipe for collecting output from a child process");
         command.stdout(writer);
         command.stderr(writer_clone);
         // @ref(#40) this part should fail if the user provided
@@ -172,7 +179,10 @@ impl LineList {
                 }
             }
 
-            if let Some(status) = child.try_wait().expect("Error attempting to wait for child output") {
+            if let Some(status) = child
+                .try_wait()
+                .expect("Error attempting to wait for child output")
+            {
                 match status.code() {
                     Some(code) => {
                         if let Some(list) = self.lists.last_mut() {
@@ -220,11 +230,17 @@ impl LineList {
                             //   Grep for @ref(#40)
                             // TODO(#50): cm doesn't say anything if the executed command has failed
                             Command::new("sh")
-                                .stdin(File::open("/dev/tty").expect("Could not open /dev/tty as stdin for child process"))
+                                .stdin(
+                                    File::open("/dev/tty").expect(
+                                        "Could not open /dev/tty as stdin for child process",
+                                    ),
+                                )
                                 .arg("-c")
                                 .arg(cmdline)
-                                .spawn().expect("Could not spawn child process")
-                                .wait_with_output().expect("Error waiting for output of child process");
+                                .spawn()
+                                .expect("Could not spawn child process")
+                                .wait_with_output()
+                                .expect("Error waiting for output of child process");
                         }
                     }
                 }
@@ -366,13 +382,12 @@ impl Profile {
 
     fn from_file(file_path: &Path) -> Self {
         let mut result = Profile::new();
-        let input = read_to_string(file_path).unwrap_or_else(|_| panic!("Could not read file {}", file_path.display()));
+        let input = read_to_string(file_path)
+            .unwrap_or_else(|_| panic!("Could not read file {}", file_path.display()));
         let (mut regex_count, mut cmd_count) = (0, 0);
         for (i, line) in input.lines().map(|x| x.trim_start()).enumerate() {
             // TODO: profile parsing errors should be application error messages instead of Rust panics
-            let fail = |message| {
-                panic!("{}:{}: {}", file_path.display(), i + 1, message)
-            };
+            let fail = |message| panic!("{}:{}: {}", file_path.display(), i + 1, message);
 
             if !line.is_empty() {
                 let mut assign = line.split('=');
@@ -561,7 +576,8 @@ fn main() {
         let home_config_dir = var("HOME").map(PathBuf::from).map(|x| x.join(".config"));
         xdg_config_dir
             .or(home_config_dir)
-            .map(|p| p.join(CONFIG_FILE_NAME)).expect("Could not find path to configuration file")
+            .map(|p| p.join(CONFIG_FILE_NAME))
+            .expect("Could not find path to configuration file")
     };
 
     let mut profile = if config_path.exists() {
@@ -586,7 +602,11 @@ fn main() {
         line_list.run_user_provided_cmdline();
     } else {
         let mut new_list = ItemList::new();
-        new_list.items = stdin().lock().lines().collect::<Result<Vec<String>, _>>().expect("Error reading stdin");
+        new_list.items = stdin()
+            .lock()
+            .lines()
+            .collect::<Result<Vec<String>, _>>()
+            .expect("Error reading stdin");
         line_list.lists.push(new_list);
     }
 
