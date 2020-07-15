@@ -636,7 +636,7 @@ fn main() {
         // BEGIN RENDER SECTION //////////////////////////////
         // NOTE: Don't try to rerender anything unless user provided some
         // input or the child process provided some output
-        // TODO: LineList::poll_cmdline_output() == true does not guarantee it is necessary to rerender
+        // TODO(#129): LineList::poll_cmdline_output() == true does not guarantee it is necessary to rerender
         //   If the output is appended outside of the screen it's kinda pointless to rerender
         if input_receved || line_list_changed {
             let (w, h) = {
