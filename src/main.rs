@@ -344,27 +344,11 @@ impl StringList {
     }
 }
 
-struct StatusLine {
-    text: String,
-}
-
-impl StatusLine {
-    fn new() -> Self {
-        Self {
-            text: String::new(),
-        }
-    }
-
-    fn render(&self, y: usize) {
-        attron(COLOR_PAIR(REGULAR_PAIR));
-        mv(y as i32, 0);
-        addstr(self.text.as_str());
-        attroff(COLOR_PAIR(REGULAR_PAIR));
-    }
-
-    fn update(&mut self, text: &str) {
-        self.text = text.to_string();
-    }
+fn render_status(y: usize, text: &str) {
+    attron(COLOR_PAIR(REGULAR_PAIR));
+    mv(y as i32, 0);
+    addstr(text);
+    attroff(COLOR_PAIR(REGULAR_PAIR));
 }
 
 struct Profile {
@@ -386,7 +370,7 @@ impl Profile {
             .unwrap_or_else(|_| panic!("Could not read file {}", file_path.display()));
         let (mut regex_count, mut cmd_count) = (0, 0);
         for (i, line) in input.lines().map(|x| x.trim_start()).enumerate() {
-            // TODO: profile parsing errors should be application error messages instead of Rust panics
+            // TODO(#128): profile parsing errors should be application error messages instead of Rust panics
             let fail = |message| panic!("{}:{}: {}", file_path.display(), i + 1, message);
 
             if !line.is_empty() {
@@ -508,16 +492,6 @@ impl Focus {
     fn next(self) -> Self {
         Focus::from_number((self as usize + 1) % FOCUS_COUNT).unwrap()
     }
-
-    fn steps_to(self, target: Focus) -> usize {
-        let a = self as usize;
-        let b = target as usize;
-        if a <= b {
-            b - a
-        } else {
-            (b + FOCUS_COUNT) - a
-        }
-    }
 }
 
 struct Global {
@@ -549,24 +523,21 @@ impl Global {
     }
 }
 
-fn render_cmdline(line: &str, cmd: &str, regex: Regex) -> Option<String> {
-    regex
-        .captures_iter(line.as_bytes())
-        .next()
-        .and_then(|cap_mat| {
-            let mut result = cmd.to_string();
-            if let Ok(caps) = cap_mat {
-                for i in 1..caps.len() {
-                    if let Some(mat) = caps.get(i) {
-                        result = result.replace(
-                            format!("\\{}", i).as_str(),
-                            line.get(mat.start()..mat.end()).unwrap_or(""),
-                        )
-                    }
+fn render_cmdline(line: &str, cmd: &str, regex: &Regex) -> Option<String> {
+    regex.captures_iter(line.as_bytes()).next().map(|cap_mat| {
+        let mut result = cmd.to_string();
+        if let Ok(caps) = cap_mat {
+            for i in 1..caps.len() {
+                if let Some(mat) = caps.get(i) {
+                    result = result.replace(
+                        format!("\\{}", i).as_str(),
+                        line.get(mat.start()..mat.end()).unwrap_or(""),
+                    )
                 }
             }
-            Some(result)
-        })
+        }
+        result
+    })
 }
 
 fn main() {
@@ -596,7 +567,6 @@ fn main() {
     };
 
     let mut line_list = LineList::new(std::env::args().nth(1));
-    let mut status_line = StatusLine::new();
 
     if line_list.user_provided_cmdline.is_some() {
         line_list.run_user_provided_cmdline();
@@ -630,68 +600,20 @@ fn main() {
 
     let mut key_escaper = KeyEscaper::new();
     while !global.quit {
-        // BEGIN CMDLINE RENDER SECTION //////////////////////////////
-        let cmdline = match (
-            profile.current_regex(),
-            profile.current_cmd(),
-            line_list.current_item(),
-        ) {
-            (None, _, _) => {
-                if global.profile_pane {
-                    match global.focus.steps_to(Focus::Regexs) {
-                        0 => status_line.update("No regex (press I to insert a regex)"),
-                        x => status_line.update(&format!(
-                            "No regex (press TAB {} times to focus on regex panel)",
-                            x
-                        )),
-                    }
-                } else {
-                    status_line.update("No regex (press E to add a regex)")
-                }
-                None
-            }
-            (Some(Err(err)), _, _) => {
-                status_line.update(&err.to_string());
-                None
-            }
-            (Some(Ok(_)), None, _) => {
-                if global.profile_pane {
-                    match global.focus.steps_to(Focus::Cmds) {
-                        0 => status_line.update("No command (press I to insert a command)"),
-                        x => status_line.update(&format!(
-                            "No command (press TAB {} times to focus on command panel)",
-                            x
-                        )),
-                    }
-                } else {
-                    status_line.update("No command (press E to add a command)");
-                }
-                None
-            }
-            (Some(Ok(_)), Some(_), None) => {
-                status_line.update("No line selected");
-                None
-            }
-            (Some(Ok(regex)), Some(cmd), Some(line)) => match render_cmdline(line, &cmd, regex) {
-                Some(cmdline) => {
-                    status_line.update(&cmdline);
-                    Some(cmdline)
-                }
-                None => {
-                    status_line.update(
-                        "No match (line doesn't match current regex, nothing happens on ENTER)",
-                    );
-                    None
-                }
-            },
-        };
-        // END CMDLINE RENDER SECTION //////////////////////////////
-
         // BEGIN INPUT SECTION //////////////////////////////
         // TODO(#43): cm does not handle Shift+TAB to scroll backwards through the panels
         let mut input_receved = false;
         let key = getch();
         if key != -1 {
+            let cmdline = match (
+                &profile.current_regex(),
+                &profile.current_cmd(),
+                &line_list.current_item(),
+            ) {
+                (Some(Ok(regex)), Some(cmd), Some(line)) => render_cmdline(line, &cmd, regex),
+                _ => None,
+            };
+
             if let Some(key_stroke) = key_escaper.feed(key) {
                 input_receved = true;
                 if !global.profile_pane {
@@ -714,6 +636,8 @@ fn main() {
         // BEGIN RENDER SECTION //////////////////////////////
         // NOTE: Don't try to rerender anything unless user provided some
         // input or the child process provided some output
+        // TODO(#129): LineList::poll_cmdline_output() == true does not guarantee it is necessary to rerender
+        //   If the output is appended outside of the screen it's kinda pointless to rerender
         if input_receved || line_list_changed {
             let (w, h) = {
                 let mut x: i32 = 0;
@@ -725,7 +649,21 @@ fn main() {
             erase();
 
             if h >= 1 {
-                status_line.render(h - 1);
+                // NOTE: we are rerendering cmdline here because it could be changed by LineList
+                // after the input handling section
+                match (
+                    &profile.current_regex(),
+                    &profile.current_cmd(),
+                    &line_list.current_item(),
+                ) {
+                    (Some(Ok(regex)), Some(cmd), Some(line)) => {
+                        if let Some(cmdline) = render_cmdline(line, &cmd, regex) {
+                            render_status(h - 1, &cmdline);
+                        }
+                    }
+                    (Some(Err(err)), _, _) => render_status(h - 1, &err.to_string()),
+                    _ => {}
+                }
             }
 
             if global.profile_pane {
