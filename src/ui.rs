@@ -69,15 +69,15 @@ impl ItemList {
     }
 
     pub fn duplicate_after(&mut self) {
-        self.current_item()
-            .map(String::from)
-            .map(|item| self.insert_after_current(item));
+        if let Some(item) = self.current_item().map(String::from) {
+            self.insert_after_current(item);
+        }
     }
 
     pub fn duplicate_before(&mut self) {
-        self.current_item()
-            .map(String::from)
-            .map(|item| self.insert_before_current(item));
+        if let Some(item) = self.current_item().map(String::from) {
+            self.insert_before_current(item);
+        }
     }
 
     pub fn handle_key(&mut self, key_stroke: KeyStroke) {
