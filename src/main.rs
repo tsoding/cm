@@ -302,7 +302,22 @@ impl StringList {
             StringListState::Navigate => {
                 if !global.handle_key(key_stroke) {
                     match key_stroke {
-                        KeyStroke { key: KEY_I, .. } => {
+                        KeyStroke {
+                            key: KEY_I,
+                            alt: true,
+                        } => {
+                            self.list.duplicate_after();
+                        }
+                        KeyStroke {
+                            key: KEY_SHIFT_I,
+                            alt: true,
+                        } => {
+                            self.list.duplicate_before();
+                        }
+                        KeyStroke {
+                            key: KEY_I,
+                            alt: false,
+                        } => {
                             self.state = StringListState::Editing {
                                 new: true,
                                 prev_cursor_y: self.list.cursor_y,
@@ -313,7 +328,8 @@ impl StringList {
                             global.cursor_visible = true;
                         }
                         KeyStroke {
-                            key: KEY_SHIFT_I, ..
+                            key: KEY_SHIFT_I,
+                            alt: false,
                         } => {
                             self.state = StringListState::Editing {
                                 new: true,
