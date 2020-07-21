@@ -61,7 +61,7 @@ impl ItemList {
     }
 
     pub fn insert_after_current(&mut self, line: String) {
-        if self.items.len() != 0 {
+        if !self.items.is_empty() {
             self.cursor_y += 1;
         }
 
