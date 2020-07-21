@@ -305,17 +305,19 @@ impl StringList {
                         KeyStroke { key: KEY_I, .. } => {
                             self.state = StringListState::Editing {
                                 new: true,
-                                prev_cursor_y: self.list.cursor_y
+                                prev_cursor_y: self.list.cursor_y,
                             };
                             self.list.insert_after_current(String::new());
                             self.edit_field.buffer.clear();
                             self.edit_field.cursor_x = 0;
                             global.cursor_visible = true;
                         }
-                        KeyStroke { key : KEY_SHIFT_I, .. } => {
+                        KeyStroke {
+                            key: KEY_SHIFT_I, ..
+                        } => {
                             self.state = StringListState::Editing {
                                 new: true,
-                                prev_cursor_y: self.list.cursor_y
+                                prev_cursor_y: self.list.cursor_y,
                             };
                             self.list.insert_before_current(String::new());
                             self.edit_field.buffer.clear();
@@ -326,7 +328,10 @@ impl StringList {
                             if let Some(item) = self.list.current_item() {
                                 self.edit_field.cursor_x = item.len();
                                 self.edit_field.buffer = String::from(item);
-                                self.state = StringListState::Editing { new: false, prev_cursor_y: self.list.cursor_y };
+                                self.state = StringListState::Editing {
+                                    new: false,
+                                    prev_cursor_y: self.list.cursor_y,
+                                };
                                 global.cursor_visible = true;
                             }
                         }
