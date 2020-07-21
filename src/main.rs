@@ -616,19 +616,21 @@ impl CmdlineEditField {
     fn handle_key(&mut self, key: KeyStroke, line_list: &mut LineList, global: &mut Global) {
         if self.active {
             match key {
-                KeyStroke {key: KEY_RETURN, ..} => {
+                KeyStroke {
+                    key: KEY_RETURN, ..
+                } => {
                     self.active = false;
                     global.cursor_visible = false;
                     line_list.user_provided_cmdline = Some(self.edit_field.buffer.clone());
                     line_list.run_user_provided_cmdline();
-                },
-                KeyStroke {key: KEY_ESCAPE, ..} => {
+                }
+                KeyStroke {
+                    key: KEY_ESCAPE, ..
+                } => {
                     self.active = false;
                     global.cursor_visible = false;
-                },
-                _ => {
-                    self.edit_field.handle_key(key)
                 }
+                _ => self.edit_field.handle_key(key),
             }
         }
     }
@@ -716,7 +718,7 @@ fn main() {
                     cmdline_edit_field.handle_key(key_stroke, &mut line_list, &mut global);
                 } else {
                     match key_stroke {
-                        KeyStroke {key: KEY_F3, ..} => {
+                        KeyStroke { key: KEY_F3, .. } => {
                             cmdline_edit_field.activate(&line_list, &mut global);
                         }
                         _ => {
@@ -724,9 +726,15 @@ fn main() {
                                 line_list.handle_key(key_stroke, &cmdline, &mut global);
                             } else {
                                 match global.focus {
-                                    Focus::Lines => line_list.handle_key(key_stroke, &cmdline, &mut global),
-                                    Focus::Regexs => profile.regex_list.handle_key(key_stroke, &mut global),
-                                    Focus::Cmds => profile.cmd_list.handle_key(key_stroke, &mut global),
+                                    Focus::Lines => {
+                                        line_list.handle_key(key_stroke, &cmdline, &mut global)
+                                    }
+                                    Focus::Regexs => {
+                                        profile.regex_list.handle_key(key_stroke, &mut global)
+                                    }
+                                    Focus::Cmds => {
+                                        profile.cmd_list.handle_key(key_stroke, &mut global)
+                                    }
                                 }
                             }
                         }
@@ -820,7 +828,7 @@ fn main() {
                 );
             }
 
-            cmdline_edit_field.render(Row{x: 0, y: h - 1, w}, &mut global);
+            cmdline_edit_field.render(Row { x: 0, y: h - 1, w }, &mut global);
 
             curs_set(if global.cursor_visible {
                 ncurses::CURSOR_VISIBILITY::CURSOR_VISIBLE
