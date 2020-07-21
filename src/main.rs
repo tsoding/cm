@@ -5,9 +5,8 @@ use ncurses::*;
 use os_pipe::{pipe, PipeReader};
 use pcre2::bytes::Regex;
 use std::env::var;
-use std::ffi::CString;
 use std::fs::{create_dir_all, read_to_string, File};
-use std::io::{stdin, BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader, Write};
 use std::os::unix::io::AsRawFd;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command};
@@ -668,24 +667,9 @@ fn main() {
 
     if line_list.user_provided_cmdline.is_some() {
         line_list.run_user_provided_cmdline();
-    } else {
-        let mut new_list = ItemList::new();
-        new_list.items = stdin()
-            .lock()
-            .lines()
-            .collect::<Result<Vec<String>, _>>()
-            .expect("Error reading stdin");
-        line_list.lists.push(new_list);
     }
 
-    // NOTE: stolen from https://stackoverflow.com/a/44884859
-    // TODO(#3): the terminal redirection is too hacky
-    let tty_path = CString::new("/dev/tty").expect("Error trying to redirect stdin");
-    let fopen_mode = CString::new("r+").expect("Error trying to redirect stdin");
-    let file = unsafe { fopen(tty_path.as_ptr(), fopen_mode.as_ptr()) };
-    let screen = newterm(None, file, file);
-    set_term(screen);
-
+    initscr();
     noecho();
     keypad(stdscr(), true);
     // NOTE: timeout(0) is a very important setting of ncurses for our
