@@ -526,6 +526,16 @@ impl Focus {
     fn next(self) -> Self {
         Focus::from_number((self as usize + 1) % FOCUS_COUNT).unwrap()
     }
+
+    fn prev(self) -> Self {
+        let mut result = self as usize;
+
+        if result == 0 {
+            result = FOCUS_COUNT;
+        }
+
+        Focus::from_number(result - 1).unwrap()
+    }
 }
 
 struct Global {
@@ -554,6 +564,10 @@ impl Global {
             }
             KeyStroke { key: KEY_TAB, .. } => {
                 self.focus = self.focus.next();
+                true
+            }
+            KeyStroke { key: KEY_BTAB, .. } => {
+                self.focus = self.focus.prev();
                 true
             }
             _ => false,
