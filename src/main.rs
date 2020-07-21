@@ -530,7 +530,11 @@ impl Focus {
 }
 
 struct Global {
+    /// Indicates that the Profile Panel, that contains Regex and Cmd
+    /// lists is visible
     profile_pane: bool,
+    /// Indicates that the application should quit the main event loop
+    /// as soon as possible
     quit: bool,
     focus: Focus,
     cursor_visible: bool,
@@ -575,6 +579,63 @@ fn render_cmdline(line: &str, cmd: &str, regex: &Regex) -> Option<String> {
     })
 }
 
+struct CmdlineEditField {
+    edit_field: EditField,
+    active: bool,
+}
+
+impl CmdlineEditField {
+    fn new() -> Self {
+        Self {
+            edit_field: EditField::new(),
+            active: false,
+        }
+    }
+
+    fn activate(&mut self, line_list: &LineList, global: &mut Global) {
+        self.active = true;
+
+        if let Some(cmdline) = line_list.user_provided_cmdline.as_ref() {
+            self.edit_field.buffer = cmdline.clone();
+        } else {
+            self.edit_field.buffer.clear();
+        }
+
+        self.edit_field.cursor_x = self.edit_field.buffer.len();
+        global.cursor_visible = true;
+    }
+
+    fn render(&self, row: Row, global: &mut Global) {
+        if self.active {
+            self.edit_field.render(row);
+            global.cursor_x = self.edit_field.cursor_x as i32;
+            global.cursor_y = row.y as i32;
+        }
+    }
+
+    fn handle_key(&mut self, key: KeyStroke, line_list: &mut LineList, global: &mut Global) {
+        if self.active {
+            match key {
+                KeyStroke {
+                    key: KEY_RETURN, ..
+                } => {
+                    self.active = false;
+                    global.cursor_visible = false;
+                    line_list.user_provided_cmdline = Some(self.edit_field.buffer.clone());
+                    line_list.run_user_provided_cmdline();
+                }
+                KeyStroke {
+                    key: KEY_ESCAPE, ..
+                } => {
+                    self.active = false;
+                    global.cursor_visible = false;
+                }
+                _ => self.edit_field.handle_key(key),
+            }
+        }
+    }
+}
+
 fn main() {
     let config_path = {
         const CONFIG_FILE_NAME: &str = "cm.conf";
@@ -600,6 +661,8 @@ fn main() {
         cursor_y: 0,
         cursor_visible: false,
     };
+
+    let mut cmdline_edit_field = CmdlineEditField::new();
 
     let mut line_list = LineList::new(std::env::args().nth(1));
 
@@ -651,13 +714,30 @@ fn main() {
 
             if let Some(key_stroke) = key_escaper.feed(key) {
                 input_receved = true;
-                if !global.profile_pane {
-                    line_list.handle_key(key_stroke, &cmdline, &mut global);
+                if cmdline_edit_field.active {
+                    cmdline_edit_field.handle_key(key_stroke, &mut line_list, &mut global);
                 } else {
-                    match global.focus {
-                        Focus::Lines => line_list.handle_key(key_stroke, &cmdline, &mut global),
-                        Focus::Regexs => profile.regex_list.handle_key(key_stroke, &mut global),
-                        Focus::Cmds => profile.cmd_list.handle_key(key_stroke, &mut global),
+                    match key_stroke {
+                        KeyStroke { key: KEY_F3, .. } => {
+                            cmdline_edit_field.activate(&line_list, &mut global);
+                        }
+                        _ => {
+                            if !global.profile_pane {
+                                line_list.handle_key(key_stroke, &cmdline, &mut global);
+                            } else {
+                                match global.focus {
+                                    Focus::Lines => {
+                                        line_list.handle_key(key_stroke, &cmdline, &mut global)
+                                    }
+                                    Focus::Regexs => {
+                                        profile.regex_list.handle_key(key_stroke, &mut global)
+                                    }
+                                    Focus::Cmds => {
+                                        profile.cmd_list.handle_key(key_stroke, &mut global)
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -747,6 +827,8 @@ fn main() {
                     profile.current_regex(),
                 );
             }
+
+            cmdline_edit_field.render(Row { x: 0, y: h - 1, w }, &mut global);
 
             curs_set(if global.cursor_visible {
                 ncurses::CURSOR_VISIBILITY::CURSOR_VISIBLE
