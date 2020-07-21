@@ -303,7 +303,7 @@ impl StringList {
                 if !global.handle_key(key_stroke) {
                     match key_stroke {
                         KeyStroke { key: KEY_I, .. } => {
-                            self.list.items.insert(self.list.cursor_y, String::new());
+                            self.list.insert_after_current(String::new());
                             self.edit_field.buffer.clear();
                             self.edit_field.cursor_x = 0;
                             self.state = StringListState::Editing { new: true };
@@ -334,7 +334,11 @@ impl StringList {
                 } => {
                     self.state = StringListState::Navigate;
                     if new {
-                        self.list.delete_current()
+                        let last = self.list.cursor_y >= self.list.items.len() - 1;
+                        self.list.delete_current();
+                        if !last {
+                            self.list.up();
+                        }
                     }
                     global.cursor_visible = false;
                 }
