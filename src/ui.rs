@@ -56,6 +56,10 @@ impl ItemList {
         }
     }
 
+    pub fn insert_before_current(&mut self, line: String) {
+        self.items.insert(self.cursor_y, line);
+    }
+
     pub fn insert_after_current(&mut self, line: String) {
         if self.items.len() != 0 {
             self.cursor_y += 1;
