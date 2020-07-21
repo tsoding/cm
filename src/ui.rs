@@ -68,6 +68,18 @@ impl ItemList {
         self.items.insert(self.cursor_y, line);
     }
 
+    pub fn duplicate_after(&mut self) {
+        if let Some(item) = self.current_item().map(String::from) {
+            self.insert_after_current(item);
+        }
+    }
+
+    pub fn duplicate_before(&mut self) {
+        if let Some(item) = self.current_item().map(String::from) {
+            self.insert_before_current(item);
+        }
+    }
+
     pub fn handle_key(&mut self, key_stroke: KeyStroke) {
         match key_stroke {
             KeyStroke { key: KEY_S, .. } => self.down(),
