@@ -534,7 +534,7 @@ impl Focus {
             result = FOCUS_COUNT;
         }
 
-        return Focus::from_number(result - 1).unwrap();
+        Focus::from_number(result - 1).unwrap()
     }
 }
 
