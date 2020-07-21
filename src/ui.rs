@@ -56,6 +56,18 @@ impl ItemList {
         }
     }
 
+    pub fn insert_before_current(&mut self, line: String) {
+        self.items.insert(self.cursor_y, line);
+    }
+
+    pub fn insert_after_current(&mut self, line: String) {
+        if !self.items.is_empty() {
+            self.cursor_y += 1;
+        }
+
+        self.items.insert(self.cursor_y, line);
+    }
+
     pub fn handle_key(&mut self, key_stroke: KeyStroke) {
         match key_stroke {
             KeyStroke { key: KEY_S, .. } => self.down(),
