@@ -706,6 +706,8 @@ fn main() {
         // TODO(#43): cm does not handle Shift+TAB to scroll backwards through the panels
         let mut input_receved = false;
         if let Some(key_stroke) = KeyStroke::get() {
+            input_receved = true;
+
             let cmdline = match (
                 &profile.current_regex(),
                 &profile.current_cmd(),
@@ -715,7 +717,6 @@ fn main() {
                 _ => None,
             };
 
-            input_receved = true;
             if cmdline_edit_field.active {
                 cmdline_edit_field.handle_key(key_stroke, &mut line_list, &mut global);
             } else {
