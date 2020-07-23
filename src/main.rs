@@ -699,8 +699,7 @@ fn main() {
         // BEGIN INPUT SECTION //////////////////////////////
         // TODO(#43): cm does not handle Shift+TAB to scroll backwards through the panels
         let mut input_receved = false;
-        let key = getch();
-        if key != -1 {
+        if let Some(key_stroke) = key_escaper.feed() {
             let cmdline = match (
                 &profile.current_regex(),
                 &profile.current_cmd(),
@@ -710,29 +709,27 @@ fn main() {
                 _ => None,
             };
 
-            if let Some(key_stroke) = key_escaper.feed(key) {
-                input_receved = true;
-                if cmdline_edit_field.active {
-                    cmdline_edit_field.handle_key(key_stroke, &mut line_list, &mut global);
-                } else {
-                    match key_stroke {
-                        KeyStroke { key: KEY_F3, .. } => {
-                            cmdline_edit_field.activate(&line_list, &mut global);
-                        }
-                        _ => {
-                            if !global.profile_pane {
-                                line_list.handle_key(key_stroke, &cmdline, &mut global);
-                            } else {
-                                match global.focus {
-                                    Focus::Lines => {
-                                        line_list.handle_key(key_stroke, &cmdline, &mut global)
-                                    }
-                                    Focus::Regexs => {
-                                        profile.regex_list.handle_key(key_stroke, &mut global)
-                                    }
-                                    Focus::Cmds => {
-                                        profile.cmd_list.handle_key(key_stroke, &mut global)
-                                    }
+            input_receved = true;
+            if cmdline_edit_field.active {
+                cmdline_edit_field.handle_key(key_stroke, &mut line_list, &mut global);
+            } else {
+                match key_stroke {
+                    KeyStroke { key: KEY_F3, .. } => {
+                        cmdline_edit_field.activate(&line_list, &mut global);
+                    }
+                    _ => {
+                        if !global.profile_pane {
+                            line_list.handle_key(key_stroke, &cmdline, &mut global);
+                        } else {
+                            match global.focus {
+                                Focus::Lines => {
+                                    line_list.handle_key(key_stroke, &cmdline, &mut global)
+                                }
+                                Focus::Regexs => {
+                                    profile.regex_list.handle_key(key_stroke, &mut global)
+                                }
+                                Focus::Cmds => {
+                                    profile.cmd_list.handle_key(key_stroke, &mut global)
                                 }
                             }
                         }
@@ -740,6 +737,7 @@ fn main() {
                 }
             }
         }
+
         // END INPUT SECTION //////////////////////////////
 
         // BEGIN ASYNC CHILD OUTPUT SECTION //////////////////////////////
