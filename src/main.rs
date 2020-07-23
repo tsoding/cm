@@ -684,13 +684,20 @@ fn main() {
     }
 
     initscr();
-    noecho();
-    keypad(stdscr(), true);
-    // NOTE: timeout(0) is a very important setting of ncurses for our
+    // NOTE: timeout(16) is a very important setting of ncurses for our
     // application. It makes getch() asynchronous, which is essential
     // for non-blocking UI when receiving the output from the child
     // process.
-    timeout(0);
+    //
+    // The value of 16 milliseconds also blocks the application for a
+    // little. This improves the performance by making the application
+    // to not constantly busy loop on checking the input from the user
+    // and running child process.
+    //
+    // 16 milliseconds were chosen to make the application "run in 60 fps" :D
+    timeout(16);
+    noecho();
+    keypad(stdscr(), true);
 
     init_style();
 
@@ -835,8 +842,6 @@ fn main() {
             refresh();
         }
         // END RENDER SECTION //////////////////////////////
-
-        std::thread::sleep(std::time::Duration::from_millis(16));
     }
 
     // TODO(#21): if application crashes it does not finalize the terminal
