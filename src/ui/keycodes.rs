@@ -1,3 +1,5 @@
+use ncurses::*;
+
 pub const KEY_E: i32 = 0x65;
 pub const KEY_Q: i32 = 0x71;
 pub const KEY_TAB: i32 = 0x09;
@@ -16,31 +18,25 @@ pub struct KeyStroke {
     pub alt: bool,
 }
 
-pub struct KeyEscaper {
-    pub escape: bool,
-}
-
-impl KeyEscaper {
-    pub fn new() -> Self {
-        Self { escape: false }
-    }
-
-    // REFERENCE: https://en.wikipedia.org/wiki/ANSI_escape_code#Terminal_input_sequences
-    pub fn feed(&mut self, key: i32) -> Option<KeyStroke> {
-        match (self.escape, key == KEY_ESCAPE) {
-            (true, true) => {
-                self.escape = false;
-                Some(KeyStroke { key, alt: false })
+impl KeyStroke {
+    pub fn get() -> Option<Self> {
+        let key = getch();
+        if key != -1 {
+            if key == KEY_ESCAPE {
+                let key1 = getch();
+                if key1 != -1 {
+                    Some(Self {
+                        key: key1,
+                        alt: true,
+                    })
+                } else {
+                    Some(Self { key, alt: false })
+                }
+            } else {
+                Some(Self { key, alt: false })
             }
-            (true, false) => {
-                self.escape = false;
-                Some(KeyStroke { key, alt: true })
-            }
-            (false, true) => {
-                self.escape = true;
-                None
-            }
-            (false, false) => Some(KeyStroke { key, alt: false }),
+        } else {
+            None
         }
     }
 }

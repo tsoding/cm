@@ -684,23 +684,30 @@ fn main() {
     }
 
     initscr();
-    noecho();
-    keypad(stdscr(), true);
-    // NOTE: timeout(0) is a very important setting of ncurses for our
+    // NOTE: timeout(16) is a very important setting of ncurses for our
     // application. It makes getch() asynchronous, which is essential
     // for non-blocking UI when receiving the output from the child
     // process.
-    timeout(0);
+    //
+    // The value of 16 milliseconds also blocks the application for a
+    // little. This improves the performance by making the application
+    // to not constantly busy loop on checking the input from the user
+    // and running child process.
+    //
+    // 16 milliseconds were chosen to make the application "run in 60 fps" :D
+    timeout(16);
+    noecho();
+    keypad(stdscr(), true);
 
     init_style();
 
-    let mut key_escaper = KeyEscaper::new();
     while !global.quit {
         // BEGIN INPUT SECTION //////////////////////////////
         // TODO(#43): cm does not handle Shift+TAB to scroll backwards through the panels
         let mut input_receved = false;
-        let key = getch();
-        if key != -1 {
+        if let Some(key_stroke) = KeyStroke::get() {
+            input_receved = true;
+
             let cmdline = match (
                 &profile.current_regex(),
                 &profile.current_cmd(),
@@ -710,36 +717,32 @@ fn main() {
                 _ => None,
             };
 
-            if let Some(key_stroke) = key_escaper.feed(key) {
-                input_receved = true;
-                if cmdline_edit_field.active {
-                    cmdline_edit_field.handle_key(key_stroke, &mut line_list, &mut global);
-                } else {
-                    match key_stroke {
-                        KeyStroke { key: KEY_F3, .. } => {
-                            cmdline_edit_field.activate(&line_list, &mut global);
-                        }
-                        _ => {
-                            if !global.profile_pane {
-                                line_list.handle_key(key_stroke, &cmdline, &mut global);
-                            } else {
-                                match global.focus {
-                                    Focus::Lines => {
-                                        line_list.handle_key(key_stroke, &cmdline, &mut global)
-                                    }
-                                    Focus::Regexs => {
-                                        profile.regex_list.handle_key(key_stroke, &mut global)
-                                    }
-                                    Focus::Cmds => {
-                                        profile.cmd_list.handle_key(key_stroke, &mut global)
-                                    }
+            if cmdline_edit_field.active {
+                cmdline_edit_field.handle_key(key_stroke, &mut line_list, &mut global);
+            } else {
+                match key_stroke {
+                    KeyStroke { key: KEY_F3, .. } => {
+                        cmdline_edit_field.activate(&line_list, &mut global);
+                    }
+                    _ => {
+                        if !global.profile_pane {
+                            line_list.handle_key(key_stroke, &cmdline, &mut global);
+                        } else {
+                            match global.focus {
+                                Focus::Lines => {
+                                    line_list.handle_key(key_stroke, &cmdline, &mut global)
                                 }
+                                Focus::Regexs => {
+                                    profile.regex_list.handle_key(key_stroke, &mut global)
+                                }
+                                Focus::Cmds => profile.cmd_list.handle_key(key_stroke, &mut global),
                             }
                         }
                     }
                 }
             }
         }
+
         // END INPUT SECTION //////////////////////////////
 
         // BEGIN ASYNC CHILD OUTPUT SECTION //////////////////////////////
@@ -838,8 +841,6 @@ fn main() {
             refresh();
         }
         // END RENDER SECTION //////////////////////////////
-
-        std::thread::sleep(std::time::Duration::from_millis(16));
     }
 
     // TODO(#21): if application crashes it does not finalize the terminal
