@@ -25,12 +25,15 @@ impl KeyStroke {
             if key == KEY_ESCAPE {
                 let key1 = getch();
                 if key1 != -1 {
-                    Some(Self{key:key1, alt: true})
+                    Some(Self {
+                        key: key1,
+                        alt: true,
+                    })
                 } else {
-                    Some(Self{key, alt: false})
+                    Some(Self { key, alt: false })
                 }
             } else {
-                Some(Self{key, alt: false})
+                Some(Self { key, alt: false })
             }
         } else {
             None

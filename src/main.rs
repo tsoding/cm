@@ -735,9 +735,7 @@ fn main() {
                                 Focus::Regexs => {
                                     profile.regex_list.handle_key(key_stroke, &mut global)
                                 }
-                                Focus::Cmds => {
-                                    profile.cmd_list.handle_key(key_stroke, &mut global)
-                                }
+                                Focus::Cmds => profile.cmd_list.handle_key(key_stroke, &mut global),
                             }
                         }
                     }
