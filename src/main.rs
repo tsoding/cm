@@ -694,12 +694,11 @@ fn main() {
 
     init_style();
 
-    let mut key_escaper = KeyEscaper::new();
     while !global.quit {
         // BEGIN INPUT SECTION //////////////////////////////
         // TODO(#43): cm does not handle Shift+TAB to scroll backwards through the panels
         let mut input_receved = false;
-        if let Some(key_stroke) = key_escaper.feed() {
+        if let Some(key_stroke) = KeyStroke::get() {
             let cmdline = match (
                 &profile.current_regex(),
                 &profile.current_cmd(),

@@ -18,28 +18,19 @@ pub struct KeyStroke {
     pub alt: bool,
 }
 
-pub struct KeyEscaper {
-    pub escape: bool,
-}
-
-impl KeyEscaper {
-    pub fn new() -> Self {
-        Self { escape: false }
-    }
-
-    // REFERENCE: https://en.wikipedia.org/wiki/ANSI_escape_code#Terminal_input_sequences
-    pub fn feed(&mut self) -> Option<KeyStroke> {
+impl KeyStroke {
+    pub fn get() -> Option<Self> {
         let key = getch();
         if key != -1 {
             if key == KEY_ESCAPE {
                 let key1 = getch();
                 if key1 != -1 {
-                    Some(KeyStroke{key:key1, alt: true})
+                    Some(Self{key:key1, alt: true})
                 } else {
-                    Some(KeyStroke{key, alt: false})
+                    Some(Self{key, alt: false})
                 }
             } else {
-                Some(KeyStroke{key, alt: false})
+                Some(Self{key, alt: false})
             }
         } else {
             None
