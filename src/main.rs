@@ -45,24 +45,20 @@ impl LineList {
         self.lists.last().and_then(|x| x.current_item())
     }
 
-    fn jump_to_next_match(&mut self, regex_result: Option<Result<Regex, pcre2::Error>>) {
+    fn jump_to_next_match(&mut self, regex: &Regex) {
         if let Some(list) = self.lists.last_mut() {
-            if let Some(Ok(regex)) = regex_result {
+            list.down();
+            while !list.is_current_line_matches(regex) && !list.is_at_end() {
                 list.down();
-                while !list.is_current_line_matches(&regex) && !list.is_at_end() {
-                    list.down();
-                }
             }
         }
     }
 
-    fn jump_to_prev_match(&mut self, regex_result: Option<Result<Regex, pcre2::Error>>) {
+    fn jump_to_prev_match(&mut self, regex: &Regex) {
         if let Some(list) = self.lists.last_mut() {
-            if let Some(Ok(regex)) = regex_result {
+            list.up();
+            while !list.is_current_line_matches(regex) && !list.is_at_begin() {
                 list.up();
-                while !list.is_current_line_matches(&regex) && !list.is_at_begin() {
-                    list.up();
-                }
             }
         }
     }
@@ -168,6 +164,26 @@ impl LineList {
         self.child = Some((output, child));
     }
 
+    fn fork_cmdline(&mut self, cmdline: String) {
+        // TODO(#47): endwin() on Enter in LineList looks like a total hack and it's unclear why it even works
+        endwin();
+        // TODO(#40): shell is not customizable
+        //   Grep for @ref(#40)
+        // TODO(#50): cm doesn't say anything if the executed command has failed
+        Command::new("sh")
+            .stdin(
+                File::open("/dev/tty").expect(
+                    "Could not open /dev/tty as stdin for child process",
+                ),
+            )
+            .arg("-c")
+            .arg(cmdline)
+            .spawn()
+            .expect("Could not spawn child process")
+            .wait_with_output()
+            .expect("Error waiting for output of child process");
+    }
+
     fn run_user_provided_cmdline(&mut self) {
         if let Some(cmdline) = self.user_provided_cmdline.clone() {
             self.run_cmdline(cmdline)
@@ -238,32 +254,14 @@ impl LineList {
     ) {
         if !global.handle_key(key_stroke) {
             match key_stroke {
-                KeyStroke {
-                    key: KEY_RETURN,
-                    alt,
-                } => {
+                KeyStroke { key: KEY_RETURN, alt: true } => {
                     if let Some(cmdline) = cmdline_result {
-                        if alt {
-                            self.run_cmdline(cmdline.clone());
-                        } else {
-                            // TODO(#47): endwin() on Enter in LineList looks like a total hack and it's unclear why it even works
-                            endwin();
-                            // TODO(#40): shell is not customizable
-                            //   Grep for @ref(#40)
-                            // TODO(#50): cm doesn't say anything if the executed command has failed
-                            Command::new("sh")
-                                .stdin(
-                                    File::open("/dev/tty").expect(
-                                        "Could not open /dev/tty as stdin for child process",
-                                    ),
-                                )
-                                .arg("-c")
-                                .arg(cmdline)
-                                .spawn()
-                                .expect("Could not spawn child process")
-                                .wait_with_output()
-                                .expect("Error waiting for output of child process");
-                        }
+                        self.run_cmdline(cmdline.clone());
+                    }
+                }
+                KeyStroke {key: KEY_RETURN, alt: false} => {
+                    if let Some(cmdline) = cmdline_result {
+                        self.fork_cmdline(cmdline.clone());
                     }
                 }
                 KeyStroke {
@@ -278,13 +276,17 @@ impl LineList {
                     key: KEY_UP,
                     alt: true,
                 } => {
-                    self.jump_to_prev_match(regex_result);
+                    if let Some(Ok(regex)) = regex_result {
+                        self.jump_to_prev_match(&regex);
+                    }
                 }
                 KeyStroke {
                     key: KEY_DOWN,
                     alt: true,
                 } => {
-                    self.jump_to_next_match(regex_result);
+                    if let Some(Ok(regex)) = regex_result {
+                        self.jump_to_next_match(&regex);
+                    }
                 }
                 key_stroke => {
                     if let Some(list) = self.lists.last_mut() {
