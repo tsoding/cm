@@ -1,4 +1,4 @@
-mod ui;
+mod cm;
 
 use libc::*;
 use ncurses::*;
@@ -10,9 +10,7 @@ use std::io::{BufRead, BufReader, Write};
 use std::os::unix::io::AsRawFd;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command};
-use ui::keycodes::*;
-use ui::style::*;
-use ui::*;
+use cm::*;
 
 // TODO(#94): mark_nonblocking does not work on Windows
 fn mark_nonblocking<Fd: AsRawFd>(fd: &mut Fd) {
