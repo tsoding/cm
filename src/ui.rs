@@ -3,6 +3,7 @@ pub mod style;
 
 use keycodes::*;
 use ncurses::*;
+use pcre2::bytes::Regex;
 use std::cmp::{max, min};
 use style::*;
 
@@ -148,6 +149,22 @@ impl ItemList {
             Some(&self.items[self.cursor_y])
         } else {
             None
+        }
+    }
+
+    pub fn is_at_begin(&self) -> bool {
+        self.cursor_y == 0
+    }
+
+    pub fn is_at_end(&self) -> bool {
+        self.cursor_y >= self.items.len() - 1
+    }
+
+    pub fn is_current_line_matches(&mut self, regex: &Regex) -> bool {
+        if let Some(item) = self.current_item() {
+            regex.is_match(item.as_bytes()).unwrap()
+        } else {
+            false
         }
     }
 }
