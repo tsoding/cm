@@ -45,6 +45,28 @@ impl LineList {
         self.lists.last().and_then(|x| x.current_item())
     }
 
+    fn jump_to_next_match(&mut self, regex_result: Option<Result<Regex, pcre2::Error>>) {
+        if let Some(list) = self.lists.last_mut() {
+            if let Some(Ok(regex)) = regex_result {
+                list.down();
+                while !list.is_current_line_matches(&regex) && !list.is_at_end() {
+                    list.down();
+                }
+            }
+        }
+    }
+
+    fn jump_to_prev_match(&mut self, regex_result: Option<Result<Regex, pcre2::Error>>) {
+        if let Some(list) = self.lists.last_mut() {
+            if let Some(Ok(regex)) = regex_result {
+                list.up();
+                while !list.is_current_line_matches(&regex) && !list.is_at_begin() {
+                    list.up();
+                }
+            }
+        }
+    }
+
     fn render(&self, rect: Rect, focused: bool, regex_result: Option<Result<Regex, pcre2::Error>>) {
         if let Some(list) = self.lists.last() {
             list.render(rect, focused);
@@ -211,6 +233,7 @@ impl LineList {
         &mut self,
         key_stroke: KeyStroke,
         cmdline_result: &Option<String>,
+        regex_result: Option<Result<Regex, pcre2::Error>>,
         global: &mut Global,
     ) {
         if !global.handle_key(key_stroke) {
@@ -250,6 +273,12 @@ impl LineList {
                 }
                 KeyStroke { key: KEY_F5, .. } => {
                     self.run_user_provided_cmdline();
+                }
+                KeyStroke {key: KEY_UP, alt: true} => {
+                    self.jump_to_prev_match(regex_result);
+                }
+                KeyStroke {key: KEY_DOWN, alt: true} => {
+                    self.jump_to_next_match(regex_result);
                 }
                 key_stroke => {
                     if let Some(list) = self.lists.last_mut() {
@@ -726,11 +755,11 @@ fn main() {
                     }
                     _ => {
                         if !global.profile_pane {
-                            line_list.handle_key(key_stroke, &cmdline, &mut global);
+                            line_list.handle_key(key_stroke, &cmdline, profile.current_regex(), &mut global);
                         } else {
                             match global.focus {
                                 Focus::Lines => {
-                                    line_list.handle_key(key_stroke, &cmdline, &mut global)
+                                    line_list.handle_key(key_stroke, &cmdline, profile.current_regex(), &mut global)
                                 }
                                 Focus::Regexs => {
                                     profile.regex_list.handle_key(key_stroke, &mut global)
