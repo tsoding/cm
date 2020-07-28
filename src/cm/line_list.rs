@@ -1,12 +1,12 @@
 use super::*;
+use libc::*;
 use ncurses::*;
-use std::process::{Child, Command};
-use std::io::{BufRead, BufReader};
-use std::fs::{File};
 use os_pipe::{pipe, PipeReader};
 use pcre2::bytes::Regex;
+use std::fs::File;
+use std::io::{BufRead, BufReader};
 use std::os::unix::io::AsRawFd;
-use libc::*;
+use std::process::{Child, Command};
 
 // TODO(#94): mark_nonblocking does not work on Windows
 fn mark_nonblocking<Fd: AsRawFd>(fd: &mut Fd) {
@@ -57,7 +57,12 @@ impl LineList {
         }
     }
 
-    pub fn render(&self, rect: Rect, focused: bool, regex_result: Option<Result<Regex, pcre2::Error>>) {
+    pub fn render(
+        &self,
+        rect: Rect,
+        focused: bool,
+        regex_result: Option<Result<Regex, pcre2::Error>>,
+    ) {
         if let Some(list) = self.lists.last() {
             list.render(rect, focused);
 
@@ -166,9 +171,7 @@ impl LineList {
         // TODO(#50): cm doesn't say anything if the executed command has failed
         Command::new("sh")
             .stdin(
-                File::open("/dev/tty").expect(
-                    "Could not open /dev/tty as stdin for child process",
-                ),
+                File::open("/dev/tty").expect("Could not open /dev/tty as stdin for child process"),
             )
             .arg("-c")
             .arg(cmdline)
@@ -248,12 +251,18 @@ impl LineList {
     ) {
         if !global.handle_key(key_stroke) {
             match key_stroke {
-                KeyStroke { key: KEY_RETURN, alt: true } => {
+                KeyStroke {
+                    key: KEY_RETURN,
+                    alt: true,
+                } => {
                     if let Some(cmdline) = cmdline_result {
                         self.run_cmdline(cmdline.clone());
                     }
                 }
-                KeyStroke {key: KEY_RETURN, alt: false} => {
+                KeyStroke {
+                    key: KEY_RETURN,
+                    alt: false,
+                } => {
                     if let Some(cmdline) = cmdline_result {
                         self.fork_cmdline(cmdline.clone());
                     }

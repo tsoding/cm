@@ -59,9 +59,9 @@ impl EditField {
             KeyStroke { key: KEY_RIGHT, .. } => {
                 self.right();
             }
-            KeyStroke { key: KEY_LEFT, .. } =>  {
+            KeyStroke { key: KEY_LEFT, .. } => {
                 self.left();
-            },
+            }
             KeyStroke {
                 key: KEY_BACKSPACE, ..
             } => {

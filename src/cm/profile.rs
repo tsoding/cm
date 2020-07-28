@@ -1,8 +1,8 @@
 use super::*;
 use pcre2::bytes::Regex;
-use std::path::{Path};
-use std::fs::{read_to_string};
-use std::io::{Write};
+use std::fs::read_to_string;
+use std::io::Write;
+use std::path::Path;
 
 pub struct Profile {
     pub regex_list: StringList,

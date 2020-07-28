@@ -1,11 +1,11 @@
 mod cm;
 
+use cm::*;
 use ncurses::*;
 use pcre2::bytes::Regex;
 use std::env::var;
 use std::fs::{create_dir_all, File};
-use std::path::{PathBuf};
-use cm::*;
+use std::path::PathBuf;
 
 fn render_status(y: usize, text: &str) {
     attron(COLOR_PAIR(REGULAR_PAIR));

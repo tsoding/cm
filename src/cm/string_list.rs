@@ -136,9 +136,7 @@ impl StringList {
                         } => {
                             self.insert_before(global);
                         }
-                        KeyStroke { key: KEY_F2, .. } => {
-                            self.start_editing(global)
-                        }
+                        KeyStroke { key: KEY_F2, .. } => self.start_editing(global),
                         key_stroke => self.list.handle_key(key_stroke),
                     }
                 }
