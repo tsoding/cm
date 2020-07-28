@@ -705,22 +705,30 @@ impl CmdlineEditField {
         }
     }
 
+    fn accept_editing(&mut self, line_list: &mut LineList, global: &mut Global) {
+        self.active = false;
+        global.cursor_visible = false;
+        line_list.user_provided_cmdline = Some(self.edit_field.buffer.clone());
+        line_list.run_user_provided_cmdline();
+    }
+
+    fn cancel_editing(&mut self, global: &mut Global) {
+        self.active = false;
+        global.cursor_visible = false;
+    }
+
     fn handle_key(&mut self, key: KeyStroke, line_list: &mut LineList, global: &mut Global) {
         if self.active {
             match key {
                 KeyStroke {
                     key: KEY_RETURN, ..
                 } => {
-                    self.active = false;
-                    global.cursor_visible = false;
-                    line_list.user_provided_cmdline = Some(self.edit_field.buffer.clone());
-                    line_list.run_user_provided_cmdline();
+                    self.accept_editing(line_list, global);
                 }
                 KeyStroke {
                     key: KEY_ESCAPE, ..
                 } => {
-                    self.active = false;
-                    global.cursor_visible = false;
+                    self.cancel_editing(global);
                 }
                 _ => self.edit_field.handle_key(key),
             }
