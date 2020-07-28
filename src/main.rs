@@ -274,10 +274,16 @@ impl LineList {
                 KeyStroke { key: KEY_F5, .. } => {
                     self.run_user_provided_cmdline();
                 }
-                KeyStroke {key: KEY_UP, alt: true} => {
+                KeyStroke {
+                    key: KEY_UP,
+                    alt: true,
+                } => {
                     self.jump_to_prev_match(regex_result);
                 }
-                KeyStroke {key: KEY_DOWN, alt: true} => {
+                KeyStroke {
+                    key: KEY_DOWN,
+                    alt: true,
+                } => {
                     self.jump_to_next_match(regex_result);
                 }
                 key_stroke => {
@@ -755,12 +761,20 @@ fn main() {
                     }
                     _ => {
                         if !global.profile_pane {
-                            line_list.handle_key(key_stroke, &cmdline, profile.current_regex(), &mut global);
+                            line_list.handle_key(
+                                key_stroke,
+                                &cmdline,
+                                profile.current_regex(),
+                                &mut global,
+                            );
                         } else {
                             match global.focus {
-                                Focus::Lines => {
-                                    line_list.handle_key(key_stroke, &cmdline, profile.current_regex(), &mut global)
-                                }
+                                Focus::Lines => line_list.handle_key(
+                                    key_stroke,
+                                    &cmdline,
+                                    profile.current_regex(),
+                                    &mut global,
+                                ),
                                 Focus::Regexs => {
                                     profile.regex_list.handle_key(key_stroke, &mut global)
                                 }

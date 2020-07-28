@@ -3,9 +3,9 @@ pub mod style;
 
 use keycodes::*;
 use ncurses::*;
+use pcre2::bytes::Regex;
 use std::cmp::{max, min};
 use style::*;
-use pcre2::bytes::Regex;
 
 pub struct ItemList {
     pub items: Vec<String>,
