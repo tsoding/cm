@@ -7,6 +7,8 @@ mod string_list;
 mod global;
 mod profile;
 mod line_list;
+mod cmdline_edit_field;
+
 pub use self::keycodes::*;
 pub use self::style::*;
 pub use self::item_list::*;
@@ -16,3 +18,4 @@ pub use self::string_list::*;
 pub use self::global::*;
 pub use self::profile::*;
 pub use self::line_list::*;
+pub use self::cmdline_edit_field::*;
