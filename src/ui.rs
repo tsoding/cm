@@ -153,19 +153,19 @@ impl ItemList {
     }
 
     pub fn is_at_begin(&self) -> bool {
-        return self.cursor_y <= 0;
+        self.cursor_y == 0
     }
 
     pub fn is_at_end(&self) -> bool {
-        return self.cursor_y >= self.items.len() - 1;
+        self.cursor_y >= self.items.len() - 1
     }
 
     pub fn is_current_line_matches(&mut self, regex: &Regex) -> bool {
         if let Some(item) = self.current_item() {
-            return regex.is_match(item.as_bytes()).unwrap();
+            regex.is_match(item.as_bytes()).unwrap()
+        } else {
+            false
         }
-
-        return false;
     }
 }
 
