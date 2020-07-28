@@ -331,6 +331,77 @@ impl StringList {
         }
     }
 
+    fn duplicate_after(&mut self) {
+        if let StringListState::Navigate = self.state {
+            self.list.duplicate_after();
+        }
+    }
+
+    fn duplicate_before(&mut self) {
+        if let StringListState::Navigate = self.state {
+            self.list.duplicate_before();
+        }
+    }
+
+    fn insert_after(&mut self, global: &mut Global) {
+        if let StringListState::Navigate = self.state {
+            self.state = StringListState::Editing {
+                new: true,
+                prev_cursor_y: self.list.cursor_y,
+            };
+            self.list.insert_after_current(String::new());
+            self.edit_field.buffer.clear();
+            self.edit_field.cursor_x = 0;
+            global.cursor_visible = true;
+        }
+    }
+
+    fn insert_before(&mut self, global: &mut Global) {
+        if let StringListState::Navigate = self.state {
+            self.state = StringListState::Editing {
+                new: true,
+                prev_cursor_y: self.list.cursor_y,
+            };
+            self.list.insert_before_current(String::new());
+            self.edit_field.buffer.clear();
+            self.edit_field.cursor_x = 0;
+            global.cursor_visible = true;
+        }
+    }
+
+    fn start_editing(&mut self, global: &mut Global) {
+        if let StringListState::Navigate = self.state {
+            if let Some(item) = self.list.current_item() {
+                self.edit_field.cursor_x = item.len();
+                self.edit_field.buffer = String::from(item);
+                self.state = StringListState::Editing {
+                    new: false,
+                    prev_cursor_y: self.list.cursor_y,
+                };
+                global.cursor_visible = true;
+            }
+        }
+    }
+
+    fn accept_editing(&mut self, global: &mut Global) {
+        if let StringListState::Editing { .. } = self.state {
+            self.state = StringListState::Navigate;
+            self.list.items[self.list.cursor_y] = self.edit_field.buffer.clone();
+            global.cursor_visible = false;
+        }
+    }
+
+    fn cancel_editing(&mut self, global: &mut Global) {
+        if let StringListState::Editing { new, prev_cursor_y } = self.state {
+            self.state = StringListState::Navigate;
+            if new {
+                self.list.delete_current();
+                self.list.cursor_y = prev_cursor_y
+            }
+            global.cursor_visible = false;
+        }
+    }
+
     fn handle_key(&mut self, key_stroke: KeyStroke, global: &mut Global) {
         match self.state {
             StringListState::Navigate => {
@@ -340,72 +411,43 @@ impl StringList {
                             key: KEY_I,
                             alt: true,
                         } => {
-                            self.list.duplicate_after();
+                            self.duplicate_after();
                         }
                         KeyStroke {
                             key: KEY_SHIFT_I,
                             alt: true,
                         } => {
-                            self.list.duplicate_before();
+                            self.duplicate_before();
                         }
                         KeyStroke {
                             key: KEY_I,
                             alt: false,
                         } => {
-                            self.state = StringListState::Editing {
-                                new: true,
-                                prev_cursor_y: self.list.cursor_y,
-                            };
-                            self.list.insert_after_current(String::new());
-                            self.edit_field.buffer.clear();
-                            self.edit_field.cursor_x = 0;
-                            global.cursor_visible = true;
+                            self.insert_after(global);
                         }
                         KeyStroke {
                             key: KEY_SHIFT_I,
                             alt: false,
                         } => {
-                            self.state = StringListState::Editing {
-                                new: true,
-                                prev_cursor_y: self.list.cursor_y,
-                            };
-                            self.list.insert_before_current(String::new());
-                            self.edit_field.buffer.clear();
-                            self.edit_field.cursor_x = 0;
-                            global.cursor_visible = true;
+                            self.insert_before(global);
                         }
                         KeyStroke { key: KEY_F2, .. } => {
-                            if let Some(item) = self.list.current_item() {
-                                self.edit_field.cursor_x = item.len();
-                                self.edit_field.buffer = String::from(item);
-                                self.state = StringListState::Editing {
-                                    new: false,
-                                    prev_cursor_y: self.list.cursor_y,
-                                };
-                                global.cursor_visible = true;
-                            }
+                            self.start_editing(global)
                         }
                         key_stroke => self.list.handle_key(key_stroke),
                     }
                 }
             }
-            StringListState::Editing { new, prev_cursor_y } => match key_stroke {
+            StringListState::Editing { .. } => match key_stroke {
                 KeyStroke {
                     key: KEY_RETURN, ..
                 } => {
-                    self.state = StringListState::Navigate;
-                    self.list.items[self.list.cursor_y] = self.edit_field.buffer.clone();
-                    global.cursor_visible = false;
+                    self.accept_editing(global);
                 }
                 KeyStroke {
                     key: KEY_ESCAPE, ..
                 } => {
-                    self.state = StringListState::Navigate;
-                    if new {
-                        self.list.delete_current();
-                        self.list.cursor_y = prev_cursor_y
-                    }
-                    global.cursor_visible = false;
+                    self.cancel_editing(global);
                 }
                 key_stroke => self.edit_field.handle_key(key_stroke),
             },
