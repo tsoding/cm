@@ -26,13 +26,11 @@ impl StringList {
         self.list.current_item()
     }
 
-    pub fn render(&self, rect: Rect, focused: bool, global: &mut Global) {
+    pub fn render(&self, rect: Rect, focused: bool, cursor: &mut Cursor) {
         self.list.render(rect, focused);
         if let StringListState::Editing { .. } = self.state {
             let row = self.list.current_row(rect);
-            self.edit_field.render(row);
-            global.cursor_y = row.y as i32;
-            global.cursor_x = (row.x + self.edit_field.cursor_x % row.w) as i32;
+            self.edit_field.render(row, cursor);
         }
     }
 
@@ -48,7 +46,7 @@ impl StringList {
         }
     }
 
-    pub fn insert_after(&mut self, global: &mut Global) {
+    pub fn insert_after(&mut self, cursor: &mut Cursor) {
         if let StringListState::Navigate = self.state {
             self.state = StringListState::Editing {
                 new: true,
@@ -57,11 +55,11 @@ impl StringList {
             self.list.insert_after_current(String::new());
             self.edit_field.buffer.clear();
             self.edit_field.cursor_x = 0;
-            global.cursor_visible = true;
+            cursor.visible = true;
         }
     }
 
-    pub fn insert_before(&mut self, global: &mut Global) {
+    pub fn insert_before(&mut self, cursor: &mut Cursor) {
         if let StringListState::Navigate = self.state {
             self.state = StringListState::Editing {
                 new: true,
@@ -70,11 +68,11 @@ impl StringList {
             self.list.insert_before_current(String::new());
             self.edit_field.buffer.clear();
             self.edit_field.cursor_x = 0;
-            global.cursor_visible = true;
+            cursor.visible = true;
         }
     }
 
-    pub fn start_editing(&mut self, global: &mut Global) {
+    pub fn start_editing(&mut self, cursor: &mut Cursor) {
         if let StringListState::Navigate = self.state {
             if let Some(item) = self.list.current_item() {
                 self.edit_field.cursor_x = item.len();
@@ -83,31 +81,31 @@ impl StringList {
                     new: false,
                     prev_cursor_y: self.list.cursor_y,
                 };
-                global.cursor_visible = true;
+                cursor.visible = true;
             }
         }
     }
 
-    pub fn accept_editing(&mut self, global: &mut Global) {
+    pub fn accept_editing(&mut self, cursor: &mut Cursor) {
         if let StringListState::Editing { .. } = self.state {
             self.state = StringListState::Navigate;
             self.list.items[self.list.cursor_y] = self.edit_field.buffer.clone();
-            global.cursor_visible = false;
+            cursor.visible = false;
         }
     }
 
-    pub fn cancel_editing(&mut self, global: &mut Global) {
+    pub fn cancel_editing(&mut self, cursor: &mut Cursor) {
         if let StringListState::Editing { new, prev_cursor_y } = self.state {
             self.state = StringListState::Navigate;
             if new {
                 self.list.delete_current();
                 self.list.cursor_y = prev_cursor_y
             }
-            global.cursor_visible = false;
+            cursor.visible = false;
         }
     }
 
-    pub fn handle_key(&mut self, key_stroke: KeyStroke, global: &mut Global) {
+    pub fn handle_key(&mut self, key_stroke: KeyStroke, global: &mut Global, cursor: &mut Cursor) {
         match self.state {
             StringListState::Navigate => {
                 if !global.handle_key(key_stroke) {
@@ -128,15 +126,15 @@ impl StringList {
                             key: KEY_I,
                             alt: false,
                         } => {
-                            self.insert_after(global);
+                            self.insert_after(cursor);
                         }
                         KeyStroke {
                             key: KEY_SHIFT_I,
                             alt: false,
                         } => {
-                            self.insert_before(global);
+                            self.insert_before(cursor);
                         }
-                        KeyStroke { key: KEY_F2, .. } => self.start_editing(global),
+                        KeyStroke { key: KEY_F2, .. } => self.start_editing(cursor),
                         key_stroke => self.list.handle_key(key_stroke),
                     }
                 }
@@ -145,12 +143,12 @@ impl StringList {
                 KeyStroke {
                     key: KEY_RETURN, ..
                 } => {
-                    self.accept_editing(global);
+                    self.accept_editing(cursor);
                 }
                 KeyStroke {
                     key: KEY_ESCAPE, ..
                 } => {
-                    self.cancel_editing(global);
+                    self.cancel_editing(cursor);
                 }
                 key_stroke => self.edit_field.handle_key(key_stroke),
             },

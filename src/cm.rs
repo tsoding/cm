@@ -1,4 +1,5 @@
 mod cmdline_edit_field;
+mod cursor;
 mod edit_field;
 mod geometry;
 mod global;
@@ -10,6 +11,7 @@ mod string_list;
 mod style;
 
 pub use self::cmdline_edit_field::*;
+pub use self::cursor::*;
 pub use self::edit_field::*;
 pub use self::geometry::*;
 pub use self::global::*;

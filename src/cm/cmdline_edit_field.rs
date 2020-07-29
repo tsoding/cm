@@ -13,7 +13,7 @@ impl CmdlineEditField {
         }
     }
 
-    pub fn activate(&mut self, line_list: &LineList, global: &mut Global) {
+    pub fn activate(&mut self, line_list: &LineList, cursor: &mut Cursor) {
         self.active = true;
 
         if let Some(cmdline) = line_list.user_provided_cmdline.as_ref() {
@@ -23,41 +23,39 @@ impl CmdlineEditField {
         }
 
         self.edit_field.cursor_x = self.edit_field.buffer.len();
-        global.cursor_visible = true;
+        cursor.visible = true;
     }
 
-    pub fn render(&self, row: Row, global: &mut Global) {
+    pub fn render(&self, row: Row, cursor: &mut Cursor) {
         if self.active {
-            self.edit_field.render(row);
-            global.cursor_x = self.edit_field.cursor_x as i32;
-            global.cursor_y = row.y as i32;
+            self.edit_field.render(row, cursor);
         }
     }
 
-    pub fn accept_editing(&mut self, line_list: &mut LineList, global: &mut Global) {
+    pub fn accept_editing(&mut self, line_list: &mut LineList, cursor: &mut Cursor) {
         self.active = false;
-        global.cursor_visible = false;
+        cursor.visible = false;
         line_list.user_provided_cmdline = Some(self.edit_field.buffer.clone());
         line_list.run_user_provided_cmdline();
     }
 
-    pub fn cancel_editing(&mut self, global: &mut Global) {
+    pub fn cancel_editing(&mut self, cursor: &mut Cursor) {
         self.active = false;
-        global.cursor_visible = false;
+        cursor.visible = false;
     }
 
-    pub fn handle_key(&mut self, key: KeyStroke, line_list: &mut LineList, global: &mut Global) {
+    pub fn handle_key(&mut self, key: KeyStroke, line_list: &mut LineList, cursor: &mut Cursor) {
         if self.active {
             match key {
                 KeyStroke {
                     key: KEY_RETURN, ..
                 } => {
-                    self.accept_editing(line_list, global);
+                    self.accept_editing(line_list, cursor);
                 }
                 KeyStroke {
                     key: KEY_ESCAPE, ..
                 } => {
-                    self.cancel_editing(global);
+                    self.cancel_editing(cursor);
                 }
                 _ => self.edit_field.handle_key(key),
             }

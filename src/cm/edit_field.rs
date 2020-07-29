@@ -14,7 +14,7 @@ impl EditField {
         }
     }
 
-    pub fn render(&self, Row { x, y, w }: Row) {
+    pub fn render(&self, Row { x, y, w }: Row, cursor: &mut Cursor) {
         let begin = self.cursor_x / w * w;
         let end = usize::min(begin + w, self.buffer.len());
         mv(y as i32, x as i32);
@@ -24,6 +24,9 @@ impl EditField {
         mv(y as i32, x as i32);
         addstr(&self.buffer.get(begin..end).unwrap_or(""));
         mv(y as i32, (x + self.cursor_x % w) as i32);
+
+        cursor.x = self.cursor_x as i32;
+        cursor.y = y as i32;
     }
 
     pub fn insert_char(&mut self, ch: char) {

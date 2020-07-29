@@ -52,9 +52,12 @@ fn main() {
         quit: false,
         profile_pane: false,
         focus: Focus::Regexs,
-        cursor_x: 0,
-        cursor_y: 0,
-        cursor_visible: false,
+    };
+
+    let mut cursor = Cursor {
+        x: 0,
+        y: 0,
+        visible: false,
     };
 
     let mut cmdline_edit_field = CmdlineEditField::new();
@@ -100,11 +103,11 @@ fn main() {
             };
 
             if cmdline_edit_field.active {
-                cmdline_edit_field.handle_key(key_stroke, &mut line_list, &mut global);
+                cmdline_edit_field.handle_key(key_stroke, &mut line_list, &mut cursor);
             } else {
                 match key_stroke {
                     KeyStroke { key: KEY_F3, .. } => {
-                        cmdline_edit_field.activate(&line_list, &mut global);
+                        cmdline_edit_field.activate(&line_list, &mut cursor);
                     }
                     _ => {
                         if !global.profile_pane {
@@ -122,10 +125,16 @@ fn main() {
                                     profile.current_regex(),
                                     &mut global,
                                 ),
-                                Focus::Regexs => {
-                                    profile.regex_list.handle_key(key_stroke, &mut global)
-                                }
-                                Focus::Cmds => profile.cmd_list.handle_key(key_stroke, &mut global),
+                                Focus::Regexs => profile.regex_list.handle_key(
+                                    key_stroke,
+                                    &mut global,
+                                    &mut cursor,
+                                ),
+                                Focus::Cmds => profile.cmd_list.handle_key(
+                                    key_stroke,
+                                    &mut global,
+                                    &mut cursor,
+                                ),
                             }
                         }
                     }
@@ -189,22 +198,17 @@ fn main() {
                 );
                 profile
                     .regex_list
-                    .render(regex_rect, global.focus == Focus::Regexs, &mut global);
+                    .render(regex_rect, global.focus == Focus::Regexs, &mut cursor);
                 profile
                     .cmd_list
-                    .render(cmd_rect, global.focus == Focus::Cmds, &mut global);
+                    .render(cmd_rect, global.focus == Focus::Cmds, &mut cursor);
             } else {
                 line_list.render(working_rect, true, profile.current_regex());
             }
 
-            cmdline_edit_field.render(Row { x: 0, y: h - 1, w }, &mut global);
+            cmdline_edit_field.render(Row { x: 0, y: h - 1, w }, &mut cursor);
 
-            curs_set(if global.cursor_visible {
-                ncurses::CURSOR_VISIBILITY::CURSOR_VISIBLE
-            } else {
-                ncurses::CURSOR_VISIBILITY::CURSOR_INVISIBLE
-            });
-            mv(global.cursor_y, global.cursor_x);
+            cursor.sync();
 
             refresh();
         }
