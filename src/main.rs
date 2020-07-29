@@ -88,7 +88,6 @@ fn main() {
 
     while !global.quit {
         // BEGIN INPUT SECTION //////////////////////////////
-        // TODO(#43): cm does not handle Shift+TAB to scroll backwards through the panels
         let mut input_receved = false;
         if let Some(key_stroke) = KeyStroke::get() {
             input_receved = true;
