@@ -1,4 +1,4 @@
-use ncurses::CURSOR_VISIBILITY::{CURSOR_VISIBLE, CURSOR_INVISIBLE};
+use ncurses::CURSOR_VISIBILITY::{CURSOR_INVISIBLE, CURSOR_VISIBLE};
 use ncurses::{curs_set, mv};
 
 pub struct Cursor {

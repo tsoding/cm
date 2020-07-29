@@ -125,10 +125,16 @@ fn main() {
                                     profile.current_regex(),
                                     &mut global,
                                 ),
-                                Focus::Regexs => {
-                                    profile.regex_list.handle_key(key_stroke, &mut global, &mut cursor)
-                                }
-                                Focus::Cmds => profile.cmd_list.handle_key(key_stroke, &mut global, &mut cursor),
+                                Focus::Regexs => profile.regex_list.handle_key(
+                                    key_stroke,
+                                    &mut global,
+                                    &mut cursor,
+                                ),
+                                Focus::Cmds => profile.cmd_list.handle_key(
+                                    key_stroke,
+                                    &mut global,
+                                    &mut cursor,
+                                ),
                             }
                         }
                     }
