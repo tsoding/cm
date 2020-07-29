@@ -172,51 +172,29 @@ fn main() {
                 }
             }
 
+            let working_rect = Rect {
+                x: 0,
+                y: 0,
+                w,
+                h: h - 1,
+            };
             if global.profile_pane {
-                let working_h = h - 1;
-                let list_h = working_h / 3 * 2;
+                let (line_list_rect, profile_rect) = working_rect.horizontal_split(3);
+                let (regex_rect, cmd_rect) = profile_rect.vertical_split(2);
 
                 line_list.render(
-                    Rect {
-                        x: 0,
-                        y: 0,
-                        w,
-                        h: list_h,
-                    },
+                    line_list_rect,
                     global.focus == Focus::Lines,
                     profile.current_regex(),
                 );
-                profile.regex_list.render(
-                    Rect {
-                        x: 0,
-                        y: list_h,
-                        w: w / 2,
-                        h: working_h - list_h,
-                    },
-                    global.focus == Focus::Regexs,
-                    &mut global,
-                );
-                profile.cmd_list.render(
-                    Rect {
-                        x: w / 2,
-                        y: list_h,
-                        w: w - w / 2,
-                        h: working_h - list_h,
-                    },
-                    global.focus == Focus::Cmds,
-                    &mut global,
-                );
+                profile
+                    .regex_list
+                    .render(regex_rect, global.focus == Focus::Regexs, &mut global);
+                profile
+                    .cmd_list
+                    .render(cmd_rect, global.focus == Focus::Cmds, &mut global);
             } else {
-                line_list.render(
-                    Rect {
-                        x: 0,
-                        y: 0,
-                        w,
-                        h: h - 1,
-                    },
-                    true,
-                    profile.current_regex(),
-                );
+                line_list.render(working_rect, true, profile.current_regex());
             }
 
             cmdline_edit_field.render(Row { x: 0, y: h - 1, w }, &mut global);
