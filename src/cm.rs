@@ -8,6 +8,7 @@ mod line_list;
 mod profile;
 mod string_list;
 mod style;
+mod cursor;
 
 pub use self::cmdline_edit_field::*;
 pub use self::edit_field::*;
@@ -19,3 +20,4 @@ pub use self::line_list::*;
 pub use self::profile::*;
 pub use self::string_list::*;
 pub use self::style::*;
+pub use self::cursor::*;

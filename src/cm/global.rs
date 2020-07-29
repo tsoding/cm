@@ -43,9 +43,6 @@ pub struct Global {
     /// as soon as possible
     pub quit: bool,
     pub focus: Focus,
-    pub cursor_visible: bool,
-    pub cursor_x: i32,
-    pub cursor_y: i32,
 }
 
 impl Global {
