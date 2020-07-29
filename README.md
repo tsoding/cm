@@ -25,7 +25,6 @@ $ ./target/debug/cm 'grep -rn String src/'
 
 ### Starting up
 
-<!-- TODO(#92): Allow the user to modify the shell command without restarting the application -->
 
 Right now there are two ways to start up cm:
 1. By giving it some data through stdin: `grep -rn String src/ | cm`
