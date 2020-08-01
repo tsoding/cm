@@ -62,7 +62,7 @@ fn main() {
 
     let mut cmdline_edit_field = CmdlineEditField::new();
 
-    let mut line_list = LineList::new(std::env::args().nth(1));
+    let mut line_list = OutputBuffer::new(std::env::args().nth(1));
 
     if line_list.user_provided_cmdline.is_some() {
         line_list.run_user_provided_cmdline();
@@ -150,7 +150,7 @@ fn main() {
         // BEGIN RENDER SECTION //////////////////////////////
         // NOTE: Don't try to rerender anything unless user provided some
         // input or the child process provided some output
-        // TODO(#129): LineList::poll_cmdline_output() == true does not guarantee it is necessary to rerender
+        // TODO(#129): OutputBuffer::poll_cmdline_output() == true does not guarantee it is necessary to rerender
         //   If the output is appended outside of the screen it's kinda pointless to rerender
         if input_receved || line_list_changed {
             let (w, h) = {
@@ -163,7 +163,7 @@ fn main() {
             erase();
 
             if h >= 1 {
-                // NOTE: we are rerendering cmdline here because it could be changed by LineList
+                // NOTE: we are rerendering cmdline here because it could be changed by OutputBuffer
                 // after the input handling section
                 match (
                     &profile.current_regex(),

@@ -13,7 +13,7 @@ impl CmdlineEditField {
         }
     }
 
-    pub fn activate(&mut self, line_list: &LineList, cursor: &mut Cursor) {
+    pub fn activate(&mut self, line_list: &OutputBuffer, cursor: &mut Cursor) {
         self.active = true;
 
         if let Some(cmdline) = line_list.user_provided_cmdline.as_ref() {
@@ -32,7 +32,7 @@ impl CmdlineEditField {
         }
     }
 
-    pub fn accept_editing(&mut self, line_list: &mut LineList, cursor: &mut Cursor) {
+    pub fn accept_editing(&mut self, line_list: &mut OutputBuffer, cursor: &mut Cursor) {
         self.active = false;
         cursor.visible = false;
         line_list.user_provided_cmdline = Some(self.edit_field.buffer.clone());
@@ -44,7 +44,7 @@ impl CmdlineEditField {
         cursor.visible = false;
     }
 
-    pub fn handle_key(&mut self, key: KeyStroke, line_list: &mut LineList, cursor: &mut Cursor) {
+    pub fn handle_key(&mut self, key: KeyStroke, line_list: &mut OutputBuffer, cursor: &mut Cursor) {
         if self.active {
             match key {
                 KeyStroke {
