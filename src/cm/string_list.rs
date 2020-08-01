@@ -150,7 +150,7 @@ impl StringList {
                 } => {
                     self.cancel_editing(cursor);
                 }
-                key_stroke => self.edit_field.handle_key(key_stroke),
+                key_stroke => self.edit_field.handle_key(&key_stroke, key_map),
             },
         }
     }

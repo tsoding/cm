@@ -66,7 +66,8 @@ fn main() {
     key_map.bind(KeyStroke {key: KEY_LEFT, alt: false}, Action::Left);
     key_map.bind(KeyStroke {key: KEY_RIGHT, alt: false}, Action::Right);
     key_map.bind(KeyStroke {key: KEY_HOME, alt: false}, Action::Home);
-    key_map.bind(KeyStroke {key: KEY_DC, alt: false}, Action::DeleteItem);
+    key_map.bind(KeyStroke {key: KEY_DC, alt: false}, Action::Delete);
+    key_map.bind(KeyStroke {key: KEY_BACKSPACE, alt: false}, Action::BackDelete);
 
     let mut cmdline_edit_field = CmdlineEditField::new();
 
@@ -110,7 +111,7 @@ fn main() {
             };
 
             if cmdline_edit_field.active {
-                cmdline_edit_field.handle_key(key_stroke, &mut output_buffer, &mut cursor);
+                cmdline_edit_field.handle_key(key_stroke, &key_map, &mut output_buffer, &mut cursor);
             } else {
                 match key_stroke {
                     KeyStroke { key: KEY_F3, .. } => {

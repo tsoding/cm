@@ -47,6 +47,7 @@ impl CmdlineEditField {
     pub fn handle_key(
         &mut self,
         key: KeyStroke,
+        key_map: &KeyMap,
         output_buffer: &mut OutputBuffer,
         cursor: &mut Cursor,
     ) {
@@ -62,7 +63,7 @@ impl CmdlineEditField {
                 } => {
                     self.cancel_editing(cursor);
                 }
-                _ => self.edit_field.handle_key(key),
+                _ => self.edit_field.handle_key(&key, key_map),
             }
         }
     }

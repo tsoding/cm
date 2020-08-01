@@ -86,7 +86,7 @@ impl ItemList {
             self.right();
         } else if key_map.is_bound(key_stroke, &Action::Left) {
             self.left();
-        } else if key_map.is_bound(key_stroke, &Action::DeleteItem) {
+        } else if key_map.is_bound(key_stroke, &Action::Delete) {
             self.delete_current();
         } else if key_map.is_bound(key_stroke, &Action::Home) {
             self.home();
