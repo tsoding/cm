@@ -44,7 +44,12 @@ impl CmdlineEditField {
         cursor.visible = false;
     }
 
-    pub fn handle_key(&mut self, key: KeyStroke, line_list: &mut OutputBuffer, cursor: &mut Cursor) {
+    pub fn handle_key(
+        &mut self,
+        key: KeyStroke,
+        line_list: &mut OutputBuffer,
+        cursor: &mut Cursor,
+    ) {
         if self.active {
             match key {
                 KeyStroke {
