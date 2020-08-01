@@ -62,10 +62,10 @@ fn main() {
 
     let mut cmdline_edit_field = CmdlineEditField::new();
 
-    let mut line_list = LineList::new(std::env::args().nth(1));
+    let mut output_buffer = OutputBuffer::new(std::env::args().nth(1));
 
-    if line_list.user_provided_cmdline.is_some() {
-        line_list.run_user_provided_cmdline();
+    if output_buffer.user_provided_cmdline.is_some() {
+        output_buffer.run_user_provided_cmdline();
     }
 
     initscr();
@@ -95,22 +95,22 @@ fn main() {
             let cmdline = match (
                 &profile.current_regex(),
                 &profile.current_cmd(),
-                &line_list.current_item(),
+                &output_buffer.current_item(),
             ) {
                 (Some(Ok(regex)), Some(cmd), Some(line)) => render_cmdline(line, &cmd, regex),
                 _ => None,
             };
 
             if cmdline_edit_field.active {
-                cmdline_edit_field.handle_key(key_stroke, &mut line_list, &mut cursor);
+                cmdline_edit_field.handle_key(key_stroke, &mut output_buffer, &mut cursor);
             } else {
                 match key_stroke {
                     KeyStroke { key: KEY_F3, .. } => {
-                        cmdline_edit_field.activate(&line_list, &mut cursor);
+                        cmdline_edit_field.activate(&output_buffer, &mut cursor);
                     }
                     _ => {
                         if !global.profile_pane {
-                            line_list.handle_key(
+                            output_buffer.handle_key(
                                 key_stroke,
                                 &cmdline,
                                 profile.current_regex(),
@@ -118,7 +118,7 @@ fn main() {
                             );
                         } else {
                             match global.focus {
-                                Focus::Lines => line_list.handle_key(
+                                Focus::Lines => output_buffer.handle_key(
                                     key_stroke,
                                     &cmdline,
                                     profile.current_regex(),
@@ -144,15 +144,15 @@ fn main() {
         // END INPUT SECTION //////////////////////////////
 
         // BEGIN ASYNC CHILD OUTPUT SECTION //////////////////////////////
-        let line_list_changed = line_list.poll_cmdline_output();
+        let output_buffer_changed = output_buffer.poll_cmdline_output();
         // END ASYNC CHILD OUTPUT SECTION //////////////////////////////
 
         // BEGIN RENDER SECTION //////////////////////////////
         // NOTE: Don't try to rerender anything unless user provided some
         // input or the child process provided some output
-        // TODO(#129): LineList::poll_cmdline_output() == true does not guarantee it is necessary to rerender
+        // TODO(#129): OutputBuffer::poll_cmdline_output() == true does not guarantee it is necessary to rerender
         //   If the output is appended outside of the screen it's kinda pointless to rerender
-        if input_receved || line_list_changed {
+        if input_receved || output_buffer_changed {
             let (w, h) = {
                 let mut x: i32 = 0;
                 let mut y: i32 = 0;
@@ -163,12 +163,12 @@ fn main() {
             erase();
 
             if h >= 1 {
-                // NOTE: we are rerendering cmdline here because it could be changed by LineList
+                // NOTE: we are rerendering cmdline here because it could be changed by OutputBuffer
                 // after the input handling section
                 match (
                     &profile.current_regex(),
                     &profile.current_cmd(),
-                    &line_list.current_item(),
+                    &output_buffer.current_item(),
                 ) {
                     (Some(Ok(regex)), Some(cmd), Some(line)) => {
                         if let Some(cmdline) = render_cmdline(line, &cmd, regex) {
@@ -187,11 +187,11 @@ fn main() {
                 h: h - 1,
             };
             if global.profile_pane {
-                let (line_list_rect, profile_rect) = working_rect.horizontal_split(3);
+                let (output_buffer_rect, profile_rect) = working_rect.horizontal_split(3);
                 let (regex_rect, cmd_rect) = profile_rect.vertical_split(2);
 
-                line_list.render(
-                    line_list_rect,
+                output_buffer.render(
+                    output_buffer_rect,
                     global.focus == Focus::Lines,
                     profile.current_regex(),
                 );
@@ -202,7 +202,7 @@ fn main() {
                     .cmd_list
                     .render(cmd_rect, global.focus == Focus::Cmds, &mut cursor);
             } else {
-                line_list.render(working_rect, true, profile.current_regex());
+                output_buffer.render(working_rect, true, profile.current_regex());
             }
 
             cmdline_edit_field.render(Row { x: 0, y: h - 1, w }, &mut cursor);

@@ -13,10 +13,10 @@ impl CmdlineEditField {
         }
     }
 
-    pub fn activate(&mut self, line_list: &LineList, cursor: &mut Cursor) {
+    pub fn activate(&mut self, output_buffer: &OutputBuffer, cursor: &mut Cursor) {
         self.active = true;
 
-        if let Some(cmdline) = line_list.user_provided_cmdline.as_ref() {
+        if let Some(cmdline) = output_buffer.user_provided_cmdline.as_ref() {
             self.edit_field.buffer = cmdline.clone();
         } else {
             self.edit_field.buffer.clear();
@@ -32,11 +32,11 @@ impl CmdlineEditField {
         }
     }
 
-    pub fn accept_editing(&mut self, line_list: &mut LineList, cursor: &mut Cursor) {
+    pub fn accept_editing(&mut self, output_buffer: &mut OutputBuffer, cursor: &mut Cursor) {
         self.active = false;
         cursor.visible = false;
-        line_list.user_provided_cmdline = Some(self.edit_field.buffer.clone());
-        line_list.run_user_provided_cmdline();
+        output_buffer.user_provided_cmdline = Some(self.edit_field.buffer.clone());
+        output_buffer.run_user_provided_cmdline();
     }
 
     pub fn cancel_editing(&mut self, cursor: &mut Cursor) {
@@ -44,13 +44,18 @@ impl CmdlineEditField {
         cursor.visible = false;
     }
 
-    pub fn handle_key(&mut self, key: KeyStroke, line_list: &mut LineList, cursor: &mut Cursor) {
+    pub fn handle_key(
+        &mut self,
+        key: KeyStroke,
+        output_buffer: &mut OutputBuffer,
+        cursor: &mut Cursor,
+    ) {
         if self.active {
             match key {
                 KeyStroke {
                     key: KEY_RETURN, ..
                 } => {
-                    self.accept_editing(line_list, cursor);
+                    self.accept_editing(output_buffer, cursor);
                 }
                 KeyStroke {
                     key: KEY_ESCAPE, ..

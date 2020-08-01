@@ -16,17 +16,17 @@ fn mark_nonblocking<Fd: AsRawFd>(fd: &mut Fd) {
     }
 }
 
-pub struct LineList {
+pub struct OutputBuffer {
     pub lists: Vec<ItemList>,
-    /// currently running process that generates data for LineList.
-    /// See [LineList::poll_cmdline_output](struct.LineList.html#method.poll_cmdline_output)
+    /// currently running process that generates data for OutputBuffer.
+    /// See [OutputBuffer::poll_cmdline_output](struct.OutputBuffer.html#method.poll_cmdline_output)
     pub child: Option<(BufReader<PipeReader>, Child)>,
     /// user_provided_cmdline is the line provided by the user through the CLI of cm:
     /// `cm <user_provided_cmdline>`
     pub user_provided_cmdline: Option<String>,
 }
 
-impl LineList {
+impl OutputBuffer {
     pub fn new(user_provided_cmdline: Option<String>) -> Self {
         Self {
             lists: Vec::<ItemList>::new(),
@@ -164,7 +164,7 @@ impl LineList {
     }
 
     pub fn fork_cmdline(&mut self, cmdline: String) {
-        // TODO(#47): endwin() on Enter in LineList looks like a total hack and it's unclear why it even works
+        // TODO(#47): endwin() on Enter in OutputBuffer looks like a total hack and it's unclear why it even works
         endwin();
         // TODO(#40): shell is not customizable
         //   Grep for @ref(#40)
@@ -188,8 +188,8 @@ impl LineList {
     }
 
     /// Polls changes from the currently running child (see
-    /// [LineList::run_cmdline](struct.LineList.html#method.run_cmdline),
-    /// [LineList::child](struct.LineList.html#structfield.child)).
+    /// [OutputBuffer::run_cmdline](struct.OutputBuffer.html#method.run_cmdline),
+    /// [OutputBuffer::child](struct.OutputBuffer.html#structfield.child)).
     ///
     /// Returns `true` if new input was received, `false` when nothing
     /// was received.
