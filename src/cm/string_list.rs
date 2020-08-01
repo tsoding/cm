@@ -105,7 +105,7 @@ impl StringList {
         }
     }
 
-    pub fn handle_key(&mut self, key_stroke: KeyStroke, global: &mut Global, cursor: &mut Cursor) {
+    pub fn handle_key(&mut self, key_stroke: KeyStroke, key_map: &KeyMap, global: &mut Global, cursor: &mut Cursor) {
         match self.state {
             StringListState::Navigate => {
                 if !global.handle_key(key_stroke) {
@@ -135,7 +135,7 @@ impl StringList {
                             self.insert_before(cursor);
                         }
                         KeyStroke { key: KEY_F2, .. } => self.start_editing(cursor),
-                        key_stroke => self.list.handle_key(key_stroke),
+                        key_stroke => self.list.handle_key(&key_stroke, key_map),
                     }
                 }
             }

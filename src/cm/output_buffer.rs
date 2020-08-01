@@ -245,6 +245,7 @@ impl OutputBuffer {
     pub fn handle_key(
         &mut self,
         key_stroke: KeyStroke,
+        key_map: &KeyMap,
         cmdline_result: &Option<String>,
         regex_result: Option<Result<Regex, pcre2::Error>>,
         global: &mut Global,
@@ -293,7 +294,7 @@ impl OutputBuffer {
                 }
                 key_stroke => {
                     if let Some(list) = self.lists.last_mut() {
-                        list.handle_key(key_stroke);
+                        list.handle_key(&key_stroke, key_map);
                     }
                 }
             }

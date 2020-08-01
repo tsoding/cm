@@ -60,6 +60,14 @@ fn main() {
         visible: false,
     };
 
+    let mut key_map = KeyMap::new();
+    key_map.bind(KeyStroke {key: KEY_UP, alt: false}, Action::Up);
+    key_map.bind(KeyStroke {key: KEY_DOWN, alt: false}, Action::Down);
+    key_map.bind(KeyStroke {key: KEY_LEFT, alt: false}, Action::Left);
+    key_map.bind(KeyStroke {key: KEY_RIGHT, alt: false}, Action::Right);
+    key_map.bind(KeyStroke {key: KEY_HOME, alt: false}, Action::Home);
+    key_map.bind(KeyStroke {key: KEY_DC, alt: false}, Action::DeleteItem);
+
     let mut cmdline_edit_field = CmdlineEditField::new();
 
     let mut output_buffer = OutputBuffer::new(std::env::args().nth(1));
@@ -112,6 +120,7 @@ fn main() {
                         if !global.profile_pane {
                             output_buffer.handle_key(
                                 key_stroke,
+                                &key_map,
                                 &cmdline,
                                 profile.current_regex(),
                                 &mut global,
@@ -120,17 +129,20 @@ fn main() {
                             match global.focus {
                                 Focus::Lines => output_buffer.handle_key(
                                     key_stroke,
+                                    &key_map,
                                     &cmdline,
                                     profile.current_regex(),
                                     &mut global,
                                 ),
                                 Focus::Regexs => profile.regex_list.handle_key(
                                     key_stroke,
+                                    &key_map,
                                     &mut global,
                                     &mut cursor,
                                 ),
                                 Focus::Cmds => profile.cmd_list.handle_key(
                                     key_stroke,
+                                    &key_map,
                                     &mut global,
                                     &mut cursor,
                                 ),
