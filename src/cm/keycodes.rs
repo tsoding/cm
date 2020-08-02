@@ -34,7 +34,13 @@ pub enum Action {
     FocusForward,
     FocusBackward,
     Accept,
-    Cancel
+    Cancel,
+    Run,
+    RunIntoItself,
+    Rerun,
+    Back,
+    NextMatch,
+    PrevMatch,
 }
 
 pub struct KeyMap {

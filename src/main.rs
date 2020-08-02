@@ -79,6 +79,12 @@ fn main() {
     key_map.bind(KeyStroke {key: KEY_I, alt: false}, Action::InsertAfterItem);
     key_map.bind(KeyStroke {key: KEY_SHIFT_I, alt: false}, Action::InsertBeforeItem);
     key_map.bind(KeyStroke {key: KEY_F2, alt: false}, Action::EditItem);
+    key_map.bind(KeyStroke {key: KEY_RETURN, alt: true}, Action::RunIntoItself);
+    key_map.bind(KeyStroke {key: KEY_RETURN, alt: false}, Action::Run);
+    key_map.bind(KeyStroke {key: KEY_BACKSPACE, alt: false}, Action::Back);
+    key_map.bind(KeyStroke {key: KEY_F5, alt: false}, Action::Rerun);
+    key_map.bind(KeyStroke {key: KEY_UP, alt: true}, Action::PrevMatch);
+    key_map.bind(KeyStroke {key: KEY_DOWN, alt: true}, Action::NextMatch);
 
     let mut cmdline_edit_field = CmdlineEditField::new();
 
@@ -131,7 +137,7 @@ fn main() {
                     _ => {
                         if !global.profile_pane {
                             output_buffer.handle_key(
-                                key_stroke,
+                                &key_stroke,
                                 &key_map,
                                 &cmdline,
                                 profile.current_regex(),
@@ -140,7 +146,7 @@ fn main() {
                         } else {
                             match global.focus {
                                 Focus::Lines => output_buffer.handle_key(
-                                    key_stroke,
+                                    &key_stroke,
                                     &key_map,
                                     &cmdline,
                                     profile.current_regex(),
