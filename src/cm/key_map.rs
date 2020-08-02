@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 
 pub const KEY_ESCAPE: i32 = 0x1B;
 
-// TODO: Separate Delete Character and Delete Item actions
+// TODO(#145): Separate Delete Character and Delete Item actions
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum Action {
     Up,
