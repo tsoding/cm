@@ -72,7 +72,7 @@ fn main() {
     }
 
     initscr();
-    // NOTE: timeout(16) is a very important setting of ncurses for our
+    // NOTE(timeout): timeout(16) is a very important setting of ncurses for our
     // application. It makes getch() asynchronous, which is essential
     // for non-blocking UI when receiving the output from the child
     // process.
@@ -80,7 +80,7 @@ fn main() {
     // The value of 16 milliseconds also blocks the application for a
     // little. This improves the performance by making the application
     // to not constantly busy loop on checking the input from the user
-    // and running child process.
+    // and the running child process.
     //
     // 16 milliseconds were chosen to make the application "run in 60 fps" :D
     timeout(16);
@@ -89,11 +89,22 @@ fn main() {
 
     init_style();
 
+    // NOTE(rerender): because of the asynchronous nature of the application the
+    // rendering process could be invoked every 16 millisecond (See NOTE(timeout)),
+    // which is expensive, so we introduce a simple boolean variable that is changed
+    // through out a single iteration of the Event Loop in cases when the state of the
+    // application is potentially changed which needs to be reflected by rerendering
+    // the screen.
+    //
+    // Grep for NOTE(rerender) for more info.
+    let mut rerender = true;
     while !global.quit {
         // BEGIN INPUT SECTION //////////////////////////////
-        let mut input_receved = false;
         if let Some(key_stroke) = KeyStroke::get() {
-            input_receved = true;
+            // NOTE(rerender): at the point the user provided some input which potentially
+            // changes the state of the application which needs to be reflected by rerendering
+            // the screen.
+            rerender = true;
 
             let cmdline = match (
                 &profile.current_regex(),
@@ -147,15 +158,22 @@ fn main() {
         // END INPUT SECTION //////////////////////////////
 
         // BEGIN ASYNC CHILD OUTPUT SECTION //////////////////////////////
-        let output_buffer_changed = output_buffer.poll_cmdline_output();
+        {
+            // TODO(#129): OutputBuffer::poll_cmdline_output() == true does not guarantee it is necessary to rerender
+            //   If the output is appended outside of the screen it's kinda pointless to rerender
+            let output_buffer_changed = output_buffer.poll_cmdline_output();
+            // NOTE(rerender): output_buffer_changed == true means we recieved some output
+            // from the currently running child process and the output is pushed to the
+            // output_buffer which effectevly changes the state of the application which needs
+            // to be reflected by rerendering the screen.
+            rerender = rerender || output_buffer_changed;
+        }
         // END ASYNC CHILD OUTPUT SECTION //////////////////////////////
 
         // BEGIN RENDER SECTION //////////////////////////////
-        // NOTE: Don't try to rerender anything unless user provided some
-        // input or the child process provided some output
-        // TODO(#129): OutputBuffer::poll_cmdline_output() == true does not guarantee it is necessary to rerender
-        //   If the output is appended outside of the screen it's kinda pointless to rerender
-        if input_receved || output_buffer_changed {
+        // NOTE(rerender): Don't try to rerender anything unless the state of the application has
+        // changed
+        if rerender {
             let (w, h) = {
                 let mut x: i32 = 0;
                 let mut y: i32 = 0;
@@ -215,6 +233,9 @@ fn main() {
             refresh();
         }
         // END RENDER SECTION //////////////////////////////
+
+        // NOTE(rerender): Don't assume rerendering on the next iteration of the Event Loop.
+        rerender = false;
     }
 
     // TODO(#21): if application crashes it does not finalize the terminal
