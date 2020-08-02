@@ -60,7 +60,7 @@ fn main() {
         visible: false,
     };
 
-    // TODO: Key map is not saved to the configuration file
+    // TODO(#146): Key map is not saved to the configuration file
     let mut key_map = KeyMap::new();
     key_map.bind(
         KeyStroke {
