@@ -271,10 +271,8 @@ impl OutputBuffer {
                 if let Some(Ok(regex)) = regex_result {
                     self.jump_to_next_match(&regex);
                 }
-            } else {
-                if let Some(list) = self.lists.last_mut() {
-                    list.handle_key(&key_stroke, key_map);
-                }
+            } else if let Some(list) = self.lists.last_mut() {
+                list.handle_key(&key_stroke, key_map);
             }
         }
     }

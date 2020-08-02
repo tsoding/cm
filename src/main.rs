@@ -140,45 +140,40 @@ fn main() {
 
             if cmdline_edit_field.active {
                 cmdline_edit_field.handle_key(&key_stroke, &key_map, &mut output_buffer, &mut cursor);
+            } else if key_map.is_bound(&key_stroke, &Action::EditCmdline) {
+                cmdline_edit_field.activate(&output_buffer, &mut cursor);
+            } else if !global.profile_pane {
+                output_buffer.handle_key(
+                    &key_stroke,
+                    &key_map,
+                    &cmdline,
+                    profile.current_regex(),
+                    &mut global,
+                    );
             } else {
-                if key_map.is_bound(&key_stroke, &Action::EditCmdline) {
-                    cmdline_edit_field.activate(&output_buffer, &mut cursor);
-                } else {
-                    if !global.profile_pane {
-                        output_buffer.handle_key(
-                            &key_stroke,
-                            &key_map,
-                            &cmdline,
-                            profile.current_regex(),
-                            &mut global,
-                            );
-                    } else {
-                        match global.focus {
-                            Focus::Lines => output_buffer.handle_key(
-                                &key_stroke,
-                                &key_map,
-                                &cmdline,
-                                profile.current_regex(),
-                                &mut global,
-                                ),
-                            Focus::Regexs => profile.regex_list.handle_key(
-                                &key_stroke,
-                                &key_map,
-                                &mut global,
-                                &mut cursor,
-                                ),
-                            Focus::Cmds => profile.cmd_list.handle_key(
-                                &key_stroke,
-                                &key_map,
-                                &mut global,
-                                &mut cursor,
-                                ),
-                        }
-                    }
+                match global.focus {
+                    Focus::Lines => output_buffer.handle_key(
+                        &key_stroke,
+                        &key_map,
+                        &cmdline,
+                        profile.current_regex(),
+                        &mut global,
+                        ),
+                    Focus::Regexs => profile.regex_list.handle_key(
+                        &key_stroke,
+                        &key_map,
+                        &mut global,
+                        &mut cursor,
+                        ),
+                    Focus::Cmds => profile.cmd_list.handle_key(
+                        &key_stroke,
+                        &key_map,
+                        &mut global,
+                        &mut cursor,
+                        ),
                 }
             }
         }
-
         // END INPUT SECTION //////////////////////////////
 
         // BEGIN ASYNC CHILD OUTPUT SECTION //////////////////////////////

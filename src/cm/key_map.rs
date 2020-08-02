@@ -4,7 +4,7 @@ use std::collections::{HashMap, HashSet};
 pub const KEY_ESCAPE: i32 = 0x1B;
 
 // TODO: Separate Delete Character and Delete Item actions
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub enum Action {
     Up,
     Down,
@@ -59,7 +59,7 @@ impl KeyMap {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub struct KeyStroke {
     pub key: i32,
     pub alt: bool,
