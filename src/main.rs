@@ -60,13 +60,20 @@ fn main() {
         visible: false,
     };
 
+    // TODO: Key map is not saved to the configuration file
     let mut key_map = KeyMap::new();
     key_map.bind(KeyStroke {key: KEY_UP, alt: false}, Action::Up);
+    key_map.bind(KeyStroke {key: 'k' as i32, alt: false}, Action::Up);
     key_map.bind(KeyStroke {key: KEY_DOWN, alt: false}, Action::Down);
+    key_map.bind(KeyStroke {key: 'j' as i32, alt: false}, Action::Down);
     key_map.bind(KeyStroke {key: KEY_LEFT, alt: false}, Action::Left);
-    key_map.bind(KeyStroke {key: KEY_RIGHT, alt: false}, Action::Right);
+    key_map.bind(KeyStroke {key: 'h' as i32, alt: false}, Action::Left);
+    key_map.bind(KeyStroke {key: KEY_RIGHT, alt: false}, Action::Right); 
+    key_map.bind(KeyStroke {key: 'l' as i32, alt: false}, Action::Right); 
     key_map.bind(KeyStroke {key: KEY_HOME, alt: false}, Action::Home);
+    key_map.bind(KeyStroke {key: '0' as i32, alt: false}, Action::Home);
     key_map.bind(KeyStroke {key: KEY_DC, alt: false}, Action::Delete);
+    key_map.bind(KeyStroke {key: 'd' as i32, alt: false}, Action::Delete);
     key_map.bind(KeyStroke {key: KEY_BACKSPACE, alt: false}, Action::BackDelete);
     key_map.bind(KeyStroke {key: 'e' as i32, alt:false}, Action::ToggleProfilePanel);
     key_map.bind(KeyStroke {key: 'q' as i32, alt: false}, Action::Quit);
@@ -79,12 +86,15 @@ fn main() {
     key_map.bind(KeyStroke {key: 'i' as i32, alt: false}, Action::InsertAfterItem);
     key_map.bind(KeyStroke {key: 'I' as i32, alt: false}, Action::InsertBeforeItem);
     key_map.bind(KeyStroke {key: KEY_F2, alt: false}, Action::EditItem);
+    key_map.bind(KeyStroke {key: 'c' as i32, alt: false}, Action::EditItem);
     key_map.bind(KeyStroke {key: '\n' as i32, alt: true}, Action::RunIntoItself);
     key_map.bind(KeyStroke {key: '\n' as i32, alt: false}, Action::Run);
     key_map.bind(KeyStroke {key: KEY_BACKSPACE, alt: false}, Action::Back);
     key_map.bind(KeyStroke {key: KEY_F5, alt: false}, Action::Rerun);
     key_map.bind(KeyStroke {key: KEY_UP, alt: true}, Action::PrevMatch);
+    key_map.bind(KeyStroke {key: 'k' as i32, alt: true}, Action::PrevMatch);
     key_map.bind(KeyStroke {key: KEY_DOWN, alt: true}, Action::NextMatch);
+    key_map.bind(KeyStroke {key: 'j' as i32, alt: true}, Action::NextMatch);
 
     let mut cmdline_edit_field = CmdlineEditField::new();
 
