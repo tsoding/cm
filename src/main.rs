@@ -60,6 +60,247 @@ fn main() {
         visible: false,
     };
 
+    // TODO: Key map is not saved to the configuration file
+    let mut key_map = KeyMap::new();
+    key_map.bind(
+        KeyStroke {
+            key: KEY_UP,
+            alt: false,
+        },
+        Action::Up,
+    );
+    key_map.bind(
+        KeyStroke {
+            key: 'k' as i32,
+            alt: false,
+        },
+        Action::Up,
+    );
+    key_map.bind(
+        KeyStroke {
+            key: KEY_DOWN,
+            alt: false,
+        },
+        Action::Down,
+    );
+    key_map.bind(
+        KeyStroke {
+            key: 'j' as i32,
+            alt: false,
+        },
+        Action::Down,
+    );
+    key_map.bind(
+        KeyStroke {
+            key: KEY_LEFT,
+            alt: false,
+        },
+        Action::Left,
+    );
+    key_map.bind(
+        KeyStroke {
+            key: 'h' as i32,
+            alt: false,
+        },
+        Action::Left,
+    );
+    key_map.bind(
+        KeyStroke {
+            key: KEY_RIGHT,
+            alt: false,
+        },
+        Action::Right,
+    );
+    key_map.bind(
+        KeyStroke {
+            key: 'l' as i32,
+            alt: false,
+        },
+        Action::Right,
+    );
+    key_map.bind(
+        KeyStroke {
+            key: KEY_HOME,
+            alt: false,
+        },
+        Action::Home,
+    );
+    key_map.bind(
+        KeyStroke {
+            key: '0' as i32,
+            alt: false,
+        },
+        Action::Home,
+    );
+    key_map.bind(
+        KeyStroke {
+            key: KEY_DC,
+            alt: false,
+        },
+        Action::Delete,
+    );
+    key_map.bind(
+        KeyStroke {
+            key: 'd' as i32,
+            alt: false,
+        },
+        Action::Delete,
+    );
+    key_map.bind(
+        KeyStroke {
+            key: KEY_BACKSPACE,
+            alt: false,
+        },
+        Action::BackDelete,
+    );
+    key_map.bind(
+        KeyStroke {
+            key: 'e' as i32,
+            alt: false,
+        },
+        Action::ToggleProfilePanel,
+    );
+    key_map.bind(
+        KeyStroke {
+            key: 'q' as i32,
+            alt: false,
+        },
+        Action::Quit,
+    );
+    key_map.bind(
+        KeyStroke {
+            key: '\t' as i32,
+            alt: false,
+        },
+        Action::FocusForward,
+    );
+    key_map.bind(
+        KeyStroke {
+            key: KEY_BTAB,
+            alt: false,
+        },
+        Action::FocusBackward,
+    );
+    key_map.bind(
+        KeyStroke {
+            key: '\n' as i32,
+            alt: false,
+        },
+        Action::Accept,
+    );
+    key_map.bind(
+        KeyStroke {
+            key: KEY_ESCAPE,
+            alt: false,
+        },
+        Action::Cancel,
+    );
+    key_map.bind(
+        KeyStroke {
+            key: 'i' as i32,
+            alt: true,
+        },
+        Action::DupAfterItem,
+    );
+    key_map.bind(
+        KeyStroke {
+            key: 'I' as i32,
+            alt: true,
+        },
+        Action::DupBeforeItem,
+    );
+    key_map.bind(
+        KeyStroke {
+            key: 'i' as i32,
+            alt: false,
+        },
+        Action::InsertAfterItem,
+    );
+    key_map.bind(
+        KeyStroke {
+            key: 'I' as i32,
+            alt: false,
+        },
+        Action::InsertBeforeItem,
+    );
+    key_map.bind(
+        KeyStroke {
+            key: KEY_F2,
+            alt: false,
+        },
+        Action::EditItem,
+    );
+    key_map.bind(
+        KeyStroke {
+            key: 'c' as i32,
+            alt: false,
+        },
+        Action::EditItem,
+    );
+    key_map.bind(
+        KeyStroke {
+            key: '\n' as i32,
+            alt: false,
+        },
+        Action::Run,
+    );
+    key_map.bind(
+        KeyStroke {
+            key: KEY_BACKSPACE,
+            alt: false,
+        },
+        Action::Back,
+    );
+    key_map.bind(
+        KeyStroke {
+            key: KEY_F5,
+            alt: false,
+        },
+        Action::Rerun,
+    );
+    key_map.bind(
+        KeyStroke {
+            key: KEY_UP,
+            alt: true,
+        },
+        Action::PrevMatch,
+    );
+    key_map.bind(
+        KeyStroke {
+            key: 'k' as i32,
+            alt: true,
+        },
+        Action::PrevMatch,
+    );
+    key_map.bind(
+        KeyStroke {
+            key: KEY_DOWN,
+            alt: true,
+        },
+        Action::NextMatch,
+    );
+    key_map.bind(
+        KeyStroke {
+            key: 'j' as i32,
+            alt: true,
+        },
+        Action::NextMatch,
+    );
+    key_map.bind(
+        KeyStroke {
+            key: KEY_F3,
+            alt: false,
+        },
+        Action::EditCmdline,
+    );
+    key_map.bind(
+        KeyStroke {
+            key: '!' as i32,
+            alt: false,
+        },
+        Action::EditCmdline,
+    );
+
     let mut cmdline_edit_field = CmdlineEditField::new();
 
     let mut output_buffer = OutputBuffer::new(std::env::args().nth(1));
@@ -102,45 +343,45 @@ fn main() {
             };
 
             if cmdline_edit_field.active {
-                cmdline_edit_field.handle_key(key_stroke, &mut output_buffer, &mut cursor);
+                cmdline_edit_field.handle_key(
+                    &key_stroke,
+                    &key_map,
+                    &mut output_buffer,
+                    &mut cursor,
+                );
+            } else if key_map.is_bound(&key_stroke, &Action::EditCmdline) {
+                cmdline_edit_field.activate(&output_buffer, &mut cursor);
+            } else if !global.profile_pane {
+                output_buffer.handle_key(
+                    &key_stroke,
+                    &key_map,
+                    &cmdline,
+                    profile.current_regex(),
+                    &mut global,
+                );
             } else {
-                match key_stroke {
-                    KeyStroke { key: KEY_F3, .. } => {
-                        cmdline_edit_field.activate(&output_buffer, &mut cursor);
-                    }
-                    _ => {
-                        if !global.profile_pane {
-                            output_buffer.handle_key(
-                                key_stroke,
-                                &cmdline,
-                                profile.current_regex(),
-                                &mut global,
-                            );
-                        } else {
-                            match global.focus {
-                                Focus::Lines => output_buffer.handle_key(
-                                    key_stroke,
-                                    &cmdline,
-                                    profile.current_regex(),
-                                    &mut global,
-                                ),
-                                Focus::Regexs => profile.regex_list.handle_key(
-                                    key_stroke,
-                                    &mut global,
-                                    &mut cursor,
-                                ),
-                                Focus::Cmds => profile.cmd_list.handle_key(
-                                    key_stroke,
-                                    &mut global,
-                                    &mut cursor,
-                                ),
-                            }
-                        }
+                match global.focus {
+                    Focus::Lines => output_buffer.handle_key(
+                        &key_stroke,
+                        &key_map,
+                        &cmdline,
+                        profile.current_regex(),
+                        &mut global,
+                    ),
+                    Focus::Regexs => profile.regex_list.handle_key(
+                        &key_stroke,
+                        &key_map,
+                        &mut global,
+                        &mut cursor,
+                    ),
+                    Focus::Cmds => {
+                        profile
+                            .cmd_list
+                            .handle_key(&key_stroke, &key_map, &mut global, &mut cursor)
                     }
                 }
             }
         }
-
         // END INPUT SECTION //////////////////////////////
 
         // BEGIN ASYNC CHILD OUTPUT SECTION //////////////////////////////

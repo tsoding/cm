@@ -77,15 +77,19 @@ impl ItemList {
         }
     }
 
-    pub fn handle_key(&mut self, key_stroke: KeyStroke) {
-        match key_stroke {
-            KeyStroke { key: KEY_S, .. } => self.down(),
-            KeyStroke { key: KEY_W, .. } => self.up(),
-            KeyStroke { key: KEY_D, .. } => self.right(),
-            KeyStroke { key: KEY_A, .. } => self.left(),
-            KeyStroke { key: KEY_DC, .. } => self.delete_current(),
-            KeyStroke { key: KEY_HOME, .. } => self.home(),
-            _ => {}
+    pub fn handle_key(&mut self, key_stroke: &KeyStroke, key_map: &KeyMap) {
+        if key_map.is_bound(key_stroke, &Action::Down) {
+            self.down();
+        } else if key_map.is_bound(key_stroke, &Action::Up) {
+            self.up();
+        } else if key_map.is_bound(key_stroke, &Action::Right) {
+            self.right();
+        } else if key_map.is_bound(key_stroke, &Action::Left) {
+            self.left();
+        } else if key_map.is_bound(key_stroke, &Action::Delete) {
+            self.delete_current();
+        } else if key_map.is_bound(key_stroke, &Action::Home) {
+            self.home();
         }
     }
 

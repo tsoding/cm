@@ -25,7 +25,7 @@ impl EditField {
         addstr(&self.buffer.get(begin..end).unwrap_or(""));
         mv(y as i32, (x + self.cursor_x % w) as i32);
 
-        cursor.x = self.cursor_x as i32;
+        cursor.x = (x + self.cursor_x) as i32;
         cursor.y = y as i32;
     }
 
@@ -53,24 +53,17 @@ impl EditField {
         }
     }
 
-    pub fn handle_key(&mut self, key_stroke: KeyStroke) {
+    pub fn handle_key(&mut self, key_stroke: &KeyStroke, key_map: &KeyMap) {
         if 32 <= key_stroke.key && key_stroke.key <= 126 {
             self.insert_char(key_stroke.key as u8 as char);
         }
 
-        match key_stroke {
-            KeyStroke { key: KEY_RIGHT, .. } => {
-                self.right();
-            }
-            KeyStroke { key: KEY_LEFT, .. } => {
-                self.left();
-            }
-            KeyStroke {
-                key: KEY_BACKSPACE, ..
-            } => {
-                self.backspace();
-            }
-            _ => {}
+        if key_map.is_bound(key_stroke, &Action::Right) {
+            self.right();
+        } else if key_map.is_bound(key_stroke, &Action::Left) {
+            self.left();
+        } else if key_map.is_bound(key_stroke, &Action::BackDelete) {
+            self.backspace();
         }
     }
 }

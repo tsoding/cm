@@ -46,23 +46,18 @@ impl CmdlineEditField {
 
     pub fn handle_key(
         &mut self,
-        key: KeyStroke,
+        key: &KeyStroke,
+        key_map: &KeyMap,
         output_buffer: &mut OutputBuffer,
         cursor: &mut Cursor,
     ) {
         if self.active {
-            match key {
-                KeyStroke {
-                    key: KEY_RETURN, ..
-                } => {
-                    self.accept_editing(output_buffer, cursor);
-                }
-                KeyStroke {
-                    key: KEY_ESCAPE, ..
-                } => {
-                    self.cancel_editing(cursor);
-                }
-                _ => self.edit_field.handle_key(key),
+            if key_map.is_bound(key, &Action::Accept) {
+                self.accept_editing(output_buffer, cursor);
+            } else if key_map.is_bound(key, &Action::Cancel) {
+                self.cancel_editing(cursor);
+            } else {
+                self.edit_field.handle_key(key, key_map);
             }
         }
     }
