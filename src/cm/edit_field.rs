@@ -25,7 +25,7 @@ impl EditField {
         addstr(&self.buffer.get(begin..end).unwrap_or(""));
         mv(y as i32, (x + self.cursor_x % w) as i32);
 
-        cursor.x = self.cursor_x as i32;
+        cursor.x = (x + self.cursor_x) as i32;
         cursor.y = y as i32;
     }
 
