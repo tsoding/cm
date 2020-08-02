@@ -108,7 +108,7 @@ impl StringList {
     pub fn handle_key(&mut self, key_stroke: KeyStroke, key_map: &KeyMap, global: &mut Global, cursor: &mut Cursor) {
         match self.state {
             StringListState::Navigate => {
-                if !global.handle_key(key_stroke) {
+                if !global.handle_key(&key_stroke, key_map) {
                     match key_stroke {
                         KeyStroke {
                             key: KEY_I,

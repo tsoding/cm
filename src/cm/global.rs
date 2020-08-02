@@ -1,5 +1,4 @@
 use super::*;
-use ncurses::*;
 
 #[derive(PartialEq, Clone, Copy)]
 pub enum Focus {
@@ -46,25 +45,21 @@ pub struct Global {
 }
 
 impl Global {
-    pub fn handle_key(&mut self, key_stroke: KeyStroke) -> bool {
-        match key_stroke {
-            KeyStroke { key: KEY_E, .. } => {
-                self.profile_pane = !self.profile_pane;
-                true
-            }
-            KeyStroke { key: KEY_Q, .. } => {
-                self.quit = true;
-                true
-            }
-            KeyStroke { key: KEY_TAB, .. } => {
-                self.focus = self.focus.next();
-                true
-            }
-            KeyStroke { key: KEY_BTAB, .. } => {
-                self.focus = self.focus.prev();
-                true
-            }
-            _ => false,
+    pub fn handle_key(&mut self, key_stroke: &KeyStroke, key_map: &KeyMap) -> bool {
+        if key_map.is_bound(key_stroke, &Action::ToggleProfilePanel) {
+            self.profile_pane = !self.profile_pane;
+            true
+        } else if key_map.is_bound(key_stroke, &Action::Quit) {
+            self.quit = true;
+            true
+        } else if key_map.is_bound(key_stroke, &Action::FocusForward) {
+            self.focus = self.focus.next();
+            true
+        } else if key_map.is_bound(key_stroke, &Action::FocusBackward) {
+            self.focus = self.focus.prev();
+            true
+        } else  {
+            false
         }
     }
 }

@@ -29,6 +29,10 @@ pub enum Action {
     EditItem,
     DupAfterItem,
     DupBeforeItem,
+    ToggleProfilePanel,
+    Quit,
+    FocusForward,
+    FocusBackward
 }
 
 pub struct KeyMap {

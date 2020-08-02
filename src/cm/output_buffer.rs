@@ -250,7 +250,7 @@ impl OutputBuffer {
         regex_result: Option<Result<Regex, pcre2::Error>>,
         global: &mut Global,
     ) {
-        if !global.handle_key(key_stroke) {
+        if !global.handle_key(&key_stroke, key_map) {
             match key_stroke {
                 KeyStroke {
                     key: KEY_RETURN,

@@ -68,6 +68,10 @@ fn main() {
     key_map.bind(KeyStroke {key: KEY_HOME, alt: false}, Action::Home);
     key_map.bind(KeyStroke {key: KEY_DC, alt: false}, Action::Delete);
     key_map.bind(KeyStroke {key: KEY_BACKSPACE, alt: false}, Action::BackDelete);
+    key_map.bind(KeyStroke {key: KEY_E, alt:false}, Action::ToggleProfilePanel);
+    key_map.bind(KeyStroke {key: KEY_Q, alt: false}, Action::Quit);
+    key_map.bind(KeyStroke {key: KEY_TAB, alt: false}, Action::FocusForward);
+    key_map.bind(KeyStroke {key: KEY_BTAB, alt: false}, Action::FocusBackward);
 
     let mut cmdline_edit_field = CmdlineEditField::new();
 
