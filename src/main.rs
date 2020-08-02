@@ -74,6 +74,11 @@ fn main() {
     key_map.bind(KeyStroke {key: KEY_BTAB, alt: false}, Action::FocusBackward);
     key_map.bind(KeyStroke {key: KEY_RETURN, alt: false}, Action::Accept);
     key_map.bind(KeyStroke {key: KEY_ESCAPE, alt: false}, Action::Cancel);
+    key_map.bind(KeyStroke {key: KEY_I, alt: true}, Action::DupAfterItem);
+    key_map.bind(KeyStroke {key: KEY_SHIFT_I, alt: true}, Action::DupBeforeItem);
+    key_map.bind(KeyStroke {key: KEY_I, alt: false}, Action::InsertAfterItem);
+    key_map.bind(KeyStroke {key: KEY_SHIFT_I, alt: false}, Action::InsertBeforeItem);
+    key_map.bind(KeyStroke {key: KEY_F2, alt: false}, Action::EditItem);
 
     let mut cmdline_edit_field = CmdlineEditField::new();
 
@@ -142,13 +147,13 @@ fn main() {
                                     &mut global,
                                 ),
                                 Focus::Regexs => profile.regex_list.handle_key(
-                                    key_stroke,
+                                    &key_stroke,
                                     &key_map,
                                     &mut global,
                                     &mut cursor,
                                 ),
                                 Focus::Cmds => profile.cmd_list.handle_key(
-                                    key_stroke,
+                                    &key_stroke,
                                     &key_map,
                                     &mut global,
                                     &mut cursor,

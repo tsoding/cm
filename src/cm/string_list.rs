@@ -1,5 +1,4 @@
 use super::*;
-use ncurses::*;
 
 #[derive(PartialEq)]
 pub enum StringListState {
@@ -105,52 +104,33 @@ impl StringList {
         }
     }
 
-    pub fn handle_key(&mut self, key_stroke: KeyStroke, key_map: &KeyMap, global: &mut Global, cursor: &mut Cursor) {
+    pub fn handle_key(&mut self, key_stroke: &KeyStroke, key_map: &KeyMap, global: &mut Global, cursor: &mut Cursor) {
         match self.state {
             StringListState::Navigate => {
-                if !global.handle_key(&key_stroke, key_map) {
-                    match key_stroke {
-                        KeyStroke {
-                            key: KEY_I,
-                            alt: true,
-                        } => {
-                            self.duplicate_after();
-                        }
-                        KeyStroke {
-                            key: KEY_SHIFT_I,
-                            alt: true,
-                        } => {
-                            self.duplicate_before();
-                        }
-                        KeyStroke {
-                            key: KEY_I,
-                            alt: false,
-                        } => {
-                            self.insert_after(cursor);
-                        }
-                        KeyStroke {
-                            key: KEY_SHIFT_I,
-                            alt: false,
-                        } => {
-                            self.insert_before(cursor);
-                        }
-                        KeyStroke { key: KEY_F2, .. } => self.start_editing(cursor),
-                        key_stroke => self.list.handle_key(&key_stroke, key_map),
+                if !global.handle_key(key_stroke, key_map) {
+                    if key_map.is_bound(key_stroke, &Action::DupAfterItem) {
+                        self.duplicate_after();
+                    } else if key_map.is_bound(key_stroke, &Action::DupBeforeItem) {
+                        self.duplicate_before();
+                    } else if key_map.is_bound(key_stroke, &Action::InsertAfterItem) {
+                        self.insert_after(cursor);
+                    } else if key_map.is_bound(key_stroke, &Action::InsertBeforeItem) {
+                        self.insert_before(cursor);
+                    } else if key_map.is_bound(key_stroke, &Action::EditItem) {
+                        self.start_editing(cursor);
+                    } else {
+                        self.list.handle_key(key_stroke, key_map);
                     }
                 }
             }
-            StringListState::Editing { .. } => match key_stroke {
-                KeyStroke {
-                    key: KEY_RETURN, ..
-                } => {
+            StringListState::Editing { .. } => {
+                if key_map.is_bound(key_stroke, &Action::Accept) {
                     self.accept_editing(cursor);
-                }
-                KeyStroke {
-                    key: KEY_ESCAPE, ..
-                } => {
+                } else if key_map.is_bound(key_stroke, &Action::Cancel) {
                     self.cancel_editing(cursor);
+                } else {
+                    self.edit_field.handle_key(key_stroke, key_map);
                 }
-                key_stroke => self.edit_field.handle_key(&key_stroke, key_map),
             },
         }
     }
