@@ -93,7 +93,7 @@ fn main() {
     // rendering process could be invoked every 16 millisecond (See NOTE(timeout)),
     // which is expensive, so we introduce a simple boolean variable that is changed
     // through out a single iteration of the Event Loop in cases when the state of the
-    // application is potentially changed which needs to be reflected by rerendering 
+    // application is potentially changed which needs to be reflected by rerendering
     // the screen.
     //
     // Grep for NOTE(rerender) for more info.
@@ -163,7 +163,7 @@ fn main() {
             //   If the output is appended outside of the screen it's kinda pointless to rerender
             let output_buffer_changed = output_buffer.poll_cmdline_output();
             // NOTE(rerender): output_buffer_changed == true means we recieved some output
-            // from the currently running child process and the output is pushed to the 
+            // from the currently running child process and the output is pushed to the
             // output_buffer which effectevly changes the state of the application which needs
             // to be reflected by rerendering the screen.
             rerender = rerender || output_buffer_changed;
