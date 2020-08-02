@@ -30,7 +30,7 @@ pub enum Action {
     Back,
     NextMatch,
     PrevMatch,
-    EditCmdline
+    EditCmdline,
 }
 
 pub struct KeyMap {
@@ -40,7 +40,7 @@ pub struct KeyMap {
 impl KeyMap {
     pub fn new() -> Self {
         Self {
-            key_map: HashMap::new()
+            key_map: HashMap::new(),
         }
     }
 
@@ -55,7 +55,10 @@ impl KeyMap {
     }
 
     pub fn is_bound(&self, key: &KeyStroke, action: &Action) -> bool {
-        self.key_map.get(key).and_then(|actions| actions.get(action)).is_some()
+        self.key_map
+            .get(key)
+            .and_then(|actions| actions.get(action))
+            .is_some()
     }
 }
 

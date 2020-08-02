@@ -58,7 +58,7 @@ impl Global {
         } else if key_map.is_bound(key_stroke, &Action::FocusBackward) {
             self.focus = self.focus.prev();
             true
-        } else  {
+        } else {
             false
         }
     }
