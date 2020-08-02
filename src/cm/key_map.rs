@@ -3,6 +3,7 @@ use std::collections::{HashMap, HashSet};
 
 pub const KEY_ESCAPE: i32 = 0x1B;
 
+// TODO: Separate Delete Character and Delete Item actions
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Action {
     Up,
@@ -29,6 +30,7 @@ pub enum Action {
     Back,
     NextMatch,
     PrevMatch,
+    EditCmdline
 }
 
 pub struct KeyMap {

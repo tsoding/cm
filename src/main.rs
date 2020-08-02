@@ -87,7 +87,6 @@ fn main() {
     key_map.bind(KeyStroke {key: 'I' as i32, alt: false}, Action::InsertBeforeItem);
     key_map.bind(KeyStroke {key: KEY_F2, alt: false}, Action::EditItem);
     key_map.bind(KeyStroke {key: 'c' as i32, alt: false}, Action::EditItem);
-    key_map.bind(KeyStroke {key: '\n' as i32, alt: true}, Action::RunIntoItself);
     key_map.bind(KeyStroke {key: '\n' as i32, alt: false}, Action::Run);
     key_map.bind(KeyStroke {key: KEY_BACKSPACE, alt: false}, Action::Back);
     key_map.bind(KeyStroke {key: KEY_F5, alt: false}, Action::Rerun);
@@ -95,6 +94,8 @@ fn main() {
     key_map.bind(KeyStroke {key: 'k' as i32, alt: true}, Action::PrevMatch);
     key_map.bind(KeyStroke {key: KEY_DOWN, alt: true}, Action::NextMatch);
     key_map.bind(KeyStroke {key: 'j' as i32, alt: true}, Action::NextMatch);
+    key_map.bind(KeyStroke {key: KEY_F3, alt: false}, Action::EditCmdline);
+    key_map.bind(KeyStroke {key: '!' as i32, alt: false}, Action::EditCmdline);
 
     let mut cmdline_edit_field = CmdlineEditField::new();
 
@@ -140,41 +141,38 @@ fn main() {
             if cmdline_edit_field.active {
                 cmdline_edit_field.handle_key(&key_stroke, &key_map, &mut output_buffer, &mut cursor);
             } else {
-                match key_stroke {
-                    KeyStroke { key: KEY_F3, .. } => {
-                        cmdline_edit_field.activate(&output_buffer, &mut cursor);
-                    }
-                    _ => {
-                        if !global.profile_pane {
-                            output_buffer.handle_key(
+                if key_map.is_bound(&key_stroke, &Action::EditCmdline) {
+                    cmdline_edit_field.activate(&output_buffer, &mut cursor);
+                } else {
+                    if !global.profile_pane {
+                        output_buffer.handle_key(
+                            &key_stroke,
+                            &key_map,
+                            &cmdline,
+                            profile.current_regex(),
+                            &mut global,
+                            );
+                    } else {
+                        match global.focus {
+                            Focus::Lines => output_buffer.handle_key(
                                 &key_stroke,
                                 &key_map,
                                 &cmdline,
                                 profile.current_regex(),
                                 &mut global,
-                            );
-                        } else {
-                            match global.focus {
-                                Focus::Lines => output_buffer.handle_key(
-                                    &key_stroke,
-                                    &key_map,
-                                    &cmdline,
-                                    profile.current_regex(),
-                                    &mut global,
                                 ),
-                                Focus::Regexs => profile.regex_list.handle_key(
-                                    &key_stroke,
-                                    &key_map,
-                                    &mut global,
-                                    &mut cursor,
+                            Focus::Regexs => profile.regex_list.handle_key(
+                                &key_stroke,
+                                &key_map,
+                                &mut global,
+                                &mut cursor,
                                 ),
-                                Focus::Cmds => profile.cmd_list.handle_key(
-                                    &key_stroke,
-                                    &key_map,
-                                    &mut global,
-                                    &mut cursor,
+                            Focus::Cmds => profile.cmd_list.handle_key(
+                                &key_stroke,
+                                &key_map,
+                                &mut global,
+                                &mut cursor,
                                 ),
-                            }
                         }
                     }
                 }
