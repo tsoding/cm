@@ -32,7 +32,9 @@ pub enum Action {
     ToggleProfilePanel,
     Quit,
     FocusForward,
-    FocusBackward
+    FocusBackward,
+    Accept,
+    Cancel
 }
 
 pub struct KeyMap {

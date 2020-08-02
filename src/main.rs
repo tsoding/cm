@@ -72,6 +72,8 @@ fn main() {
     key_map.bind(KeyStroke {key: KEY_Q, alt: false}, Action::Quit);
     key_map.bind(KeyStroke {key: KEY_TAB, alt: false}, Action::FocusForward);
     key_map.bind(KeyStroke {key: KEY_BTAB, alt: false}, Action::FocusBackward);
+    key_map.bind(KeyStroke {key: KEY_RETURN, alt: false}, Action::Accept);
+    key_map.bind(KeyStroke {key: KEY_ESCAPE, alt: false}, Action::Cancel);
 
     let mut cmdline_edit_field = CmdlineEditField::new();
 
@@ -115,7 +117,7 @@ fn main() {
             };
 
             if cmdline_edit_field.active {
-                cmdline_edit_field.handle_key(key_stroke, &key_map, &mut output_buffer, &mut cursor);
+                cmdline_edit_field.handle_key(&key_stroke, &key_map, &mut output_buffer, &mut cursor);
             } else {
                 match key_stroke {
                     KeyStroke { key: KEY_F3, .. } => {
