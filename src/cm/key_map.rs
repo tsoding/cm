@@ -434,7 +434,7 @@ impl FromStr for KeyStroke {
                 Err(format!("Unknown key prefix `{}`", unknown))
             }
             _ => {
-                Err(format!("Could not parse key"))
+                Err("Could not parse key".to_string())
             }
         }
 
