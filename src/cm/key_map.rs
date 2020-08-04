@@ -1,5 +1,7 @@
 use ncurses::*;
 use std::collections::{HashMap, HashSet};
+use std::str::FromStr;
+use std::string::ToString;
 
 pub const KEY_ESCAPE: i32 = 0x1B;
 
@@ -33,8 +35,75 @@ pub enum Action {
     EditCmdline,
 }
 
+impl FromStr for Action {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "up" => Ok(Self::Up),
+            "down" => Ok(Self::Down),
+            "left" => Ok(Self::Left),
+            "right" => Ok(Self::Right),
+            "home" => Ok(Self::Home),
+            "insert_after_item" => Ok(Self::InsertAfterItem),
+            "insert_before_item" => Ok(Self::InsertBeforeItem),
+            "delete" => Ok(Self::Delete),
+            "back_delete" => Ok(Self::BackDelete),
+            "edit_item" => Ok(Self::EditItem),
+            "dup_after_item" => Ok(Self::DupAfterItem),
+            "dup_before_item" => Ok(Self::DupBeforeItem),
+            "toggle_profile_panel" => Ok(Self::ToggleProfilePanel),
+            "quit" => Ok(Self::Quit),
+            "focus_forward" => Ok(Self::FocusForward),
+            "focus_backward" => Ok(Self::FocusBackward),
+            "accept" => Ok(Self::Accept),
+            "cancel" => Ok(Self::Cancel),
+            "run" => Ok(Self::Run),
+            "run_into_itself" => Ok(Self::RunIntoItself),
+            "rerun" => Ok(Self::Rerun),
+            "back" => Ok(Self::Back),
+            "next_match" => Ok(Self::NextMatch),
+            "prev_match" => Ok(Self::PrevMatch),
+            "edit_cmdline" => Ok(Self::EditCmdline),
+            unknown => Err(format!("Unknown action `{}`", unknown))
+        }
+    }
+}
+
+impl ToString for Action {
+    fn to_string(&self) -> String {
+        let result = match self {
+            Self::Up                   => "up",
+            Self::Down                 => "down",
+            Self::Left                 => "left",
+            Self::Right                => "right",
+            Self::Home                 => "home",
+            Self::InsertAfterItem      => "insert_after_item",
+            Self::InsertBeforeItem     => "insert_before_item",
+            Self::Delete               => "delete",
+            Self::BackDelete           => "back_delete",
+            Self::EditItem             => "edit_item",
+            Self::DupAfterItem         => "dup_after_item",
+            Self::DupBeforeItem        => "dup_before_item",
+            Self::ToggleProfilePanel   => "toggle_profile_panel",
+            Self::Quit                 => "quit",
+            Self::FocusForward         => "focus_forward",
+            Self::FocusBackward        => "focus_backward",
+            Self::Accept               => "accept",
+            Self::Cancel               => "cancel",
+            Self::Run                  => "run",
+            Self::RunIntoItself        => "run_into_itself",
+            Self::Rerun                => "rerun",
+            Self::Back                 => "back",
+            Self::NextMatch            => "next_match",
+            Self::PrevMatch            => "prev_match",
+            Self::EditCmdline          => "edit_cmdline",
+        };
+        String::from(result)
+    }
+}
+
 pub struct KeyMap {
-    key_map: HashMap<KeyStroke, HashSet<Action>>,
+    pub key_map: HashMap<KeyStroke, HashSet<Action>>,
 }
 
 impl KeyMap {
@@ -331,5 +400,49 @@ impl KeyStroke {
         } else {
             None
         }
+    }
+}
+
+fn split(s: &str, delim: char) -> Vec<&str> {
+    s.split(delim).map(|s| s.trim()).collect::<Vec::<&str>>()
+}
+
+impl FromStr for KeyStroke {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match split(s, ':').as_slice() {
+            ["key", params] => {
+                match split(params, ',').as_slice() {
+                    [key, "alt"] => {
+                        let key_code = key.parse::<i32>().map_err(|e| e.to_string())?;
+                        Ok(KeyStroke{key: key_code, alt: true})
+                    },
+                    [_, unknown] => Err(format!("{} is unknown key modifier", unknown)),
+                    [key] => {
+                        let key_code = key.parse::<i32>().map_err(|e| e.to_string())?;
+                        Ok(KeyStroke{key: key_code, alt: false})
+                    },
+                    _ => Err(String::from("Could not parse key stroke"))
+                }
+            },
+            [unknown, ..] => {
+                Err(format!("Unknown key prefix `{}`", unknown))
+            }
+            _ => {
+                Err(format!("Could not parse key"))
+            }
+        }
+
+    }
+}
+
+impl ToString for KeyStroke {
+    fn to_string(&self) -> String {
+        format!("key:{}{}", self.key, if self.alt {
+            ",alt"
+        } else {
+            ""
+        })
     }
 }

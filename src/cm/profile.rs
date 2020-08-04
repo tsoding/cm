@@ -3,6 +3,8 @@ use pcre2::bytes::Regex;
 use std::fs::read_to_string;
 use std::io::Write;
 use std::path::Path;
+use std::str::FromStr;
+use std::string::ToString;
 
 pub struct Profile {
     pub regex_list: StringList,
@@ -61,7 +63,11 @@ impl Profile {
                                 0
                             })
                     }
-                    _ => Err(fail(&format!("Unknown key {}", key))).unwrap(),
+                    key => {
+                        let key_stroke = KeyStroke::from_str(key).unwrap();
+                        let action = Action::from_str(value).unwrap();
+                        result.key_map.bind(key_stroke, action);
+                    }
                 }
             }
         }
@@ -92,6 +98,12 @@ impl Profile {
 
         writeln!(stream, "current_regex = {}", self.regex_list.list.cursor_y).expect(error_message);
         writeln!(stream, "current_cmd = {}", self.cmd_list.list.cursor_y).expect(error_message);
+
+        for (key, actions) in &self.key_map.key_map {
+            for action in actions {
+                writeln!(stream, "{} = {}", key.to_string(), action.to_string()).expect(error_message);
+            }
+        }
     }
 
     pub fn current_regex(&self) -> Option<Result<Regex, pcre2::Error>> {
