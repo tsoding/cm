@@ -1,12 +1,12 @@
 use ncurses::*;
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet};
 use std::str::FromStr;
 use std::string::ToString;
 
 pub const KEY_ESCAPE: i32 = 0x1B;
 
 // TODO(#145): Separate Delete Character and Delete Item actions
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Action {
     Up,
     Down,
@@ -103,13 +103,16 @@ impl ToString for Action {
 }
 
 pub struct KeyMap {
-    pub key_map: HashMap<KeyStroke, HashSet<Action>>,
+    // NOTE: We are using BTree{Map, Set} here for a consistent
+    // ordering when we are saving the KeyMap to the configuration
+    // file. See Profile::to_file().
+    pub key_map: BTreeMap<KeyStroke, BTreeSet<Action>>,
 }
 
 impl KeyMap {
     pub fn new() -> Self {
         Self {
-            key_map: HashMap::new(),
+            key_map: BTreeMap::new(),
         }
     }
 
@@ -360,7 +363,7 @@ impl KeyMap {
         if let Some(actions) = self.key_map.get_mut(&key) {
             actions.insert(action);
         } else {
-            let mut actions = HashSet::new();
+            let mut actions = BTreeSet::new();
             actions.insert(action);
             self.key_map.insert(key, actions);
         }
@@ -374,7 +377,7 @@ impl KeyMap {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct KeyStroke {
     pub key: i32,
     pub alt: bool,
