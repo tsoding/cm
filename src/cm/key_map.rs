@@ -102,6 +102,7 @@ impl ToString for Action {
     }
 }
 
+// TODO: KeyMap is not configuration right from the application
 pub struct KeyMap {
     // NOTE: We are using BTree{Map, Set} here for a consistent
     // ordering when we are saving the KeyMap to the configuration
