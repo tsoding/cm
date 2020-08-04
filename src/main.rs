@@ -60,9 +60,6 @@ fn main() {
         visible: false,
     };
 
-    // TODO(#146): Key map is not saved to the configuration file
-    let key_map = KeyMap::initial();
-
     let mut cmdline_edit_field = CmdlineEditField::new();
 
     let mut output_buffer = OutputBuffer::new(std::env::args().nth(1));
@@ -118,16 +115,16 @@ fn main() {
             if cmdline_edit_field.active {
                 cmdline_edit_field.handle_key(
                     &key_stroke,
-                    &key_map,
+                    &profile.key_map,
                     &mut output_buffer,
                     &mut cursor,
                 );
-            } else if key_map.is_bound(&key_stroke, &Action::EditCmdline) {
+            } else if profile.key_map.is_bound(&key_stroke, &Action::EditCmdline) {
                 cmdline_edit_field.activate(&output_buffer, &mut cursor);
             } else if !global.profile_pane {
                 output_buffer.handle_key(
                     &key_stroke,
-                    &key_map,
+                    &profile.key_map,
                     &cmdline,
                     profile.current_regex(),
                     &mut global,
@@ -136,21 +133,21 @@ fn main() {
                 match global.focus {
                     Focus::Lines => output_buffer.handle_key(
                         &key_stroke,
-                        &key_map,
+                        &profile.key_map,
                         &cmdline,
                         profile.current_regex(),
                         &mut global,
                     ),
                     Focus::Regexs => profile.regex_list.handle_key(
                         &key_stroke,
-                        &key_map,
+                        &profile.key_map,
                         &mut global,
                         &mut cursor,
                     ),
                     Focus::Cmds => {
                         profile
                             .cmd_list
-                            .handle_key(&key_stroke, &key_map, &mut global, &mut cursor)
+                            .handle_key(&key_stroke, &profile.key_map, &mut global, &mut cursor)
                     }
                 }
             }

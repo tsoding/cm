@@ -7,6 +7,7 @@ use std::path::Path;
 pub struct Profile {
     pub regex_list: StringList,
     pub cmd_list: StringList,
+    pub key_map: KeyMap,
 }
 
 impl Profile {
@@ -14,6 +15,7 @@ impl Profile {
         Self {
             regex_list: StringList::new(),
             cmd_list: StringList::new(),
+            key_map: KeyMap::new(),
         }
     }
 
@@ -119,6 +121,7 @@ impl Profile {
             .list
             .items
             .push("emacs -nw +\\2 \\1".to_string());
+        result.key_map = KeyMap::initial();
         result
     }
 }
