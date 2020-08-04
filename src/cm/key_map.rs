@@ -64,7 +64,7 @@ impl FromStr for Action {
             "next_match" => Ok(Self::NextMatch),
             "prev_match" => Ok(Self::PrevMatch),
             "edit_cmdline" => Ok(Self::EditCmdline),
-            unknown => Err(format!("Unknown action `{}`", unknown))
+            unknown => Err(format!("Unknown action `{}`", unknown)),
         }
     }
 }
@@ -72,31 +72,31 @@ impl FromStr for Action {
 impl ToString for Action {
     fn to_string(&self) -> String {
         let result = match self {
-            Self::Up                   => "up",
-            Self::Down                 => "down",
-            Self::Left                 => "left",
-            Self::Right                => "right",
-            Self::Home                 => "home",
-            Self::InsertAfterItem      => "insert_after_item",
-            Self::InsertBeforeItem     => "insert_before_item",
-            Self::Delete               => "delete",
-            Self::BackDelete           => "back_delete",
-            Self::EditItem             => "edit_item",
-            Self::DupAfterItem         => "dup_after_item",
-            Self::DupBeforeItem        => "dup_before_item",
-            Self::ToggleProfilePanel   => "toggle_profile_panel",
-            Self::Quit                 => "quit",
-            Self::FocusForward         => "focus_forward",
-            Self::FocusBackward        => "focus_backward",
-            Self::Accept               => "accept",
-            Self::Cancel               => "cancel",
-            Self::Run                  => "run",
-            Self::RunIntoItself        => "run_into_itself",
-            Self::Rerun                => "rerun",
-            Self::Back                 => "back",
-            Self::NextMatch            => "next_match",
-            Self::PrevMatch            => "prev_match",
-            Self::EditCmdline          => "edit_cmdline",
+            Self::Up => "up",
+            Self::Down => "down",
+            Self::Left => "left",
+            Self::Right => "right",
+            Self::Home => "home",
+            Self::InsertAfterItem => "insert_after_item",
+            Self::InsertBeforeItem => "insert_before_item",
+            Self::Delete => "delete",
+            Self::BackDelete => "back_delete",
+            Self::EditItem => "edit_item",
+            Self::DupAfterItem => "dup_after_item",
+            Self::DupBeforeItem => "dup_before_item",
+            Self::ToggleProfilePanel => "toggle_profile_panel",
+            Self::Quit => "quit",
+            Self::FocusForward => "focus_forward",
+            Self::FocusBackward => "focus_backward",
+            Self::Accept => "accept",
+            Self::Cancel => "cancel",
+            Self::Run => "run",
+            Self::RunIntoItself => "run_into_itself",
+            Self::Rerun => "rerun",
+            Self::Back => "back",
+            Self::NextMatch => "next_match",
+            Self::PrevMatch => "prev_match",
+            Self::EditCmdline => "edit_cmdline",
         };
         String::from(result)
     }
@@ -408,7 +408,7 @@ impl KeyStroke {
 }
 
 fn split(s: &str, delim: char) -> Vec<&str> {
-    s.split(delim).map(|s| s.trim()).collect::<Vec::<&str>>()
+    s.split(delim).map(|s| s.trim()).collect::<Vec<&str>>()
 }
 
 impl FromStr for KeyStroke {
@@ -416,37 +416,32 @@ impl FromStr for KeyStroke {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match split(s, ':').as_slice() {
-            ["key", params] => {
-                match split(params, ',').as_slice() {
-                    [key, "alt"] => {
-                        let key_code = key.parse::<i32>().map_err(|e| e.to_string())?;
-                        Ok(KeyStroke{key: key_code, alt: true})
-                    },
-                    [_, unknown] => Err(format!("{} is unknown key modifier", unknown)),
-                    [key] => {
-                        let key_code = key.parse::<i32>().map_err(|e| e.to_string())?;
-                        Ok(KeyStroke{key: key_code, alt: false})
-                    },
-                    _ => Err(String::from("Could not parse key stroke"))
+            ["key", params] => match split(params, ',').as_slice() {
+                [key, "alt"] => {
+                    let key_code = key.parse::<i32>().map_err(|e| e.to_string())?;
+                    Ok(KeyStroke {
+                        key: key_code,
+                        alt: true,
+                    })
                 }
+                [_, unknown] => Err(format!("{} is unknown key modifier", unknown)),
+                [key] => {
+                    let key_code = key.parse::<i32>().map_err(|e| e.to_string())?;
+                    Ok(KeyStroke {
+                        key: key_code,
+                        alt: false,
+                    })
+                }
+                _ => Err(String::from("Could not parse key stroke")),
             },
-            [unknown, ..] => {
-                Err(format!("Unknown key prefix `{}`", unknown))
-            }
-            _ => {
-                Err("Could not parse key".to_string())
-            }
+            [unknown, ..] => Err(format!("Unknown key prefix `{}`", unknown)),
+            _ => Err("Could not parse key".to_string()),
         }
-
     }
 }
 
 impl ToString for KeyStroke {
     fn to_string(&self) -> String {
-        format!("key:{}{}", self.key, if self.alt {
-            ",alt"
-        } else {
-            ""
-        })
+        format!("key:{}{}", self.key, if self.alt { ",alt" } else { "" })
     }
 }

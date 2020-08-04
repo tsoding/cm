@@ -144,11 +144,12 @@ fn main() {
                         &mut global,
                         &mut cursor,
                     ),
-                    Focus::Cmds => {
-                        profile
-                            .cmd_list
-                            .handle_key(&key_stroke, &profile.key_map, &mut global, &mut cursor)
-                    }
+                    Focus::Cmds => profile.cmd_list.handle_key(
+                        &key_stroke,
+                        &profile.key_map,
+                        &mut global,
+                        &mut cursor,
+                    ),
                 }
             }
         }

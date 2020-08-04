@@ -101,7 +101,8 @@ impl Profile {
 
         for (key, actions) in &self.key_map.key_map {
             for action in actions {
-                writeln!(stream, "{} = {}", key.to_string(), action.to_string()).expect(error_message);
+                writeln!(stream, "{} = {}", key.to_string(), action.to_string())
+                    .expect(error_message);
             }
         }
     }
