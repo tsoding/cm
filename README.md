@@ -39,10 +39,17 @@ re-run the build process.
 <!-- TODO(#86): Document application layout -->
 [TBD](https://github.com/tsoding/cm/issues/86)
 
-### Shortcuts
+### Default Shortcuts
+
+|Shortcut|Description|
+|---|---|
+|<kbd>j</kbd> or <kbd>Down</kbd>|Move cursor down|
+|<kbd>k</kbd> or <kbd>up</kbd>|Move cursor up|
+|<kbd>Alt</kbd>+<kbd>j</kbd> or <kbd>Alt</kbd>+<kbd>Down</kbd>|Move cursor to the next match|
+|<kbd>Alt</kbd>+<kbd>k</kbd> or <kbd>Alt</kbd>+<kbd>Up</kbd>|Move cursor to the prev match|
 
 <!-- TODO(#87): Document shortcuts -->
-[TBD](https://github.com/tsoding/cm/issues/87)
+Rest default shortcuts are [TBD](https://github.com/tsoding/cm/issues/87)
 
 ### Configuration file cm.conf
 
