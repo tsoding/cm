@@ -11,6 +11,7 @@ mod string_list;
 mod style;
 mod key_map_settings;
 mod key_stroke_selector;
+mod dropdown_menu;
 
 pub use self::cmdline_edit_field::*;
 pub use self::cursor::*;
@@ -25,3 +26,4 @@ pub use self::string_list::*;
 pub use self::style::*;
 pub use self::key_map_settings::*;
 pub use self::key_stroke_selector::*;
+pub use self::dropdown_menu::*;
