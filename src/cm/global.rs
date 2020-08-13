@@ -2,7 +2,7 @@ use super::*;
 
 #[derive(PartialEq, Clone, Copy)]
 pub enum Focus {
-    Lines = 0,
+    Output = 0,
     Regexs = 1,
     Cmds = 2,
 }
@@ -12,7 +12,7 @@ const FOCUS_COUNT: usize = 3;
 impl Focus {
     pub fn from_number(n: usize) -> Option<Focus> {
         match n {
-            0 => Some(Focus::Lines),
+            0 => Some(Focus::Output),
             1 => Some(Focus::Regexs),
             2 => Some(Focus::Cmds),
             _ => None,
@@ -42,21 +42,34 @@ pub struct Global {
     /// as soon as possible
     pub quit: bool,
     pub focus: Focus,
+    pub key_map_settings: bool,
 }
 
 impl Global {
-    pub fn handle_key(&mut self, key_stroke: &KeyStroke, key_map: &KeyMap) -> bool {
-        if key_map.is_bound(key_stroke, &Action::ToggleProfilePanel) {
+    pub fn new() -> Self {
+        Self {
+            profile_pane: false,
+            quit: false,
+            focus: Focus::Output,
+            key_map_settings: false,
+        }
+    }
+
+    pub fn handle_key(&mut self, key_stroke: KeyStroke, key_map: &KeyMap) -> bool {
+        if key_map.is_bound(key_stroke, Action::ToggleProfilePanel) {
             self.profile_pane = !self.profile_pane;
             true
-        } else if key_map.is_bound(key_stroke, &Action::Quit) {
+        } else if key_map.is_bound(key_stroke, Action::Quit) {
             self.quit = true;
             true
-        } else if key_map.is_bound(key_stroke, &Action::FocusForward) {
+        } else if key_map.is_bound(key_stroke, Action::FocusForward) {
             self.focus = self.focus.next();
             true
-        } else if key_map.is_bound(key_stroke, &Action::FocusBackward) {
+        } else if key_map.is_bound(key_stroke, Action::FocusBackward) {
             self.focus = self.focus.prev();
+            true
+        } else if key_map.is_bound(key_stroke, Action::OpenKeyMapSettings) {
+            self.key_map_settings = true;
             true
         } else {
             false

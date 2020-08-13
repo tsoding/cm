@@ -8,7 +8,7 @@ pub enum StringListState {
 
 pub struct StringList {
     pub state: StringListState,
-    pub list: ItemList,
+    pub list: ItemList<String>,
     pub edit_field: EditField,
 }
 
@@ -21,7 +21,7 @@ impl StringList {
         }
     }
 
-    pub fn current_item(&self) -> Option<&str> {
+    pub fn current_item(&self) -> Option<&String> {
         self.list.current_item()
     }
 
@@ -106,7 +106,7 @@ impl StringList {
 
     pub fn handle_key(
         &mut self,
-        key_stroke: &KeyStroke,
+        key_stroke: KeyStroke,
         key_map: &KeyMap,
         global: &mut Global,
         cursor: &mut Cursor,
@@ -114,15 +114,15 @@ impl StringList {
         match self.state {
             StringListState::Navigate => {
                 if !global.handle_key(key_stroke, key_map) {
-                    if key_map.is_bound(key_stroke, &Action::DupAfterItem) {
+                    if key_map.is_bound(key_stroke, Action::DupAfterItem) {
                         self.duplicate_after();
-                    } else if key_map.is_bound(key_stroke, &Action::DupBeforeItem) {
+                    } else if key_map.is_bound(key_stroke, Action::DupBeforeItem) {
                         self.duplicate_before();
-                    } else if key_map.is_bound(key_stroke, &Action::InsertAfterItem) {
+                    } else if key_map.is_bound(key_stroke, Action::InsertAfterItem) {
                         self.insert_after(cursor);
-                    } else if key_map.is_bound(key_stroke, &Action::InsertBeforeItem) {
+                    } else if key_map.is_bound(key_stroke, Action::InsertBeforeItem) {
                         self.insert_before(cursor);
-                    } else if key_map.is_bound(key_stroke, &Action::EditItem) {
+                    } else if key_map.is_bound(key_stroke, Action::EditItem) {
                         self.start_editing(cursor);
                     } else {
                         self.list.handle_key(key_stroke, key_map);
@@ -130,9 +130,9 @@ impl StringList {
                 }
             }
             StringListState::Editing { .. } => {
-                if key_map.is_bound(key_stroke, &Action::Accept) {
+                if key_map.is_bound(key_stroke, Action::Accept) {
                     self.accept_editing(cursor);
-                } else if key_map.is_bound(key_stroke, &Action::Cancel) {
+                } else if key_map.is_bound(key_stroke, Action::Cancel) {
                     self.cancel_editing(cursor);
                 } else {
                     self.edit_field.handle_key(key_stroke, key_map);

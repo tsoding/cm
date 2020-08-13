@@ -3,16 +3,16 @@ use ncurses::*;
 use pcre2::bytes::Regex;
 use std::cmp::{max, min};
 
-pub struct ItemList {
-    pub items: Vec<String>,
+pub struct ItemList<T: ToString + Clone> {
+    pub items: Vec<T>,
     pub cursor_x: usize,
     pub cursor_y: usize,
 }
 
-impl ItemList {
+impl<T: ToString + Clone> ItemList<T> {
     pub fn new() -> Self {
         Self {
-            items: Vec::<String>::new(),
+            items: Vec::new(),
             cursor_x: 0,
             cursor_y: 0,
         }
@@ -53,11 +53,11 @@ impl ItemList {
         }
     }
 
-    pub fn insert_before_current(&mut self, line: String) {
+    pub fn insert_before_current(&mut self, line: T) {
         self.items.insert(self.cursor_y, line);
     }
 
-    pub fn insert_after_current(&mut self, line: String) {
+    pub fn insert_after_current(&mut self, line: T) {
         if !self.items.is_empty() {
             self.cursor_y += 1;
         }
@@ -66,29 +66,29 @@ impl ItemList {
     }
 
     pub fn duplicate_after(&mut self) {
-        if let Some(item) = self.current_item().map(String::from) {
+        if let Some(item) = self.current_item().cloned() {
             self.insert_after_current(item);
         }
     }
 
     pub fn duplicate_before(&mut self) {
-        if let Some(item) = self.current_item().map(String::from) {
+        if let Some(item) = self.current_item().cloned() {
             self.insert_before_current(item);
         }
     }
 
-    pub fn handle_key(&mut self, key_stroke: &KeyStroke, key_map: &KeyMap) {
-        if key_map.is_bound(key_stroke, &Action::Down) {
+    pub fn handle_key(&mut self, key_stroke: KeyStroke, key_map: &KeyMap) {
+        if key_map.is_bound(key_stroke, Action::Down) {
             self.down();
-        } else if key_map.is_bound(key_stroke, &Action::Up) {
+        } else if key_map.is_bound(key_stroke, Action::Up) {
             self.up();
-        } else if key_map.is_bound(key_stroke, &Action::Right) {
+        } else if key_map.is_bound(key_stroke, Action::Right) {
             self.right();
-        } else if key_map.is_bound(key_stroke, &Action::Left) {
+        } else if key_map.is_bound(key_stroke, Action::Left) {
             self.left();
-        } else if key_map.is_bound(key_stroke, &Action::Delete) {
+        } else if key_map.is_bound(key_stroke, Action::Delete) {
             self.delete_current();
-        } else if key_map.is_bound(key_stroke, &Action::Home) {
+        } else if key_map.is_bound(key_stroke, Action::Home) {
             self.home();
         }
     }
@@ -105,6 +105,7 @@ impl ItemList {
             {
                 let line_to_render = {
                     let mut line_to_render = item
+                        .to_string()
                         .trim_end()
                         .get(self.cursor_x..)
                         .unwrap_or("")
@@ -144,7 +145,13 @@ impl ItemList {
         }
     }
 
-    pub fn current_item(&self) -> Option<&str> {
+    pub fn set_current_item(&mut self, item: T) {
+        if self.cursor_y < self.items.len() {
+            self.items[self.cursor_y] = item;
+        }
+    }
+
+    pub fn current_item(&self) -> Option<&T> {
         if self.cursor_y < self.items.len() {
             Some(&self.items[self.cursor_y])
         } else {
@@ -162,7 +169,7 @@ impl ItemList {
 
     pub fn is_current_line_matches(&mut self, regex: &Regex) -> bool {
         if let Some(item) = self.current_item() {
-            regex.is_match(item.as_bytes()).unwrap()
+            regex.is_match(item.to_string().as_bytes()).unwrap()
         } else {
             false
         }

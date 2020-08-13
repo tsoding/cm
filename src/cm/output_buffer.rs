@@ -17,7 +17,7 @@ fn mark_nonblocking<Fd: AsRawFd>(fd: &mut Fd) {
 }
 
 pub struct OutputBuffer {
-    pub lists: Vec<ItemList>,
+    pub lists: Vec<ItemList<String>>,
     /// currently running process that generates data for OutputBuffer.
     /// See [OutputBuffer::poll_cmdline_output](struct.OutputBuffer.html#method.poll_cmdline_output)
     pub child: Option<(BufReader<PipeReader>, Child)>,
@@ -29,13 +29,13 @@ pub struct OutputBuffer {
 impl OutputBuffer {
     pub fn new(user_provided_cmdline: Option<String>) -> Self {
         Self {
-            lists: Vec::<ItemList>::new(),
+            lists: Vec::new(),
             child: None,
             user_provided_cmdline,
         }
     }
 
-    pub fn current_item(&self) -> Option<&str> {
+    pub fn current_item(&self) -> Option<&String> {
         self.lists.last().and_then(|x| x.current_item())
     }
 
@@ -244,35 +244,35 @@ impl OutputBuffer {
 
     pub fn handle_key(
         &mut self,
-        key_stroke: &KeyStroke,
+        key_stroke: KeyStroke,
         key_map: &KeyMap,
         cmdline_result: &Option<String>,
         regex_result: Option<Result<Regex, pcre2::Error>>,
         global: &mut Global,
     ) {
-        if !global.handle_key(&key_stroke, key_map) {
-            if key_map.is_bound(key_stroke, &Action::RunIntoItself) {
+        if !global.handle_key(key_stroke, key_map) {
+            if key_map.is_bound(key_stroke, Action::RunIntoItself) {
                 if let Some(cmdline) = cmdline_result {
                     self.run_cmdline(cmdline.clone());
                 }
-            } else if key_map.is_bound(key_stroke, &Action::Run) {
+            } else if key_map.is_bound(key_stroke, Action::Run) {
                 if let Some(cmdline) = cmdline_result {
                     self.fork_cmdline(cmdline.clone());
                 }
-            } else if key_map.is_bound(key_stroke, &Action::Back) {
+            } else if key_map.is_bound(key_stroke, Action::Back) {
                 self.lists.pop();
-            } else if key_map.is_bound(key_stroke, &Action::Rerun) {
+            } else if key_map.is_bound(key_stroke, Action::Rerun) {
                 self.run_user_provided_cmdline();
-            } else if key_map.is_bound(key_stroke, &Action::PrevMatch) {
+            } else if key_map.is_bound(key_stroke, Action::PrevMatch) {
                 if let Some(Ok(regex)) = regex_result {
                     self.jump_to_prev_match(&regex);
                 }
-            } else if key_map.is_bound(key_stroke, &Action::NextMatch) {
+            } else if key_map.is_bound(key_stroke, Action::NextMatch) {
                 if let Some(Ok(regex)) = regex_result {
                     self.jump_to_next_match(&regex);
                 }
             } else if let Some(list) = self.lists.last_mut() {
-                list.handle_key(&key_stroke, key_map);
+                list.handle_key(key_stroke, key_map);
             }
         }
     }
