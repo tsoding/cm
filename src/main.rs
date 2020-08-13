@@ -132,7 +132,7 @@ fn main() {
                 );
             } else {
                 match global.focus {
-                    Focus::Lines => output_buffer.handle_key(
+                    Focus::Output => output_buffer.handle_key(
                         &key_stroke,
                         &profile.key_map,
                         &cmdline,
@@ -215,7 +215,7 @@ fn main() {
 
                     output_buffer.render(
                         output_buffer_rect,
-                        global.focus == Focus::Lines,
+                        global.focus == Focus::Output,
                         profile.current_regex(),
                     );
                     profile

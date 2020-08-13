@@ -29,7 +29,6 @@ impl KeyMapSettings {
     }
 
     pub fn render(&self, rect: Rect, focused: bool) {
-        // TODO: introduce some sort of functions to Rect that takes nth row of the Rect
         match self.state {
             State::ListOfActions => self.list_of_actions.render(rect, focused),
             State::KeysOfAction => {

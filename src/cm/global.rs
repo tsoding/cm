@@ -2,8 +2,7 @@ use super::*;
 
 #[derive(PartialEq, Clone, Copy)]
 pub enum Focus {
-    // TODO: Rename Focus::Lines -> Focus::Output
-    Lines = 0,
+    Output = 0,
     Regexs = 1,
     Cmds = 2,
 }
@@ -13,7 +12,7 @@ const FOCUS_COUNT: usize = 3;
 impl Focus {
     pub fn from_number(n: usize) -> Option<Focus> {
         match n {
-            0 => Some(Focus::Lines),
+            0 => Some(Focus::Output),
             1 => Some(Focus::Regexs),
             2 => Some(Focus::Cmds),
             _ => None,
@@ -51,7 +50,7 @@ impl Global {
         Self {
             profile_pane: false,
             quit: false,
-            focus: Focus::Lines,
+            focus: Focus::Output,
             key_map_settings: false,
         }
     }
