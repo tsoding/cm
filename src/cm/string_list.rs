@@ -8,7 +8,7 @@ pub enum StringListState {
 
 pub struct StringList {
     pub state: StringListState,
-    pub list: ItemList,
+    pub list: ItemList<String>,
     pub edit_field: EditField,
 }
 
@@ -21,7 +21,7 @@ impl StringList {
         }
     }
 
-    pub fn current_item(&self) -> Option<&str> {
+    pub fn current_item(&self) -> Option<&String> {
         self.list.current_item()
     }
 

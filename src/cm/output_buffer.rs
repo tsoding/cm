@@ -17,7 +17,7 @@ fn mark_nonblocking<Fd: AsRawFd>(fd: &mut Fd) {
 }
 
 pub struct OutputBuffer {
-    pub lists: Vec<ItemList>,
+    pub lists: Vec<ItemList<String>>,
     /// currently running process that generates data for OutputBuffer.
     /// See [OutputBuffer::poll_cmdline_output](struct.OutputBuffer.html#method.poll_cmdline_output)
     pub child: Option<(BufReader<PipeReader>, Child)>,
@@ -29,13 +29,13 @@ pub struct OutputBuffer {
 impl OutputBuffer {
     pub fn new(user_provided_cmdline: Option<String>) -> Self {
         Self {
-            lists: Vec::<ItemList>::new(),
+            lists: Vec::new(),
             child: None,
             user_provided_cmdline,
         }
     }
 
-    pub fn current_item(&self) -> Option<&str> {
+    pub fn current_item(&self) -> Option<&String> {
         self.lists.last().and_then(|x| x.current_item())
     }
 
