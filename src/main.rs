@@ -112,7 +112,7 @@ fn main() {
             };
 
             if global.key_map_settings {
-                key_map_settings.handle_key(&key_stroke, &profile.key_map, &mut global)
+                key_map_settings.handle_key(&key_stroke, &mut profile.key_map, &mut global)
             } else if cmdline_edit_field.active {
                 cmdline_edit_field.handle_key(
                     &key_stroke,

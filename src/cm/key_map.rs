@@ -92,7 +92,7 @@ pub struct KeyMap {
     // NOTE: We are using BTree{Map, Set} here for a consistent
     // ordering when we are saving the KeyMap to the configuration
     // file. See Profile::to_file().
-    pub key_map: BTreeMap<KeyStroke, BTreeSet<Action>>,
+    pub key_map: BTreeMap<Action, BTreeSet<KeyStroke>>,
 }
 
 impl KeyMap {
@@ -353,30 +353,38 @@ impl KeyMap {
     }
 
     pub fn bind(&mut self, key: KeyStroke, action: Action) {
-        if let Some(actions) = self.key_map.get_mut(&key) {
-            actions.insert(action);
+        if let Some(keys) = self.key_map.get_mut(&action) {
+            keys.insert(key);
         } else {
-            let mut actions = BTreeSet::new();
-            actions.insert(action);
-            self.key_map.insert(key, actions);
+            let mut keys = BTreeSet::new();
+            keys.insert(key);
+            self.key_map.insert(action, keys);
         }
     }
 
     pub fn is_bound(&self, key: &KeyStroke, action: &Action) -> bool {
         self.key_map
-            .get(key)
-            .and_then(|actions| actions.get(action))
+            .get(action)
+            .and_then(|keys| keys.get(key))
             .is_some()
     }
 
     pub fn keys_of_action(&self, action: &Action) -> Vec<KeyStroke> {
         let mut result = Vec::new();
-        for (key_stroke, actions) in self.key_map.iter() {
-            if actions.get(action).is_some() {
-                result.push(key_stroke.clone());
+        if let Some(keys) = self.key_map.get(action) {
+            for key in keys.iter() {
+                result.push(*key)
             }
         }
         result
+    }
+
+    pub fn update_keys_of_action(&mut self, action: &Action, new_keys: &[KeyStroke]) {
+        let keys = self.key_map.entry(*action).or_insert(BTreeSet::new());
+        keys.clear();
+        for key in new_keys {
+            keys.insert(*key);
+        }
     }
 }
 

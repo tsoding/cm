@@ -56,12 +56,13 @@ impl KeyMapSettings {
         }
     }
 
-    pub fn handle_key(&mut self, key_stroke: &KeyStroke, key_map: &KeyMap, global: &mut Global) {
+    pub fn handle_key(&mut self, key_stroke: &KeyStroke, key_map: &mut KeyMap, global: &mut Global) {
         if !global.handle_key(key_stroke, key_map) {
             match self.state {
                 State::KeysOfAction => {
                     if key_map.is_bound(key_stroke, &Action::Back) {
                         self.state = State::ListOfActions;
+                        key_map.update_keys_of_action(&ACTION_NAMES[self.list_of_actions.cursor_y].1, &self.keys_of_action.items);
                     } else if key_map.is_bound(key_stroke, &Action::Up) {
                         self.keys_of_action.up();
                     } else if key_map.is_bound(key_stroke, &Action::Down) {
