@@ -33,6 +33,7 @@ pub enum Action {
     NextMatch,
     PrevMatch,
     EditCmdline,
+    OpenKeyMapSettings,
 }
 
 impl FromStr for Action {
@@ -64,6 +65,7 @@ impl FromStr for Action {
             "next_match" => Ok(Self::NextMatch),
             "prev_match" => Ok(Self::PrevMatch),
             "edit_cmdline" => Ok(Self::EditCmdline),
+            "open_key_map_settings" => Ok(Self::OpenKeyMapSettings),
             unknown => Err(format!("Unknown action `{}`", unknown)),
         }
     }
@@ -97,6 +99,7 @@ impl ToString for Action {
             Self::NextMatch => "next_match",
             Self::PrevMatch => "prev_match",
             Self::EditCmdline => "edit_cmdline",
+            Self::OpenKeyMapSettings => "open_key_map_settings",
         };
         String::from(result)
     }

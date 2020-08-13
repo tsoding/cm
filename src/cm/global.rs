@@ -2,6 +2,7 @@ use super::*;
 
 #[derive(PartialEq, Clone, Copy)]
 pub enum Focus {
+    // TODO: Rename Focus::Lines -> Focus::Output
     Lines = 0,
     Regexs = 1,
     Cmds = 2,
@@ -42,9 +43,19 @@ pub struct Global {
     /// as soon as possible
     pub quit: bool,
     pub focus: Focus,
+    pub key_map_settings: bool
 }
 
 impl Global {
+    pub fn new() -> Self {
+        Self {
+            profile_pane: false,
+            quit: false,
+            focus: Focus::Lines,
+            key_map_settings: false,
+        }
+    }
+
     pub fn handle_key(&mut self, key_stroke: &KeyStroke, key_map: &KeyMap) -> bool {
         if key_map.is_bound(key_stroke, &Action::ToggleProfilePanel) {
             self.profile_pane = !self.profile_pane;
@@ -57,6 +68,9 @@ impl Global {
             true
         } else if key_map.is_bound(key_stroke, &Action::FocusBackward) {
             self.focus = self.focus.prev();
+            true
+        } else if key_map.is_bound(key_stroke, &Action::OpenKeyMapSettings) {
+            self.key_map_settings = true;
             true
         } else {
             false

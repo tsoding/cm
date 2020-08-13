@@ -42,17 +42,15 @@ fn main() {
             .expect("Could not find path to configuration file")
     };
 
+    let mut key_map_settings = KeyMapSettings::new();
+
     let mut profile = if config_path.exists() {
         Profile::from_file(&config_path)
     } else {
         Profile::initial()
     };
 
-    let mut global = Global {
-        quit: false,
-        profile_pane: false,
-        focus: Focus::Regexs,
-    };
+    let mut global = Global::new();
 
     let mut cursor = Cursor {
         x: 0,
@@ -112,7 +110,9 @@ fn main() {
                 _ => None,
             };
 
-            if cmdline_edit_field.active {
+            if global.key_map_settings {
+                key_map_settings.handle_key(&key_stroke, &profile.key_map, &mut global)
+            } else if cmdline_edit_field.active {
                 cmdline_edit_field.handle_key(
                     &key_stroke,
                     &profile.key_map,
@@ -181,50 +181,54 @@ fn main() {
 
             erase();
 
-            if h >= 1 {
-                // NOTE: we are rerendering cmdline here because it could be changed by OutputBuffer
-                // after the input handling section
-                match (
-                    &profile.current_regex(),
-                    &profile.current_cmd(),
-                    &output_buffer.current_item(),
-                ) {
-                    (Some(Ok(regex)), Some(cmd), Some(line)) => {
-                        if let Some(cmdline) = render_cmdline(line, &cmd, regex) {
-                            render_status(h - 1, &cmdline);
-                        }
-                    }
-                    (Some(Err(err)), _, _) => render_status(h - 1, &err.to_string()),
-                    _ => {}
-                }
-            }
-
-            let working_rect = Rect {
-                x: 0,
-                y: 0,
-                w,
-                h: h - 1,
-            };
-            if global.profile_pane {
-                let (output_buffer_rect, profile_rect) = working_rect.horizontal_split(3);
-                let (regex_rect, cmd_rect) = profile_rect.vertical_split(2);
-
-                output_buffer.render(
-                    output_buffer_rect,
-                    global.focus == Focus::Lines,
-                    profile.current_regex(),
-                );
-                profile
-                    .regex_list
-                    .render(regex_rect, global.focus == Focus::Regexs, &mut cursor);
-                profile
-                    .cmd_list
-                    .render(cmd_rect, global.focus == Focus::Cmds, &mut cursor);
+            if global.key_map_settings {
+                key_map_settings.render(Rect {x: 0, y: 0, w, h}, true);
             } else {
-                output_buffer.render(working_rect, true, profile.current_regex());
-            }
+                if h >= 1 {
+                    // NOTE: we are rerendering cmdline here because it could be changed by OutputBuffer
+                    // after the input handling section
+                    match (
+                        &profile.current_regex(),
+                        &profile.current_cmd(),
+                        &output_buffer.current_item(),
+                    ) {
+                        (Some(Ok(regex)), Some(cmd), Some(line)) => {
+                            if let Some(cmdline) = render_cmdline(line, &cmd, regex) {
+                                render_status(h - 1, &cmdline);
+                            }
+                        }
+                        (Some(Err(err)), _, _) => render_status(h - 1, &err.to_string()),
+                        _ => {}
+                    }
+                }
 
-            cmdline_edit_field.render(Row { x: 0, y: h - 1, w }, &mut cursor);
+                let working_rect = Rect {
+                    x: 0,
+                    y: 0,
+                    w,
+                    h: h - 1,
+                };
+                if global.profile_pane {
+                    let (output_buffer_rect, profile_rect) = working_rect.horizontal_split(3);
+                    let (regex_rect, cmd_rect) = profile_rect.vertical_split(2);
+
+                    output_buffer.render(
+                        output_buffer_rect,
+                        global.focus == Focus::Lines,
+                        profile.current_regex(),
+                    );
+                    profile
+                        .regex_list
+                        .render(regex_rect, global.focus == Focus::Regexs, &mut cursor);
+                    profile
+                        .cmd_list
+                        .render(cmd_rect, global.focus == Focus::Cmds, &mut cursor);
+                } else {
+                    output_buffer.render(working_rect, true, profile.current_regex());
+                }
+
+                cmdline_edit_field.render(Row { x: 0, y: h - 1, w }, &mut cursor);
+            }
 
             cursor.sync();
 
