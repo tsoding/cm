@@ -76,6 +76,12 @@ impl KeyMapSettings {
                         self.keys_of_action
                             .insert_after_current(KeyStroke { key: 0, alt: false });
                         self.state = State::SelectingKey;
+                    } else if key_map.is_bound(key_stroke, Action::InsertBeforeItem) {
+                        self.keys_of_action
+                            .insert_before_current(KeyStroke { key: 0, alt: false });
+                        self.state = State::SelectingKey;
+                    } else if key_map.is_bound(key_stroke, Action::Cancel) {
+                        self.state = State::ListOfActions;
                     }
                 }
                 State::ListOfActions => {
