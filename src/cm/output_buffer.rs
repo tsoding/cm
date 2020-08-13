@@ -244,35 +244,35 @@ impl OutputBuffer {
 
     pub fn handle_key(
         &mut self,
-        key_stroke: &KeyStroke,
+        key_stroke: KeyStroke,
         key_map: &KeyMap,
         cmdline_result: &Option<String>,
         regex_result: Option<Result<Regex, pcre2::Error>>,
         global: &mut Global,
     ) {
-        if !global.handle_key(&key_stroke, key_map) {
-            if key_map.is_bound(key_stroke, &Action::RunIntoItself) {
+        if !global.handle_key(key_stroke, key_map) {
+            if key_map.is_bound(key_stroke, Action::RunIntoItself) {
                 if let Some(cmdline) = cmdline_result {
                     self.run_cmdline(cmdline.clone());
                 }
-            } else if key_map.is_bound(key_stroke, &Action::Run) {
+            } else if key_map.is_bound(key_stroke, Action::Run) {
                 if let Some(cmdline) = cmdline_result {
                     self.fork_cmdline(cmdline.clone());
                 }
-            } else if key_map.is_bound(key_stroke, &Action::Back) {
+            } else if key_map.is_bound(key_stroke, Action::Back) {
                 self.lists.pop();
-            } else if key_map.is_bound(key_stroke, &Action::Rerun) {
+            } else if key_map.is_bound(key_stroke, Action::Rerun) {
                 self.run_user_provided_cmdline();
-            } else if key_map.is_bound(key_stroke, &Action::PrevMatch) {
+            } else if key_map.is_bound(key_stroke, Action::PrevMatch) {
                 if let Some(Ok(regex)) = regex_result {
                     self.jump_to_prev_match(&regex);
                 }
-            } else if key_map.is_bound(key_stroke, &Action::NextMatch) {
+            } else if key_map.is_bound(key_stroke, Action::NextMatch) {
                 if let Some(Ok(regex)) = regex_result {
                     self.jump_to_next_match(&regex);
                 }
             } else if let Some(list) = self.lists.last_mut() {
-                list.handle_key(&key_stroke, key_map);
+                list.handle_key(key_stroke, key_map);
             }
         }
     }

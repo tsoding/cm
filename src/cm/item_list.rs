@@ -66,29 +66,29 @@ impl<T: ToString + Clone> ItemList<T> {
     }
 
     pub fn duplicate_after(&mut self) {
-        if let Some(item) = self.current_item().map(|x| x.clone()) {
+        if let Some(item) = self.current_item().cloned() {
             self.insert_after_current(item);
         }
     }
 
     pub fn duplicate_before(&mut self) {
-        if let Some(item) = self.current_item().map(|x| x.clone()) {
+        if let Some(item) = self.current_item().cloned() {
             self.insert_before_current(item);
         }
     }
 
-    pub fn handle_key(&mut self, key_stroke: &KeyStroke, key_map: &KeyMap) {
-        if key_map.is_bound(key_stroke, &Action::Down) {
+    pub fn handle_key(&mut self, key_stroke: KeyStroke, key_map: &KeyMap) {
+        if key_map.is_bound(key_stroke, Action::Down) {
             self.down();
-        } else if key_map.is_bound(key_stroke, &Action::Up) {
+        } else if key_map.is_bound(key_stroke, Action::Up) {
             self.up();
-        } else if key_map.is_bound(key_stroke, &Action::Right) {
+        } else if key_map.is_bound(key_stroke, Action::Right) {
             self.right();
-        } else if key_map.is_bound(key_stroke, &Action::Left) {
+        } else if key_map.is_bound(key_stroke, Action::Left) {
             self.left();
-        } else if key_map.is_bound(key_stroke, &Action::Delete) {
+        } else if key_map.is_bound(key_stroke, Action::Delete) {
             self.delete_current();
-        } else if key_map.is_bound(key_stroke, &Action::Home) {
+        } else if key_map.is_bound(key_stroke, Action::Home) {
             self.home();
         }
     }

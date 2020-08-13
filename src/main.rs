@@ -112,19 +112,19 @@ fn main() {
             };
 
             if global.key_map_settings {
-                key_map_settings.handle_key(&key_stroke, &mut profile.key_map, &mut global)
+                key_map_settings.handle_key(key_stroke, &mut profile.key_map, &mut global)
             } else if cmdline_edit_field.active {
                 cmdline_edit_field.handle_key(
-                    &key_stroke,
+                    key_stroke,
                     &profile.key_map,
                     &mut output_buffer,
                     &mut cursor,
                 );
-            } else if profile.key_map.is_bound(&key_stroke, &Action::EditCmdline) {
+            } else if profile.key_map.is_bound(key_stroke, Action::EditCmdline) {
                 cmdline_edit_field.activate(&output_buffer, &mut cursor);
             } else if !global.profile_pane {
                 output_buffer.handle_key(
-                    &key_stroke,
+                    key_stroke,
                     &profile.key_map,
                     &cmdline,
                     profile.current_regex(),
@@ -133,20 +133,20 @@ fn main() {
             } else {
                 match global.focus {
                     Focus::Output => output_buffer.handle_key(
-                        &key_stroke,
+                        key_stroke,
                         &profile.key_map,
                         &cmdline,
                         profile.current_regex(),
                         &mut global,
                     ),
                     Focus::Regexs => profile.regex_list.handle_key(
-                        &key_stroke,
+                        key_stroke,
                         &profile.key_map,
                         &mut global,
                         &mut cursor,
                     ),
                     Focus::Cmds => profile.cmd_list.handle_key(
-                        &key_stroke,
+                        key_stroke,
                         &profile.key_map,
                         &mut global,
                         &mut cursor,

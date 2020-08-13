@@ -34,12 +34,12 @@ impl KeyMapSettings {
             State::KeysOfAction => {
                 let (left, right) = rect.vertical_split(2);
                 self.list_of_actions.render(left, false);
-                self.keys_of_action.render(right, focused && true);
+                self.keys_of_action.render(right, focused);
             },
             State::SelectingKey => {
                 let (left, right) = rect.vertical_split(2);
                 self.list_of_actions.render(left, false);
-                self.keys_of_action.render(right, focused && true);
+                self.keys_of_action.render(right, focused);
 
                 let input = "<Input...>";
                 let Row {x, y, w} = self.keys_of_action.current_row(right);
@@ -56,42 +56,42 @@ impl KeyMapSettings {
         }
     }
 
-    pub fn handle_key(&mut self, key_stroke: &KeyStroke, key_map: &mut KeyMap, global: &mut Global) {
+    pub fn handle_key(&mut self, key_stroke: KeyStroke, key_map: &mut KeyMap, global: &mut Global) {
         if !global.handle_key(key_stroke, key_map) {
             match self.state {
                 State::KeysOfAction => {
-                    if key_map.is_bound(key_stroke, &Action::Back) {
+                    if key_map.is_bound(key_stroke, Action::Back) {
                         self.state = State::ListOfActions;
-                        key_map.update_keys_of_action(&ACTION_NAMES[self.list_of_actions.cursor_y].1, &self.keys_of_action.items);
-                    } else if key_map.is_bound(key_stroke, &Action::Up) {
+                        key_map.update_keys_of_action(ACTION_NAMES[self.list_of_actions.cursor_y].1, &self.keys_of_action.items);
+                    } else if key_map.is_bound(key_stroke, Action::Up) {
                         self.keys_of_action.up();
-                    } else if key_map.is_bound(key_stroke, &Action::Down) {
+                    } else if key_map.is_bound(key_stroke, Action::Down) {
                         self.keys_of_action.down();
-                    } else if key_map.is_bound(key_stroke, &Action::Delete) {
+                    } else if key_map.is_bound(key_stroke, Action::Delete) {
                         self.keys_of_action.delete_current();
-                    } else if key_map.is_bound(key_stroke, &Action::InsertAfterItem) {
+                    } else if key_map.is_bound(key_stroke, Action::InsertAfterItem) {
                         self.keys_of_action.insert_after_current(KeyStroke{key:0, alt: false});
                         self.state = State::SelectingKey;
                     }
                 },
                 State::ListOfActions => {
-                    if key_map.is_bound(key_stroke, &Action::Back) {
+                    if key_map.is_bound(key_stroke, Action::Back) {
                         global.key_map_settings = false;
-                    } else if key_map.is_bound(key_stroke, &Action::Up) {
+                    } else if key_map.is_bound(key_stroke, Action::Up) {
                         self.list_of_actions.up();
-                    } else if key_map.is_bound(key_stroke, &Action::Down) {
+                    } else if key_map.is_bound(key_stroke, Action::Down) {
                         self.list_of_actions.down();
-                    } else if key_map.is_bound(key_stroke, &Action::Accept) {
+                    } else if key_map.is_bound(key_stroke, Action::Accept) {
                         self.keys_of_action.items.clear();
                         self.keys_of_action.cursor_y = 0;
-                        for key_stroke in key_map.keys_of_action(&ACTION_NAMES[self.list_of_actions.cursor_y].1).iter() {
+                        for key_stroke in key_map.keys_of_action(ACTION_NAMES[self.list_of_actions.cursor_y].1).iter() {
                             self.keys_of_action.items.push(*key_stroke);
                         }
                         self.state = State::KeysOfAction;
                     }
                 },
                 State::SelectingKey => {
-                    self.keys_of_action.set_current_item(*key_stroke);
+                    self.keys_of_action.set_current_item(key_stroke);
                     self.state = State::KeysOfAction;
                 }
             }

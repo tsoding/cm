@@ -72,7 +72,7 @@ impl FromStr for Action {
         ACTION_NAMES
             .iter()
             .find(|(name, _)| *name == s)
-            .map(|(_, value)| value.clone())
+            .map(|(_, value)| *value)
             .ok_or(format!("Unknown action `{}`", s))
     }
 }
@@ -362,16 +362,16 @@ impl KeyMap {
         }
     }
 
-    pub fn is_bound(&self, key: &KeyStroke, action: &Action) -> bool {
+    pub fn is_bound(&self, key: KeyStroke, action: Action) -> bool {
         self.key_map
-            .get(action)
-            .and_then(|keys| keys.get(key))
+            .get(&action)
+            .and_then(|keys| keys.get(&key))
             .is_some()
     }
 
-    pub fn keys_of_action(&self, action: &Action) -> Vec<KeyStroke> {
+    pub fn keys_of_action(&self, action: Action) -> Vec<KeyStroke> {
         let mut result = Vec::new();
-        if let Some(keys) = self.key_map.get(action) {
+        if let Some(keys) = self.key_map.get(&action) {
             for key in keys.iter() {
                 result.push(*key)
             }
@@ -379,8 +379,8 @@ impl KeyMap {
         result
     }
 
-    pub fn update_keys_of_action(&mut self, action: &Action, new_keys: &[KeyStroke]) {
-        let keys = self.key_map.entry(*action).or_insert(BTreeSet::new());
+    pub fn update_keys_of_action(&mut self, action: Action, new_keys: &[KeyStroke]) {
+        let keys = self.key_map.entry(action).or_insert_with(BTreeSet::new);
         keys.clear();
         for key in new_keys {
             keys.insert(*key);
