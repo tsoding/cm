@@ -42,7 +42,6 @@ fn main() {
             .expect("Could not find path to configuration file")
     };
 
-
     let mut profile = if config_path.exists() {
         Profile::from_file(&config_path)
     } else {
@@ -183,7 +182,7 @@ fn main() {
             erase();
 
             if global.key_map_settings {
-                key_map_settings.render(Rect {x: 0, y: 0, w, h}, true);
+                key_map_settings.render(Rect { x: 0, y: 0, w, h }, true);
             } else {
                 if h >= 1 {
                     // NOTE: we are rerendering cmdline here because it could be changed by OutputBuffer
@@ -218,9 +217,11 @@ fn main() {
                         global.focus == Focus::Output,
                         profile.current_regex(),
                     );
-                    profile
-                        .regex_list
-                        .render(regex_rect, global.focus == Focus::Regexs, &mut cursor);
+                    profile.regex_list.render(
+                        regex_rect,
+                        global.focus == Focus::Regexs,
+                        &mut cursor,
+                    );
                     profile
                         .cmd_list
                         .render(cmd_rect, global.focus == Focus::Cmds, &mut cursor);

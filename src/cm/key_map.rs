@@ -65,7 +65,6 @@ pub const ACTION_NAMES: [(&str, Action); 26] = [
     ("open_key_map_settings", Action::OpenKeyMapSettings),
 ];
 
-
 impl FromStr for Action {
     type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -347,7 +346,7 @@ impl KeyMap {
                 key: 'K' as i32,
                 alt: false,
             },
-            Action::OpenKeyMapSettings
+            Action::OpenKeyMapSettings,
         );
         result
     }

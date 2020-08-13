@@ -42,7 +42,7 @@ pub struct Global {
     /// as soon as possible
     pub quit: bool,
     pub focus: Focus,
-    pub key_map_settings: bool
+    pub key_map_settings: bool,
 }
 
 impl Global {

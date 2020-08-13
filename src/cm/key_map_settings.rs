@@ -4,7 +4,7 @@ use ncurses::*;
 enum State {
     ListOfActions,
     KeysOfAction,
-    SelectingKey
+    SelectingKey,
 }
 
 pub struct KeyMapSettings {
@@ -35,14 +35,14 @@ impl KeyMapSettings {
                 let (left, right) = rect.vertical_split(2);
                 self.list_of_actions.render(left, false);
                 self.keys_of_action.render(right, focused);
-            },
+            }
             State::SelectingKey => {
                 let (left, right) = rect.vertical_split(2);
                 self.list_of_actions.render(left, false);
                 self.keys_of_action.render(right, focused);
 
                 let input = "<Input...>";
-                let Row {x, y, w} = self.keys_of_action.current_row(right);
+                let Row { x, y, w } = self.keys_of_action.current_row(right);
                 let pair = if focused {
                     CURSOR_PAIR
                 } else {
@@ -52,7 +52,7 @@ impl KeyMapSettings {
                 attron(COLOR_PAIR(pair));
                 addstr(input.get(..w).unwrap_or(input));
                 attroff(COLOR_PAIR(pair));
-            },
+            }
         }
     }
 
@@ -62,7 +62,10 @@ impl KeyMapSettings {
                 State::KeysOfAction => {
                     if key_map.is_bound(key_stroke, Action::Back) {
                         self.state = State::ListOfActions;
-                        key_map.update_keys_of_action(ACTION_NAMES[self.list_of_actions.cursor_y].1, &self.keys_of_action.items);
+                        key_map.update_keys_of_action(
+                            ACTION_NAMES[self.list_of_actions.cursor_y].1,
+                            &self.keys_of_action.items,
+                        );
                     } else if key_map.is_bound(key_stroke, Action::Up) {
                         self.keys_of_action.up();
                     } else if key_map.is_bound(key_stroke, Action::Down) {
@@ -70,10 +73,11 @@ impl KeyMapSettings {
                     } else if key_map.is_bound(key_stroke, Action::Delete) {
                         self.keys_of_action.delete_current();
                     } else if key_map.is_bound(key_stroke, Action::InsertAfterItem) {
-                        self.keys_of_action.insert_after_current(KeyStroke{key:0, alt: false});
+                        self.keys_of_action
+                            .insert_after_current(KeyStroke { key: 0, alt: false });
                         self.state = State::SelectingKey;
                     }
-                },
+                }
                 State::ListOfActions => {
                     if key_map.is_bound(key_stroke, Action::Back) {
                         global.key_map_settings = false;
@@ -84,12 +88,15 @@ impl KeyMapSettings {
                     } else if key_map.is_bound(key_stroke, Action::Accept) {
                         self.keys_of_action.items.clear();
                         self.keys_of_action.cursor_y = 0;
-                        for key_stroke in key_map.keys_of_action(ACTION_NAMES[self.list_of_actions.cursor_y].1).iter() {
+                        for key_stroke in key_map
+                            .keys_of_action(ACTION_NAMES[self.list_of_actions.cursor_y].1)
+                            .iter()
+                        {
                             self.keys_of_action.items.push(*key_stroke);
                         }
                         self.state = State::KeysOfAction;
                     }
-                },
+                }
                 State::SelectingKey => {
                     self.keys_of_action.set_current_item(key_stroke);
                     self.state = State::KeysOfAction;
