@@ -42,13 +42,14 @@ fn main() {
             .expect("Could not find path to configuration file")
     };
 
-    let mut key_map_settings = KeyMapSettings::new();
 
     let mut profile = if config_path.exists() {
         Profile::from_file(&config_path)
     } else {
         Profile::initial()
     };
+
+    let mut key_map_settings = KeyMapSettings::new();
 
     let mut global = Global::new();
 

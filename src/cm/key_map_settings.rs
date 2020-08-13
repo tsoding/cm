@@ -1,47 +1,59 @@
 use super::*;
 
 pub struct KeyMapSettings {
-    pub list: ItemList,
-    pub selector: KeyStrokeSelector,
-    pub dropdown: DropdownMenu
+    pub list_of_actions: ItemList,
+    pub keys_of_action: ItemList,
+    pub editing_action: bool,
 }
 
 impl KeyMapSettings {
     pub fn new() -> Self {
-        let mut list = ItemList::new();
-        list.items.push(String::from("hello"));
-        list.items.push(String::from("world"));
-        list.items.push(String::from("foo"));
-        list.items.push(String::from("bar"));
-        list.items.push(String::from("baz"));
+        let mut result = Self {
+            list_of_actions: ItemList::new(),
+            keys_of_action: ItemList::new(),
+            editing_action: false,
+        };
 
-        let mut dropdown = DropdownMenu::new();
-        dropdown.push(String::from("foo"));
-        dropdown.push(String::from("bar"));
-        dropdown.push(String::from("baz"));
-
-        Self {
-            list,
-            selector: KeyStrokeSelector::new(),
-            dropdown
+        for (name, _) in ACTION_NAMES.iter() {
+            result.list_of_actions.items.push(String::from(*name));
         }
+
+        result
     }
 
-    pub fn render(&self, Rect {x, y, w, h: _}: Rect, _focused: bool) {
-        // self.list.render(rect, focused)
+    pub fn render(&self, rect: Rect, focused: bool) {
         // TODO: introduce some sort of functions to Rect that takes nth row of the Rect
-        // self.selector.render(Row {x, y, w});
-        self.dropdown.render(Row {x, y, w});
+        if self.editing_action {
+            self.keys_of_action.render(rect, focused);
+        } else {
+            self.list_of_actions.render(rect, focused)
+        }
     }
 
     pub fn handle_key(&mut self, key_stroke: &KeyStroke, key_map: &KeyMap, global: &mut Global) {
         if !global.handle_key(key_stroke, key_map) {
-            if key_map.is_bound(key_stroke, &Action::Cancel) {
-                global.key_map_settings = false;
+            if self.editing_action {
+                if key_map.is_bound(key_stroke, &Action::Back) {
+                    self.editing_action = false;
+                } else if key_map.is_bound(key_stroke, &Action::Up) {
+                    self.keys_of_action.up();
+                } else if key_map.is_bound(key_stroke, &Action::Down) {
+                    self.keys_of_action.down();
+                }
             } else {
-                // self.list.handle_key(key_stroke, key_map);
-                // self.selector.handle_key(key_stroke, key_map);
-                self.dropdown.handle_key(key_stroke, key_map);
+                if key_map.is_bound(key_stroke, &Action::Back) {
+                    global.key_map_settings = false;
+                } else if key_map.is_bound(key_stroke, &Action::Up) {
+                    self.list_of_actions.up();
+                } else if key_map.is_bound(key_stroke, &Action::Down) {
+                    self.list_of_actions.down();
+                } else if key_map.is_bound(key_stroke, &Action::Accept) {
+                    self.keys_of_action.items.clear();
+                    for key_stroke in key_map.keys_of_action(&ACTION_NAMES[self.list_of_actions.cursor_y].1).iter() {
+                        self.keys_of_action.items.push(key_stroke.to_string());
+                    }
+                    self.editing_action = true;
+                }
             }
         }
     }
