@@ -452,6 +452,7 @@ impl FromStr for KeyStroke {
 
 impl ToString for KeyStroke {
     fn to_string(&self) -> String {
+        // TODO(#156): Human readable KeyStroke serialization format is required
         format!("key:{}{}", self.key, if self.alt { ",alt" } else { "" })
     }
 }
