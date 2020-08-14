@@ -1,7 +1,7 @@
 use super::*;
 use pcre2::bytes::Regex;
 use std::fs::read_to_string;
-use std::io::Write;
+use std::io;
 use std::path::Path;
 use std::str::FromStr;
 use std::string::ToString;
@@ -65,7 +65,7 @@ impl Profile {
                     }
                     key => {
                         let key_stroke = KeyStroke::from_str(key).unwrap();
-                        let action = Action::from_str(value).unwrap();
+                        let action = action::from_str(value).unwrap();
                         result.key_map.bind(key_stroke, action);
                     }
                 }
@@ -85,26 +85,21 @@ impl Profile {
         result
     }
 
-    pub fn to_file<F: Write>(&self, stream: &mut F) {
-        let error_message = "Could not save configuration";
-
+    pub fn to_file<F: io::Write>(&self, stream: &mut F) -> io::Result<()> {
         for regex in self.regex_list.list.items.iter() {
-            writeln!(stream, "regexs = {}", regex).expect(error_message);
+            writeln!(stream, "regexs = {}", regex)?;
         }
 
         for cmd in self.cmd_list.list.items.iter() {
-            writeln!(stream, "cmds = {}", cmd).expect(error_message);
+            writeln!(stream, "cmds = {}", cmd)?;
         }
 
-        writeln!(stream, "current_regex = {}", self.regex_list.list.cursor_y).expect(error_message);
-        writeln!(stream, "current_cmd = {}", self.cmd_list.list.cursor_y).expect(error_message);
+        writeln!(stream, "current_regex = {}", self.regex_list.list.cursor_y)?;
+        writeln!(stream, "current_cmd = {}", self.cmd_list.list.cursor_y)?;
 
-        for (key, actions) in &self.key_map.key_map {
-            for action in actions {
-                writeln!(stream, "{} = {}", action.to_string(), key.to_string())
-                    .expect(error_message);
-            }
-        }
+        self.key_map.to_file(stream)?;
+
+        Ok(())
     }
 
     pub fn current_regex(&self) -> Option<Result<Regex, pcre2::Error>> {

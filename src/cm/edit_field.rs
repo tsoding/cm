@@ -56,11 +56,11 @@ impl EditField {
     pub fn handle_key(&mut self, key_stroke: KeyStroke, key_map: &KeyMap) {
         if 32 <= key_stroke.key && key_stroke.key <= 126 {
             self.insert_char(key_stroke.key as u8 as char);
-        } else if key_map.is_bound(key_stroke, Action::Right) {
+        } else if key_map.is_bound(key_stroke, action::RIGHT) {
             self.right();
-        } else if key_map.is_bound(key_stroke, Action::Left) {
+        } else if key_map.is_bound(key_stroke, action::LEFT) {
             self.left();
-        } else if key_map.is_bound(key_stroke, Action::BackDelete) {
+        } else if key_map.is_bound(key_stroke, action::BACK_DELETE) {
             self.backspace();
         }
     }

@@ -56,19 +56,19 @@ impl Global {
     }
 
     pub fn handle_key(&mut self, key_stroke: KeyStroke, key_map: &KeyMap) -> bool {
-        if key_map.is_bound(key_stroke, Action::ToggleProfilePanel) {
+        if key_map.is_bound(key_stroke, action::TOGGLE_PROFILE_PANEL) {
             self.profile_pane = !self.profile_pane;
             true
-        } else if key_map.is_bound(key_stroke, Action::Quit) {
+        } else if key_map.is_bound(key_stroke, action::QUIT) {
             self.quit = true;
             true
-        } else if key_map.is_bound(key_stroke, Action::FocusForward) {
+        } else if key_map.is_bound(key_stroke, action::FOCUS_FORWARD) {
             self.focus = self.focus.next();
             true
-        } else if key_map.is_bound(key_stroke, Action::FocusBackward) {
+        } else if key_map.is_bound(key_stroke, action::FOCUS_BACKWARD) {
             self.focus = self.focus.prev();
             true
-        } else if key_map.is_bound(key_stroke, Action::OpenKeyMapSettings) {
+        } else if key_map.is_bound(key_stroke, action::OPEN_KEY_MAP_SETTINGS) {
             self.key_map_settings = true;
             true
         } else {

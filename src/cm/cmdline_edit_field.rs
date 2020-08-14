@@ -52,9 +52,9 @@ impl CmdlineEditField {
         cursor: &mut Cursor,
     ) {
         if self.active {
-            if key_map.is_bound(key, Action::Accept) {
+            if key_map.is_bound(key, action::ACCEPT) {
                 self.accept_editing(output_buffer, cursor);
-            } else if key_map.is_bound(key, Action::Cancel) {
+            } else if key_map.is_bound(key, action::CANCEL) {
                 self.cancel_editing(cursor);
             } else {
                 self.edit_field.handle_key(key, key_map);
