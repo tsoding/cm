@@ -78,17 +78,17 @@ impl<T: ToString + Clone> ItemList<T> {
     }
 
     pub fn handle_key(&mut self, key_stroke: KeyStroke, key_map: &KeyMap) {
-        if key_map.is_bound(key_stroke, Action::Down) {
+        if key_map.is_bound(key_stroke, action::DOWN) {
             self.down();
-        } else if key_map.is_bound(key_stroke, Action::Up) {
+        } else if key_map.is_bound(key_stroke, action::UP) {
             self.up();
-        } else if key_map.is_bound(key_stroke, Action::Right) {
+        } else if key_map.is_bound(key_stroke, action::RIGHT) {
             self.right();
-        } else if key_map.is_bound(key_stroke, Action::Left) {
+        } else if key_map.is_bound(key_stroke, action::LEFT) {
             self.left();
-        } else if key_map.is_bound(key_stroke, Action::Delete) {
+        } else if key_map.is_bound(key_stroke, action::DELETE) {
             self.delete_current();
-        } else if key_map.is_bound(key_stroke, Action::Home) {
+        } else if key_map.is_bound(key_stroke, action::HOME) {
             self.home();
         }
     }

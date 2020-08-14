@@ -251,23 +251,23 @@ impl OutputBuffer {
         global: &mut Global,
     ) {
         if !global.handle_key(key_stroke, key_map) {
-            if key_map.is_bound(key_stroke, Action::RunIntoItself) {
+            if key_map.is_bound(key_stroke, action::RUN_INTO_ITSELF) {
                 if let Some(cmdline) = cmdline_result {
                     self.run_cmdline(cmdline.clone());
                 }
-            } else if key_map.is_bound(key_stroke, Action::Run) {
+            } else if key_map.is_bound(key_stroke, action::RUN) {
                 if let Some(cmdline) = cmdline_result {
                     self.fork_cmdline(cmdline.clone());
                 }
-            } else if key_map.is_bound(key_stroke, Action::Back) {
+            } else if key_map.is_bound(key_stroke, action::BACK) {
                 self.lists.pop();
-            } else if key_map.is_bound(key_stroke, Action::Rerun) {
+            } else if key_map.is_bound(key_stroke, action::RERUN) {
                 self.run_user_provided_cmdline();
-            } else if key_map.is_bound(key_stroke, Action::PrevMatch) {
+            } else if key_map.is_bound(key_stroke, action::PREV_MATCH) {
                 if let Some(Ok(regex)) = regex_result {
                     self.jump_to_prev_match(&regex);
                 }
-            } else if key_map.is_bound(key_stroke, Action::NextMatch) {
+            } else if key_map.is_bound(key_stroke, action::NEXT_MATCH) {
                 if let Some(Ok(regex)) = regex_result {
                     self.jump_to_next_match(&regex);
                 }

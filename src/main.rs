@@ -119,7 +119,7 @@ fn main() {
                     &mut output_buffer,
                     &mut cursor,
                 );
-            } else if profile.key_map.is_bound(key_stroke, Action::EditCmdline) {
+            } else if profile.key_map.is_bound(key_stroke, action::EDIT_CMDLINE) {
                 cmdline_edit_field.activate(&output_buffer, &mut cursor);
             } else if !global.profile_pane {
                 output_buffer.handle_key(
@@ -246,5 +246,5 @@ fn main() {
     endwin();
 
     config_path.parent().map(create_dir_all);
-    profile.to_file(&mut File::create(config_path).expect("Could not open configuration file"));
+    profile.to_file(&mut File::create(config_path).expect("Could not open configuration file")).expect("Could not save configuration");
 }
