@@ -58,7 +58,7 @@ fn main() {
         visible: false,
     };
 
-    let mut cmdline_edit_field = CmdlineEditField::new();
+    let mut bottom_edit_field = BottomEditField::new();
 
     let mut output_buffer = OutputBuffer::new(std::env::args().nth(1));
 
@@ -112,15 +112,15 @@ fn main() {
 
             if global.key_map_settings {
                 key_map_settings.handle_key(key_stroke, &mut profile.key_map, &mut global)
-            } else if cmdline_edit_field.active {
-                cmdline_edit_field.handle_key(
+            } else if bottom_edit_field.active {
+                bottom_edit_field.handle_key(
                     key_stroke,
                     &profile.key_map,
                     &mut output_buffer,
                     &mut cursor,
                 );
             } else if profile.key_map.is_bound(key_stroke, action::EDIT_CMDLINE) {
-                cmdline_edit_field.activate(&output_buffer, &mut cursor);
+                bottom_edit_field.activate(&output_buffer, &mut cursor);
             } else if !global.profile_pane {
                 output_buffer.handle_key(
                     key_stroke,
@@ -229,7 +229,7 @@ fn main() {
                     output_buffer.render(working_rect, true, profile.current_regex());
                 }
 
-                cmdline_edit_field.render(Row { x: 0, y: h - 1, w }, &mut cursor);
+                bottom_edit_field.render(Row { x: 0, y: h - 1, w }, &mut cursor);
             }
 
             cursor.sync();

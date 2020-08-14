@@ -1,11 +1,11 @@
 use super::*;
 
-pub struct CmdlineEditField {
+pub struct BottomEditField {
     pub edit_field: EditField,
     pub active: bool,
 }
 
-impl CmdlineEditField {
+impl BottomEditField {
     pub fn new() -> Self {
         Self {
             edit_field: EditField::new(),
