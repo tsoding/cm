@@ -127,7 +127,7 @@ fn main() {
                             }
                         }
                         BottomState::Nothing => {
-                            assert!(false, "Unexpected bottom state");
+                            unreachable!("Unexpected bottom state");
                         }
                     }
                     global.bottom_state = BottomState::Nothing;
