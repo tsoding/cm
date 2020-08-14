@@ -27,7 +27,8 @@ pub const NEXT_MATCH: Type = 22;
 pub const PREV_MATCH: Type = 23;
 pub const EDIT_CMDLINE: Type = 24;
 pub const OPEN_KEY_MAP_SETTINGS: Type = 25;
-pub const LEN: usize = 26;
+pub const START_SEARCH: Type = 26;
+pub const LEN: usize = 27;
 
 pub const NAMES: [&str; LEN] = [
     "up",
@@ -56,6 +57,7 @@ pub const NAMES: [&str; LEN] = [
     "prev_match",
     "edit_cmdline",
     "open_key_map_settings",
+    "start_search",
 ];
 
 pub fn from_str(s: &str) -> Result<Type, String> {

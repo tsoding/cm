@@ -112,11 +112,24 @@ fn main() {
 
             if global.key_map_settings {
                 key_map_settings.handle_key(key_stroke, &mut profile.key_map, &mut global)
-            } else if global.bottom_state == BottomState::Cmdline {
+            } else if global.bottom_state != BottomState::Nothing {
                 if profile.key_map.is_bound(key_stroke, action::ACCEPT) {
                     bottom_edit_field.stop_editing(&mut cursor);
-                    output_buffer.user_provided_cmdline = Some(bottom_edit_field.edit_field.buffer.clone());
-                    output_buffer.run_user_provided_cmdline();
+
+                    match global.bottom_state {
+                        BottomState::Cmdline => {
+                            output_buffer.user_provided_cmdline = Some(bottom_edit_field.edit_field.buffer.clone());
+                            output_buffer.run_user_provided_cmdline();
+                        }
+                        BottomState::Search => {
+                            if let Ok(regex) = Regex::new(bottom_edit_field.edit_field.buffer.as_str()) {
+                                output_buffer.jump_to_next_match(&regex);
+                            }
+                        }
+                        BottomState::Nothing => {
+                            assert!(false, "Unexpected bottom state");
+                        }
+                    }
                     global.bottom_state = BottomState::Nothing;
                 } else if profile.key_map.is_bound(key_stroke, action::CANCEL) {
                     bottom_edit_field.stop_editing(&mut cursor);
@@ -132,6 +145,10 @@ fn main() {
                 bottom_edit_field.activate(
                     &mut cursor, 
                     output_buffer.user_provided_cmdline.clone().unwrap_or_else(String::new));
+            } else if profile.key_map.is_bound(key_stroke, action::START_SEARCH) {
+                // TODO: cm search does not support jumping to next/previous matches
+                global.bottom_state = BottomState::Search;
+                bottom_edit_field.activate(&mut cursor, String::new());
             } else if !global.profile_pane {
                 output_buffer.handle_key(
                     key_stroke,

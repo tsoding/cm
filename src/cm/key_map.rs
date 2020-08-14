@@ -266,6 +266,13 @@ impl KeyMap {
             },
             action::OPEN_KEY_MAP_SETTINGS,
         );
+        result.bind(
+            KeyStroke {
+                key: '/' as i32,
+                alt: false
+            },
+            action::START_SEARCH
+        );
         result
     }
 
