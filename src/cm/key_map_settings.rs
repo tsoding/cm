@@ -94,9 +94,8 @@ impl KeyMapSettings {
                     } else if key_map.is_bound(key_stroke, action::ACCEPT) {
                         self.keys_of_action.items.clear();
                         self.keys_of_action.cursor_y = 0;
-                        for key_stroke in key_map
-                            .keys_of_action(self.list_of_actions.cursor_y)
-                            .iter()
+                        for key_stroke in
+                            key_map.keys_of_action(self.list_of_actions.cursor_y).iter()
                         {
                             self.keys_of_action.items.push(*key_stroke);
                         }

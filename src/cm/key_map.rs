@@ -1,8 +1,8 @@
 use ncurses::*;
 use std::collections::BTreeSet;
+use std::io;
 use std::str::FromStr;
 use std::string::ToString;
-use std::io;
 
 pub const KEY_ESCAPE: i32 = 0x1B;
 

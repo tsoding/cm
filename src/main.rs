@@ -246,5 +246,7 @@ fn main() {
     endwin();
 
     config_path.parent().map(create_dir_all);
-    profile.to_file(&mut File::create(config_path).expect("Could not open configuration file")).expect("Could not save configuration");
+    profile
+        .to_file(&mut File::create(config_path).expect("Could not open configuration file"))
+        .expect("Could not save configuration");
 }
