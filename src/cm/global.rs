@@ -34,6 +34,13 @@ impl Focus {
     }
 }
 
+#[derive(PartialEq)]
+pub enum BottomState {
+    Nothing,
+    Cmdline,
+    Search,
+}
+
 pub struct Global {
     /// Indicates that the Profile Panel, that contains Regex and Cmd
     /// lists is visible
@@ -43,6 +50,7 @@ pub struct Global {
     pub quit: bool,
     pub focus: Focus,
     pub key_map_settings: bool,
+    pub bottom_state: BottomState,
 }
 
 impl Global {
@@ -52,6 +60,7 @@ impl Global {
             quit: false,
             focus: Focus::Output,
             key_map_settings: false,
+            bottom_state: BottomState::Nothing,
         }
     }
 
