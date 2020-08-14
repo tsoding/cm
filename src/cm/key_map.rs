@@ -1,8 +1,8 @@
+use super::*;
 use ncurses::*;
 use std::collections::BTreeSet;
 use std::io;
 use std::string::ToString;
-use super::*;
 
 // TODO(#152): KeyMap is not configuration right from the application
 pub struct KeyMap {

@@ -1,3 +1,4 @@
+pub mod action;
 mod cmdline_edit_field;
 mod cursor;
 mod edit_field;
@@ -6,12 +7,11 @@ mod global;
 mod item_list;
 mod key_map;
 mod key_map_settings;
+mod key_stroke;
 mod output_buffer;
 mod profile;
 mod string_list;
 mod style;
-pub mod action;
-mod key_stroke;
 
 pub use self::cmdline_edit_field::*;
 pub use self::cursor::*;
@@ -21,8 +21,8 @@ pub use self::global::*;
 pub use self::item_list::*;
 pub use self::key_map::*;
 pub use self::key_map_settings::*;
+pub use self::key_stroke::*;
 pub use self::output_buffer::*;
 pub use self::profile::*;
 pub use self::string_list::*;
 pub use self::style::*;
-pub use self::key_stroke::*;
