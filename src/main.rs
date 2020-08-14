@@ -112,15 +112,26 @@ fn main() {
 
             if global.key_map_settings {
                 key_map_settings.handle_key(key_stroke, &mut profile.key_map, &mut global)
-            } else if bottom_edit_field.active {
-                bottom_edit_field.handle_key(
-                    key_stroke,
-                    &profile.key_map,
-                    &mut output_buffer,
-                    &mut cursor,
-                );
+            } else if global.bottom_state == BottomState::Cmdline {
+                if profile.key_map.is_bound(key_stroke, action::ACCEPT) {
+                    bottom_edit_field.stop_editing(&mut cursor);
+                    output_buffer.user_provided_cmdline = Some(bottom_edit_field.edit_field.buffer.clone());
+                    output_buffer.run_user_provided_cmdline();
+                    global.bottom_state = BottomState::Nothing;
+                } else if profile.key_map.is_bound(key_stroke, action::CANCEL) {
+                    bottom_edit_field.stop_editing(&mut cursor);
+                    global.bottom_state = BottomState::Nothing;
+                } else {
+                    bottom_edit_field.handle_key(
+                        key_stroke,
+                        &profile.key_map,
+                    );
+                }
             } else if profile.key_map.is_bound(key_stroke, action::EDIT_CMDLINE) {
-                bottom_edit_field.activate(&output_buffer, &mut cursor);
+                global.bottom_state = BottomState::Cmdline;
+                bottom_edit_field.activate(
+                    &mut cursor, 
+                    output_buffer.user_provided_cmdline.clone().unwrap_or_else(String::new));
             } else if !global.profile_pane {
                 output_buffer.handle_key(
                     key_stroke,
@@ -229,7 +240,9 @@ fn main() {
                     output_buffer.render(working_rect, true, profile.current_regex());
                 }
 
-                bottom_edit_field.render(Row { x: 0, y: h - 1, w }, &mut cursor);
+                if global.bottom_state != BottomState::Nothing {
+                    bottom_edit_field.render(Row { x: 0, y: h - 1, w }, &mut cursor);
+                }
             }
 
             cursor.sync();
