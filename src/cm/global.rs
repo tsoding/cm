@@ -38,7 +38,7 @@ impl Focus {
 pub enum BottomState {
     Nothing,
     Cmdline,
-    Search
+    Search,
 }
 
 pub struct Global {
@@ -60,7 +60,7 @@ impl Global {
             quit: false,
             focus: Focus::Output,
             key_map_settings: false,
-            bottom_state: BottomState::Nothing
+            bottom_state: BottomState::Nothing,
         }
     }
 

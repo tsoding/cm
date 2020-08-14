@@ -269,9 +269,9 @@ impl KeyMap {
         result.bind(
             KeyStroke {
                 key: '/' as i32,
-                alt: false
+                alt: false,
             },
-            action::START_SEARCH
+            action::START_SEARCH,
         );
         result
     }

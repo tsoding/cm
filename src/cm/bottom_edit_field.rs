@@ -25,11 +25,7 @@ impl BottomEditField {
         cursor.visible = false;
     }
 
-    pub fn handle_key(
-        &mut self,
-        key: KeyStroke,
-        key_map: &KeyMap,
-    ) {
+    pub fn handle_key(&mut self, key: KeyStroke, key_map: &KeyMap) {
         self.edit_field.handle_key(key, key_map);
     }
 }

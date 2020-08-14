@@ -118,11 +118,14 @@ fn main() {
 
                     match global.bottom_state {
                         BottomState::Cmdline => {
-                            output_buffer.user_provided_cmdline = Some(bottom_edit_field.edit_field.buffer.clone());
+                            output_buffer.user_provided_cmdline =
+                                Some(bottom_edit_field.edit_field.buffer.clone());
                             output_buffer.run_user_provided_cmdline();
                         }
                         BottomState::Search => {
-                            if let Ok(regex) = Regex::new(bottom_edit_field.edit_field.buffer.as_str()) {
+                            if let Ok(regex) =
+                                Regex::new(bottom_edit_field.edit_field.buffer.as_str())
+                            {
                                 output_buffer.jump_to_next_match(&regex);
                             }
                         }
@@ -135,16 +138,17 @@ fn main() {
                     bottom_edit_field.stop_editing(&mut cursor);
                     global.bottom_state = BottomState::Nothing;
                 } else {
-                    bottom_edit_field.handle_key(
-                        key_stroke,
-                        &profile.key_map,
-                    );
+                    bottom_edit_field.handle_key(key_stroke, &profile.key_map);
                 }
             } else if profile.key_map.is_bound(key_stroke, action::EDIT_CMDLINE) {
                 global.bottom_state = BottomState::Cmdline;
                 bottom_edit_field.activate(
-                    &mut cursor, 
-                    output_buffer.user_provided_cmdline.clone().unwrap_or_else(String::new));
+                    &mut cursor,
+                    output_buffer
+                        .user_provided_cmdline
+                        .clone()
+                        .unwrap_or_else(String::new),
+                );
             } else if profile.key_map.is_bound(key_stroke, action::START_SEARCH) {
                 // TODO: cm search does not support jumping to next/previous matches
                 global.bottom_state = BottomState::Search;
