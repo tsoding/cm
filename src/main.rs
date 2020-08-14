@@ -150,7 +150,7 @@ fn main() {
                         .unwrap_or_else(String::new),
                 );
             } else if profile.key_map.is_bound(key_stroke, action::START_SEARCH) {
-                // TODO: cm search does not support jumping to next/previous matches
+                // TODO(#160): cm search does not support jumping to next/previous matches
                 global.bottom_state = BottomState::Search;
                 bottom_edit_field.activate(&mut cursor, String::new());
             } else if !global.profile_pane {
