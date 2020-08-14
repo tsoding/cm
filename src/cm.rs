@@ -10,6 +10,7 @@ mod output_buffer;
 mod profile;
 mod string_list;
 mod style;
+pub mod action;
 
 pub use self::cmdline_edit_field::*;
 pub use self::cursor::*;
