@@ -205,7 +205,7 @@ pub fn key_of_name(name: &str) -> Result<i32, String> {
         Ok(key as i32)
     } else if let Some((key, _)) = NCURSES_KEY_NAMES.iter().find(|(_, ncurses_name)| *ncurses_name == name) {
         Ok(*key as i32)
-    } else if name.starts_with("#") {
+    } else if name.starts_with('#') {
         name[1..].parse::<i32>().map_err(|e| e.to_string())
     } else {
         Err("Not a key name".to_string())
