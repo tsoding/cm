@@ -77,6 +77,14 @@ impl<T: ToString + Clone> ItemList<T> {
         }
     }
 
+    pub fn jump_to_start(&mut self) {
+        self.cursor_y = 0;
+    }
+
+    pub fn jump_to_end(&mut self) {
+        self.cursor_y = self.items.len() - 1;
+    }
+
     pub fn handle_key(&mut self, key_stroke: KeyStroke, key_map: &KeyMap) {
         if key_map.is_bound(key_stroke, action::DOWN) {
             self.down();
@@ -90,6 +98,10 @@ impl<T: ToString + Clone> ItemList<T> {
             self.delete_current();
         } else if key_map.is_bound(key_stroke, action::HOME) {
             self.home();
+        } else if key_map.is_bound(key_stroke, action::JUMP_TO_START) {
+            self.jump_to_start();
+        } else if key_map.is_bound(key_stroke, action::JUMP_TO_END) {
+            self.jump_to_end();
         }
     }
 
