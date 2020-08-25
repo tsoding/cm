@@ -50,12 +50,12 @@ fn main() {
 
     let mut key_map_settings = KeyMapSettings::new();
 
-    let mut global = Global::new();
+    let mut global = Global::new(std::env::args().nth(1));
 
-    let mut output_buffer = OutputBuffer::new(std::env::args().nth(1));
+    let mut output_buffer = OutputBuffer::new();
 
-    if output_buffer.user_provided_cmdline.is_some() {
-        output_buffer.run_user_provided_cmdline();
+    if let Some(cmdline) = global.user_provided_cmdline.clone() {
+        output_buffer.run_cmdline(cmdline);
     }
 
     initscr();
@@ -110,9 +110,9 @@ fn main() {
 
                     match global.bottom_state {
                         BottomState::Cmdline => {
-                            output_buffer.user_provided_cmdline =
+                            global.user_provided_cmdline =
                                 Some(global.bottom_edit_field.edit_field.buffer.clone());
-                            output_buffer.run_user_provided_cmdline();
+                            output_buffer.run_cmdline(global.bottom_edit_field.edit_field.buffer.clone());
                         }
                         BottomState::Search => {
                             if let Ok(regex) =
@@ -136,7 +136,7 @@ fn main() {
                 global.bottom_state = BottomState::Cmdline;
                 global.bottom_edit_field.activate(
                     &mut global.cursor,
-                    output_buffer
+                    global
                         .user_provided_cmdline
                         .clone()
                         .unwrap_or_else(String::new),

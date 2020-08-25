@@ -53,10 +53,13 @@ pub struct Global {
     pub bottom_state: BottomState,
     pub bottom_edit_field: BottomEditField,
     pub cursor: Cursor,
+    /// user_provided_cmdline is the line provided by the user through the CLI of cm:
+    /// `cm <user_provided_cmdline>`
+    pub user_provided_cmdline: Option<String>,
 }
 
 impl Global {
-    pub fn new() -> Self {
+    pub fn new(user_provided_cmdline: Option<String>) -> Self {
         Self {
             profile_pane: false,
             quit: false,
@@ -64,7 +67,8 @@ impl Global {
             key_map_settings: false,
             bottom_state: BottomState::Nothing,
             bottom_edit_field: BottomEditField::new(),
-            cursor: Cursor::new()
+            cursor: Cursor::new(),
+            user_provided_cmdline: user_provided_cmdline,
         }
     }
 
