@@ -14,10 +14,13 @@ impl KeyStroke {
         match getch() {
             -1 => None,
             KEY_ESCAPE => match getch() {
-                -1 => Some(Self { key: KEY_ESCAPE, alt: false }),
+                -1 => Some(Self {
+                    key: KEY_ESCAPE,
+                    alt: false,
+                }),
                 key => Some(Self { key, alt: true }),
             },
-            key => Some(Self { key, alt: false })
+            key => Some(Self { key, alt: false }),
         }
     }
 }
