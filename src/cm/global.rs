@@ -52,6 +52,7 @@ pub struct Global {
     pub key_map_settings: bool,
     pub bottom_state: BottomState,
     pub bottom_edit_field: BottomEditField,
+    pub cursor: Cursor,
 }
 
 impl Global {
@@ -63,6 +64,7 @@ impl Global {
             key_map_settings: false,
             bottom_state: BottomState::Nothing,
             bottom_edit_field: BottomEditField::new(),
+            cursor: Cursor::new()
         }
     }
 
