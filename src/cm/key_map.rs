@@ -273,6 +273,20 @@ impl KeyMap {
             },
             action::START_SEARCH,
         );
+        result.bind(
+            KeyStroke {
+                key: 'g' as i32,
+                alt: false,
+            },
+            action::JUMP_TO_START,
+        );
+        result.bind(
+            KeyStroke {
+                key: 'G' as i32,
+                alt: false,
+            },
+            action::JUMP_TO_END,
+        );
         result
     }
 
