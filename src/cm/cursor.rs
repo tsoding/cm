@@ -8,6 +8,14 @@ pub struct Cursor {
 }
 
 impl Cursor {
+    pub fn new() -> Self {
+        Self {
+            visible: false,
+            x: 0,
+            y: 0,
+        }
+    }
+
     pub fn sync(&self) {
         curs_set(if self.visible {
             CURSOR_VISIBLE

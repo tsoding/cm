@@ -21,17 +21,13 @@ pub struct OutputBuffer {
     /// currently running process that generates data for OutputBuffer.
     /// See [OutputBuffer::poll_cmdline_output](struct.OutputBuffer.html#method.poll_cmdline_output)
     pub child: Option<(BufReader<PipeReader>, Child)>,
-    /// user_provided_cmdline is the line provided by the user through the CLI of cm:
-    /// `cm <user_provided_cmdline>`
-    pub user_provided_cmdline: Option<String>,
 }
 
 impl OutputBuffer {
-    pub fn new(user_provided_cmdline: Option<String>) -> Self {
+    pub fn new() -> Self {
         Self {
             lists: Vec::new(),
             child: None,
-            user_provided_cmdline,
         }
     }
 
@@ -181,12 +177,6 @@ impl OutputBuffer {
             .expect("Error waiting for output of child process");
     }
 
-    pub fn run_user_provided_cmdline(&mut self) {
-        if let Some(cmdline) = self.user_provided_cmdline.clone() {
-            self.run_cmdline(cmdline)
-        }
-    }
-
     /// Polls changes from the currently running child (see
     /// [OutputBuffer::run_cmdline](struct.OutputBuffer.html#method.run_cmdline),
     /// [OutputBuffer::child](struct.OutputBuffer.html#structfield.child)).
@@ -262,7 +252,9 @@ impl OutputBuffer {
             } else if key_map.is_bound(key_stroke, action::BACK) {
                 self.lists.pop();
             } else if key_map.is_bound(key_stroke, action::RERUN) {
-                self.run_user_provided_cmdline();
+                if let Some(cmdline) = global.user_provided_cmdline.clone() {
+                    self.run_cmdline(cmdline);
+                }
             } else if key_map.is_bound(key_stroke, action::PREV_MATCH) {
                 if let Some(Ok(regex)) = regex_result {
                     self.jump_to_prev_match(&regex);

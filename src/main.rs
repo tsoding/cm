@@ -50,20 +50,12 @@ fn main() {
 
     let mut key_map_settings = KeyMapSettings::new();
 
-    let mut global = Global::new();
+    let mut global = Global::new(std::env::args().nth(1));
 
-    let mut cursor = Cursor {
-        x: 0,
-        y: 0,
-        visible: false,
-    };
+    let mut output_buffer = OutputBuffer::new();
 
-    let mut bottom_edit_field = BottomEditField::new();
-
-    let mut output_buffer = OutputBuffer::new(std::env::args().nth(1));
-
-    if output_buffer.user_provided_cmdline.is_some() {
-        output_buffer.run_user_provided_cmdline();
+    if let Some(cmdline) = global.user_provided_cmdline.clone() {
+        output_buffer.run_cmdline(cmdline);
     }
 
     initscr();
@@ -114,17 +106,18 @@ fn main() {
                 key_map_settings.handle_key(key_stroke, &mut profile.key_map, &mut global)
             } else if global.bottom_state != BottomState::Nothing {
                 if profile.key_map.is_bound(key_stroke, action::ACCEPT) {
-                    bottom_edit_field.stop_editing(&mut cursor);
+                    global.bottom_edit_field.stop_editing(&mut global.cursor);
 
                     match global.bottom_state {
                         BottomState::Cmdline => {
-                            output_buffer.user_provided_cmdline =
-                                Some(bottom_edit_field.edit_field.buffer.clone());
-                            output_buffer.run_user_provided_cmdline();
+                            global.user_provided_cmdline =
+                                Some(global.bottom_edit_field.edit_field.buffer.clone());
+                            output_buffer
+                                .run_cmdline(global.bottom_edit_field.edit_field.buffer.clone());
                         }
                         BottomState::Search => {
                             if let Ok(regex) =
-                                Regex::new(bottom_edit_field.edit_field.buffer.as_str())
+                                Regex::new(global.bottom_edit_field.edit_field.buffer.as_str())
                             {
                                 output_buffer.jump_to_next_match(&regex);
                             }
@@ -135,24 +128,13 @@ fn main() {
                     }
                     global.bottom_state = BottomState::Nothing;
                 } else if profile.key_map.is_bound(key_stroke, action::CANCEL) {
-                    bottom_edit_field.stop_editing(&mut cursor);
+                    global.bottom_edit_field.stop_editing(&mut global.cursor);
                     global.bottom_state = BottomState::Nothing;
                 } else {
-                    bottom_edit_field.handle_key(key_stroke, &profile.key_map);
+                    global
+                        .bottom_edit_field
+                        .handle_key(key_stroke, &profile.key_map);
                 }
-            } else if profile.key_map.is_bound(key_stroke, action::EDIT_CMDLINE) {
-                global.bottom_state = BottomState::Cmdline;
-                bottom_edit_field.activate(
-                    &mut cursor,
-                    output_buffer
-                        .user_provided_cmdline
-                        .clone()
-                        .unwrap_or_else(String::new),
-                );
-            } else if profile.key_map.is_bound(key_stroke, action::START_SEARCH) {
-                // TODO(#160): cm search does not support jumping to next/previous matches
-                global.bottom_state = BottomState::Search;
-                bottom_edit_field.activate(&mut cursor, String::new());
             } else if !global.profile_pane {
                 output_buffer.handle_key(
                     key_stroke,
@@ -170,18 +152,16 @@ fn main() {
                         profile.current_regex(),
                         &mut global,
                     ),
-                    Focus::Regexs => profile.regex_list.handle_key(
-                        key_stroke,
-                        &profile.key_map,
-                        &mut global,
-                        &mut cursor,
-                    ),
-                    Focus::Cmds => profile.cmd_list.handle_key(
-                        key_stroke,
-                        &profile.key_map,
-                        &mut global,
-                        &mut cursor,
-                    ),
+                    Focus::Regexs => {
+                        profile
+                            .regex_list
+                            .handle_key(key_stroke, &profile.key_map, &mut global)
+                    }
+                    Focus::Cmds => {
+                        profile
+                            .cmd_list
+                            .handle_key(key_stroke, &profile.key_map, &mut global)
+                    }
                 }
             }
         }
@@ -252,21 +232,25 @@ fn main() {
                     profile.regex_list.render(
                         regex_rect,
                         global.focus == Focus::Regexs,
-                        &mut cursor,
+                        &mut global.cursor,
                     );
-                    profile
-                        .cmd_list
-                        .render(cmd_rect, global.focus == Focus::Cmds, &mut cursor);
+                    profile.cmd_list.render(
+                        cmd_rect,
+                        global.focus == Focus::Cmds,
+                        &mut global.cursor,
+                    );
                 } else {
                     output_buffer.render(working_rect, true, profile.current_regex());
                 }
 
                 if global.bottom_state != BottomState::Nothing {
-                    bottom_edit_field.render(Row { x: 0, y: h - 1, w }, &mut cursor);
+                    global
+                        .bottom_edit_field
+                        .render(Row { x: 0, y: h - 1, w }, &mut global.cursor);
                 }
             }
 
-            cursor.sync();
+            global.cursor.sync();
 
             refresh();
         }

@@ -51,16 +51,24 @@ pub struct Global {
     pub focus: Focus,
     pub key_map_settings: bool,
     pub bottom_state: BottomState,
+    pub bottom_edit_field: BottomEditField,
+    pub cursor: Cursor,
+    /// user_provided_cmdline is the line provided by the user through the CLI of cm:
+    /// `cm <user_provided_cmdline>`
+    pub user_provided_cmdline: Option<String>,
 }
 
 impl Global {
-    pub fn new() -> Self {
+    pub fn new(user_provided_cmdline: Option<String>) -> Self {
         Self {
             profile_pane: false,
             quit: false,
             focus: Focus::Output,
             key_map_settings: false,
             bottom_state: BottomState::Nothing,
+            bottom_edit_field: BottomEditField::new(),
+            cursor: Cursor::new(),
+            user_provided_cmdline,
         }
     }
 
@@ -79,6 +87,25 @@ impl Global {
             true
         } else if key_map.is_bound(key_stroke, action::OPEN_KEY_MAP_SETTINGS) {
             self.key_map_settings = true;
+            true
+        } else if self.bottom_state == BottomState::Nothing
+            && key_map.is_bound(key_stroke, action::START_SEARCH)
+        {
+            // TODO(#160): cm search does not support jumping to next/previous matches
+            self.bottom_state = BottomState::Search;
+            self.bottom_edit_field
+                .activate(&mut self.cursor, String::new());
+            true
+        } else if self.bottom_state == BottomState::Nothing
+            && key_map.is_bound(key_stroke, action::EDIT_CMDLINE)
+        {
+            self.bottom_state = BottomState::Cmdline;
+            self.bottom_edit_field.activate(
+                &mut self.cursor,
+                self.user_provided_cmdline
+                    .clone()
+                    .unwrap_or_else(String::new),
+            );
             true
         } else {
             false

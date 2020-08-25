@@ -104,13 +104,7 @@ impl StringList {
         }
     }
 
-    pub fn handle_key(
-        &mut self,
-        key_stroke: KeyStroke,
-        key_map: &KeyMap,
-        global: &mut Global,
-        cursor: &mut Cursor,
-    ) {
+    pub fn handle_key(&mut self, key_stroke: KeyStroke, key_map: &KeyMap, global: &mut Global) {
         match self.state {
             StringListState::Navigate => {
                 if !global.handle_key(key_stroke, key_map) {
@@ -119,11 +113,11 @@ impl StringList {
                     } else if key_map.is_bound(key_stroke, action::DUP_BEFORE_ITEM) {
                         self.duplicate_before();
                     } else if key_map.is_bound(key_stroke, action::INSERT_AFTER_ITEM) {
-                        self.insert_after(cursor);
+                        self.insert_after(&mut global.cursor);
                     } else if key_map.is_bound(key_stroke, action::INSERT_BEFORE_ITEM) {
-                        self.insert_before(cursor);
+                        self.insert_before(&mut global.cursor);
                     } else if key_map.is_bound(key_stroke, action::EDIT_ITEM) {
-                        self.start_editing(cursor);
+                        self.start_editing(&mut global.cursor);
                     } else {
                         self.list.handle_key(key_stroke, key_map);
                     }
@@ -131,9 +125,9 @@ impl StringList {
             }
             StringListState::Editing { .. } => {
                 if key_map.is_bound(key_stroke, action::ACCEPT) {
-                    self.accept_editing(cursor);
+                    self.accept_editing(&mut global.cursor);
                 } else if key_map.is_bound(key_stroke, action::CANCEL) {
-                    self.cancel_editing(cursor);
+                    self.cancel_editing(&mut global.cursor);
                 } else {
                     self.edit_field.handle_key(key_stroke, key_map);
                 }
