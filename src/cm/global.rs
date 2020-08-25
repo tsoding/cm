@@ -68,7 +68,7 @@ impl Global {
             bottom_state: BottomState::Nothing,
             bottom_edit_field: BottomEditField::new(),
             cursor: Cursor::new(),
-            user_provided_cmdline: user_provided_cmdline,
+            user_provided_cmdline,
         }
     }
 
