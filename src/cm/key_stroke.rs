@@ -43,7 +43,7 @@ impl FromStr for KeyStroke {
         match split(s, ':').as_slice() {
             ["key", params] => match split(params, ',').as_slice() {
                 [key, "alt"] => {
-                    let key_code = key.parse::<i32>().map_err(|e| e.to_string())?;
+                    let key_code = key_of_name(key)?;
                     Ok(KeyStroke {
                         key: key_code,
                         alt: true,
@@ -51,7 +51,7 @@ impl FromStr for KeyStroke {
                 }
                 [_, unknown] => Err(format!("{} is unknown key modifier", unknown)),
                 [key] => {
-                    let key_code = key.parse::<i32>().map_err(|e| e.to_string())?;
+                    let key_code = key_of_name(key)?;
                     Ok(KeyStroke {
                         key: key_code,
                         alt: false,
@@ -190,15 +190,25 @@ pub const NCURSES_KEY_NAMES: [(i32, &str); 110] = [
     (KEY_MAX, "MAX"),
 ];
 
-// TODO: implement parsing for the new key stroke syntax
-
 fn name_of_key(key: i32) -> String {
     if (key as usize) < ASCII_KEY_NAMES.len() {
         String::from(ASCII_KEY_NAMES[key as usize])
-    } else if let Some((_, name)) = NCURSES_KEY_NAMES.iter().find(|(code, name)| *code == key) {
+    } else if let Some((_, name)) = NCURSES_KEY_NAMES.iter().find(|(code, _)| *code == key) {
         String::from(*name)
     } else {
         format!("#{}", key)
+    }
+}
+
+pub fn key_of_name(name: &str) -> Result<i32, String> {
+    if let Some((key, _)) = ASCII_KEY_NAMES.iter().enumerate().find(|(_, &ascii_name)| ascii_name == name) {
+        Ok(key as i32)
+    } else if let Some((key, _)) = NCURSES_KEY_NAMES.iter().find(|(_, ncurses_name)| *ncurses_name == name) {
+        Ok(*key as i32)
+    } else if name.starts_with("#") {
+        name[1..].parse::<i32>().map_err(|e| e.to_string())
+    } else {
+        Err("Not a key name".to_string())
     }
 }
 
