@@ -51,6 +51,7 @@ pub struct Global {
     pub focus: Focus,
     pub key_map_settings: bool,
     pub bottom_state: BottomState,
+    pub bottom_edit_field: BottomEditField,
 }
 
 impl Global {
@@ -61,6 +62,7 @@ impl Global {
             focus: Focus::Output,
             key_map_settings: false,
             bottom_state: BottomState::Nothing,
+            bottom_edit_field: BottomEditField::new(),
         }
     }
 
