@@ -68,13 +68,13 @@ impl FromStr for KeyStroke {
 pub const ASCII_KEY_NAMES: [&str; 128] = [
     "NUL", "SOH", "STX", "ETX", "EOT", "ENQ", "ACK", "BEL", "BS", "HT", "LF", "VT", "FF", "CR",
     "SO", "SI", "DLE", "DC1", "DC2", "DC3", "DC4", "NAK", "SYN", "ETB", "CAN", "EM", "SUB", "ESC",
-    "FS", "GS", "RS", "US", "SPACE", "BANG", "DQUOTE", "HASH", "DOLLAR", "PERCENT", "AMPR", "QUOTE",
-    "LPRN", "RPRN", "ASTR", "PLUS", "COMMA", "MINUS", "DOT", "SLASH", "0", "1", "2", "3", "4", "5", "6",
-    "7", "8", "9", "COLON", "SCOLON", "LT", "EQUAL", "GT", "QUES", "AT", "A", "B", "C", "D", "E", "F",
-    "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
-    "LBRACKET", "BSLASH", "RBRACKET", "HAT", "UNDS", "BTICK", "a", "b", "c", "d", "e", "f", "g", "h", "i",
-    "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "LCURLY", "PIPE",
-    "RCURLY", "TILDE", "DEL",
+    "FS", "GS", "RS", "US", "SPACE", "BANG", "DQUOTE", "HASH", "DOLLAR", "PERCENT", "AMPR",
+    "QUOTE", "LPRN", "RPRN", "ASTR", "PLUS", "COMMA", "MINUS", "DOT", "SLASH", "0", "1", "2", "3",
+    "4", "5", "6", "7", "8", "9", "COLON", "SCOLON", "LT", "EQUAL", "GT", "QUES", "AT", "A", "B",
+    "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U",
+    "V", "W", "X", "Y", "Z", "LBRACKET", "BSLASH", "RBRACKET", "HAT", "UNDS", "BTICK", "a", "b",
+    "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u",
+    "v", "w", "x", "y", "z", "LCURLY", "PIPE", "RCURLY", "TILDE", "DEL",
 ];
 
 pub const NCURSES_KEY_NAMES: [(i32, &str); 110] = [
@@ -158,8 +158,8 @@ pub const NCURSES_KEY_NAMES: [(i32, &str); 110] = [
     (KEY_SCOMMAND, "SCOMMAND"),
     (KEY_SCOPY, "SCOPY"),
     (KEY_SCREATE, "SCREATE"),
-    (KEY_SDC	, "SDC	"),
-    (KEY_SDL	, "SDL	"),
+    (KEY_SDC, "SDC"),
+    (KEY_SDL, "SDL"),
     (KEY_SELECT, "SELECT"),
     (KEY_SEND, "SEND"),
     (KEY_SEOL, "SEOL"),
@@ -167,7 +167,7 @@ pub const NCURSES_KEY_NAMES: [(i32, &str); 110] = [
     (KEY_SFIND, "SFIND"),
     (KEY_SHELP, "SHELP"),
     (KEY_SHOME, "SHOME"),
-    (KEY_SIC	, "SIC	"),
+    (KEY_SIC, "SIC"),
     (KEY_SLEFT, "SLEFT"),
     (KEY_SMESSAGE, "SMESSAGE"),
     (KEY_SMOVE, "SMOVE"),
@@ -201,9 +201,16 @@ fn name_of_key(key: i32) -> String {
 }
 
 pub fn key_of_name(name: &str) -> Result<i32, String> {
-    if let Some((key, _)) = ASCII_KEY_NAMES.iter().enumerate().find(|(_, &ascii_name)| ascii_name == name) {
+    if let Some((key, _)) = ASCII_KEY_NAMES
+        .iter()
+        .enumerate()
+        .find(|(_, &ascii_name)| ascii_name == name)
+    {
         Ok(key as i32)
-    } else if let Some((key, _)) = NCURSES_KEY_NAMES.iter().find(|(_, ncurses_name)| *ncurses_name == name) {
+    } else if let Some((key, _)) = NCURSES_KEY_NAMES
+        .iter()
+        .find(|(_, ncurses_name)| *ncurses_name == name)
+    {
         Ok(*key as i32)
     } else if name.starts_with('#') {
         name[1..].parse::<i32>().map_err(|e| e.to_string())
@@ -215,6 +222,10 @@ pub fn key_of_name(name: &str) -> Result<i32, String> {
 impl ToString for KeyStroke {
     fn to_string(&self) -> String {
         // TODO(#156): Human readable KeyStroke serialization format is required
-        format!("key:{}{}", name_of_key(self.key), if self.alt { ",alt" } else { "" })
+        format!(
+            "key:{}{}",
+            name_of_key(self.key),
+            if self.alt { ",alt" } else { "" }
+        )
     }
 }
