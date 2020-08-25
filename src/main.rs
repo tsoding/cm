@@ -112,7 +112,8 @@ fn main() {
                         BottomState::Cmdline => {
                             global.user_provided_cmdline =
                                 Some(global.bottom_edit_field.edit_field.buffer.clone());
-                            output_buffer.run_cmdline(global.bottom_edit_field.edit_field.buffer.clone());
+                            output_buffer
+                                .run_cmdline(global.bottom_edit_field.edit_field.buffer.clone());
                         }
                         BottomState::Search => {
                             if let Ok(regex) =
@@ -130,7 +131,9 @@ fn main() {
                     global.bottom_edit_field.stop_editing(&mut global.cursor);
                     global.bottom_state = BottomState::Nothing;
                 } else {
-                    global.bottom_edit_field.handle_key(key_stroke, &profile.key_map);
+                    global
+                        .bottom_edit_field
+                        .handle_key(key_stroke, &profile.key_map);
                 }
             } else if !global.profile_pane {
                 output_buffer.handle_key(
@@ -149,16 +152,16 @@ fn main() {
                         profile.current_regex(),
                         &mut global,
                     ),
-                    Focus::Regexs => profile.regex_list.handle_key(
-                        key_stroke,
-                        &profile.key_map,
-                        &mut global,
-                    ),
-                    Focus::Cmds => profile.cmd_list.handle_key(
-                        key_stroke,
-                        &profile.key_map,
-                        &mut global,
-                    ),
+                    Focus::Regexs => {
+                        profile
+                            .regex_list
+                            .handle_key(key_stroke, &profile.key_map, &mut global)
+                    }
+                    Focus::Cmds => {
+                        profile
+                            .cmd_list
+                            .handle_key(key_stroke, &profile.key_map, &mut global)
+                    }
                 }
             }
         }
@@ -231,15 +234,19 @@ fn main() {
                         global.focus == Focus::Regexs,
                         &mut global.cursor,
                     );
-                    profile
-                        .cmd_list
-                        .render(cmd_rect, global.focus == Focus::Cmds, &mut global.cursor);
+                    profile.cmd_list.render(
+                        cmd_rect,
+                        global.focus == Focus::Cmds,
+                        &mut global.cursor,
+                    );
                 } else {
                     output_buffer.render(working_rect, true, profile.current_regex());
                 }
 
                 if global.bottom_state != BottomState::Nothing {
-                    global.bottom_edit_field.render(Row { x: 0, y: h - 1, w }, &mut global.cursor);
+                    global
+                        .bottom_edit_field
+                        .render(Row { x: 0, y: h - 1, w }, &mut global.cursor);
                 }
             }
 

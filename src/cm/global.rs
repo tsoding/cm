@@ -88,17 +88,21 @@ impl Global {
         } else if key_map.is_bound(key_stroke, action::OPEN_KEY_MAP_SETTINGS) {
             self.key_map_settings = true;
             true
-        } else if self.bottom_state == BottomState::Nothing && key_map.is_bound(key_stroke, action::START_SEARCH) {
+        } else if self.bottom_state == BottomState::Nothing
+            && key_map.is_bound(key_stroke, action::START_SEARCH)
+        {
             // TODO(#160): cm search does not support jumping to next/previous matches
             self.bottom_state = BottomState::Search;
-            self.bottom_edit_field.activate(&mut self.cursor, String::new());
+            self.bottom_edit_field
+                .activate(&mut self.cursor, String::new());
             true
-        } else if self.bottom_state == BottomState::Nothing && key_map.is_bound(key_stroke, action::EDIT_CMDLINE) {
+        } else if self.bottom_state == BottomState::Nothing
+            && key_map.is_bound(key_stroke, action::EDIT_CMDLINE)
+        {
             self.bottom_state = BottomState::Cmdline;
             self.bottom_edit_field.activate(
                 &mut self.cursor,
-                self
-                    .user_provided_cmdline
+                self.user_provided_cmdline
                     .clone()
                     .unwrap_or_else(String::new),
             );
