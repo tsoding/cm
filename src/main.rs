@@ -132,15 +132,6 @@ fn main() {
                 } else {
                     global.bottom_edit_field.handle_key(key_stroke, &profile.key_map);
                 }
-            } else if profile.key_map.is_bound(key_stroke, action::EDIT_CMDLINE) {
-                global.bottom_state = BottomState::Cmdline;
-                global.bottom_edit_field.activate(
-                    &mut global.cursor,
-                    global
-                        .user_provided_cmdline
-                        .clone()
-                        .unwrap_or_else(String::new),
-                );
             } else if !global.profile_pane {
                 output_buffer.handle_key(
                     key_stroke,

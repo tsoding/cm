@@ -93,6 +93,16 @@ impl Global {
             self.bottom_state = BottomState::Search;
             self.bottom_edit_field.activate(&mut self.cursor, String::new());
             true
+        } else if self.bottom_state == BottomState::Nothing && key_map.is_bound(key_stroke, action::EDIT_CMDLINE) {
+            self.bottom_state = BottomState::Cmdline;
+            self.bottom_edit_field.activate(
+                &mut self.cursor,
+                self
+                    .user_provided_cmdline
+                    .clone()
+                    .unwrap_or_else(String::new),
+            );
+            true
         } else {
             false
         }
