@@ -120,6 +120,7 @@ fn main() {
                                 Regex::new(global.bottom_edit_field.edit_field.buffer.as_str())
                             {
                                 output_buffer.jump_to_next_match(&regex);
+                                global.search_regex = Some(regex);
                             }
                         }
                         BottomState::Nothing => {

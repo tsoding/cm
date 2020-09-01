@@ -1,4 +1,5 @@
 use super::*;
+use pcre2::bytes::Regex;
 
 #[derive(PartialEq, Clone, Copy)]
 pub enum Focus {
@@ -56,6 +57,7 @@ pub struct Global {
     /// user_provided_cmdline is the line provided by the user through the CLI of cm:
     /// `cm <user_provided_cmdline>`
     pub user_provided_cmdline: Option<String>,
+    pub search_regex: Option<Regex>,
 }
 
 impl Global {
@@ -69,6 +71,7 @@ impl Global {
             bottom_edit_field: BottomEditField::new(),
             cursor: Cursor::new(),
             user_provided_cmdline,
+            search_regex: None,
         }
     }
 

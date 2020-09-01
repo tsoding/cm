@@ -263,6 +263,14 @@ impl OutputBuffer {
                 if let Some(Ok(regex)) = regex_result {
                     self.jump_to_next_match(&regex);
                 }
+            } else if key_map.is_bound(key_stroke, action::NEXT_SEARCH_MATCH) {
+                if let Some(regex) = &global.search_regex {
+                    self.jump_to_next_match(&regex);
+                }
+            } else if key_map.is_bound(key_stroke, action::PREV_SEARCH_MATCH) {
+                if let Some(regex) = &global.search_regex {
+                    self.jump_to_prev_match(&regex);
+                }
             } else if let Some(list) = self.lists.last_mut() {
                 list.handle_key(key_stroke, key_map);
             }
