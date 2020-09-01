@@ -31,6 +31,12 @@ impl OutputBuffer {
         }
     }
 
+    pub fn push(&mut self, line: String) {
+        if let Some(list) = self.lists.last_mut() {
+            list.items.push(line);
+        }
+    }
+
     pub fn current_item(&self) -> Option<&String> {
         self.lists.last().and_then(|x| x.current_item())
     }

@@ -54,6 +54,14 @@ fn main() {
 
     let mut output_buffer = OutputBuffer::new();
 
+    if global.user_provided_cmdline.is_none() {
+        output_buffer.lists.push(ItemList::new());
+        output_buffer.push("Welcome to cm!".to_string());
+        output_buffer.push("- Use arrows or vim style hjkl to navigate.".to_string());
+        output_buffer.push("- Press F3 to enter a command to run.".to_string());
+        // TODO: tutorial does not respect current key bindings
+    }
+
     if let Some(cmdline) = global.user_provided_cmdline.clone() {
         output_buffer.run_cmdline(cmdline);
     }
