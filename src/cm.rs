@@ -1,4 +1,5 @@
 pub mod action;
+pub mod migration;
 mod bottom_edit_field;
 mod cursor;
 mod edit_field;

@@ -43,7 +43,7 @@ fn main() {
     };
 
     let mut profile = if config_path.exists() {
-        Profile::from_file(&config_path)
+        Profile::from_file(migration::read_and_migrate_file(&config_path), &config_path)
     } else {
         Profile::initial()
     };
