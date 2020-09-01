@@ -1,9 +1,9 @@
 use super::*;
 use pcre2::bytes::Regex;
 use std::io;
+use std::path::Path;
 use std::str::FromStr;
 use std::string::ToString;
-use std::path::Path;
 
 pub struct Profile {
     pub regex_list: StringList,
