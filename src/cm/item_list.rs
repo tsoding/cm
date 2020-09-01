@@ -127,8 +127,10 @@ impl<T: ToString + Clone> ItemList<T> {
                         for _ in 0..(w - n) {
                             line_to_render.push(' ');
                         }
+                        line_to_render
+                    } else {
+                        line_to_render[..w].to_string()
                     }
-                    line_to_render
                 };
 
                 mv((y + i) as i32, x as i32);
