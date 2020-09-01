@@ -287,6 +287,20 @@ impl KeyMap {
             },
             action::JUMP_TO_END,
         );
+        result.bind(
+            KeyStroke {
+                key: 'n' as i32,
+                alt: false,
+            },
+            action::NEXT_SEARCH_MATCH,
+        );
+        result.bind(
+            KeyStroke {
+                key: 'N' as i32,
+                alt: false,
+            },
+            action::PREV_SEARCH_MATCH,
+        );
         result
     }
 

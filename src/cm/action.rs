@@ -30,7 +30,9 @@ pub const OPEN_KEY_MAP_SETTINGS: Type = 25;
 pub const START_SEARCH: Type = 26;
 pub const JUMP_TO_START: Type = 27;
 pub const JUMP_TO_END: Type = 28;
-pub const LEN: usize = 29;
+pub const NEXT_SEARCH_MATCH: Type = 29;
+pub const PREV_SEARCH_MATCH: Type = 30;
+pub const LEN: usize = 31;
 
 pub const NAMES: [&str; LEN] = [
     "up",
@@ -62,6 +64,8 @@ pub const NAMES: [&str; LEN] = [
     "start_search",
     "jump_to_start",
     "jump_to_end",
+    "next_search_match",
+    "prev_search_match",
 ];
 
 pub fn from_str(s: &str) -> Result<Type, String> {
