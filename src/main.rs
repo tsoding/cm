@@ -261,7 +261,7 @@ fn main() {
                     h: h - 1,
                 };
                 if global.profile_pane {
-                    let (output_buffer_rect, profile_rect) = working_rect.horizontal_split(3);
+                    let (output_buffer_rect, profile_rect, shell_rect) = working_rect.horizontal_split(4);
                     let (regex_rect, cmd_rect) = profile_rect.vertical_split(2);
 
                     output_buffer.render(
@@ -277,6 +277,11 @@ fn main() {
                     profile.cmd_list.render(
                         cmd_rect,
                         global.focus == Focus::Cmds,
+                        &mut global.cursor,
+                    );
+                    profile.shell_list.render(
+                        shell_rect,
+                        global.focus == Focus::Shell,
                         &mut global.cursor,
                     );
                 } else {

@@ -7,9 +7,9 @@ pub struct Rect {
 }
 
 impl Rect {
-    pub fn horizontal_split(self, denominator: usize) -> (Rect, Rect) {
+    pub fn horizontal_split(self, denominator: usize) -> (Rect, Rect, Rect) {
         assert!(denominator > 0);
-        let h = self.h / denominator * (denominator - 1);
+        let h = self.h / (denominator - 1);
         (
             Rect {
                 x: self.x,
@@ -22,6 +22,12 @@ impl Rect {
                 y: self.y + h,
                 w: self.w,
                 h: self.h - h,
+            },
+            Rect {
+                x: self.x,
+                y: self.y + 2 * h,
+                w: self.w,
+                h: self.h - 2 * h,
             },
         )
     }
