@@ -59,6 +59,8 @@ fn main() {
         output_buffer.push("Welcome to cm!".to_string());
         output_buffer.push("- Use arrows or vim style hjkl to navigate.".to_string());
         output_buffer.push("- Press F3 to enter a command to run.".to_string());
+        output_buffer.push("- You can also specify command to run by passing it to the cm executable itself:".to_string());
+        output_buffer.push("    $ cm '<command>'".to_string());
         // TODO: tutorial does not respect current key bindings
     }
 
