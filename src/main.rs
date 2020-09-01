@@ -64,7 +64,7 @@ fn main() {
                 .to_string(),
         );
         output_buffer.push("    $ cm '<command>'".to_string());
-        // TODO: tutorial does not respect current key bindings
+        // TODO(#173): tutorial does not respect current key bindings
     }
 
     if let Some(cmdline) = global.user_provided_cmdline.clone() {
