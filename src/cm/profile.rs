@@ -8,6 +8,7 @@ use std::string::ToString;
 pub struct Profile {
     pub regex_list: StringList,
     pub cmd_list: StringList,
+    pub shell_list: StringList,
     pub key_map: KeyMap,
 }
 
@@ -16,13 +17,14 @@ impl Profile {
         Self {
             regex_list: StringList::new(),
             cmd_list: StringList::new(),
+            shell_list: StringList::new(),
             key_map: KeyMap::new(),
         }
     }
 
     pub fn from_file(input: Vec<String>, file_path: &Path) -> Self {
         let mut result = Profile::new();
-        let (mut regex_count, mut cmd_count) = (0, 0);
+        let (mut regex_count, mut cmd_count, mut shell_count) = (0, 0, 0);
         for (i, line) in input.iter().map(|x| x.trim_start()).enumerate() {
             // TODO(#128): profile parsing errors should be application error messages instead of Rust panics
             let fail = |message| panic!("{}:{}: {}", file_path.display(), i + 1, message);
@@ -49,6 +51,10 @@ impl Profile {
                         cmd_count += 1;
                         result.cmd_list.list.items.push(value.to_string());
                     }
+                    "shells" => {
+                        shell_count += 1;
+                        result.shell_list.list.items.push(value.to_string());
+                    }
                     "current_regex" => {
                         if value.is_empty() {
                             fail("Value is not provided");
@@ -64,6 +70,13 @@ impl Profile {
                             fail("Value is not provided");
                         }
                         result.cmd_list.list.cursor_y =
+                            value.parse::<usize>().unwrap_or_else(|_| {
+                                fail("Not a number");
+                                0
+                            })
+                    }
+                    "current_shell" => {
+                        result.shell_list.list.cursor_y =
                             value.parse::<usize>().unwrap_or_else(|_| {
                                 fail("Not a number");
                                 0
@@ -91,6 +104,11 @@ impl Profile {
             result.cmd_list.list.cursor_y = cmd_count - 1;
         }
 
+        // NOTE: shell_count-1 converts value from count to 0-based index
+        if result.shell_list.list.cursor_y > shell_count - 1 {
+            result.shell_list.list.cursor_y = shell_count - 1;
+        }
+
         result
     }
 
@@ -105,8 +123,13 @@ impl Profile {
             writeln!(stream, "cmds = {}", cmd)?;
         }
 
+        for shell in self.shell_list.list.items.iter() {
+            writeln!(stream, "shells = {}", shell)?;
+        }
+
         writeln!(stream, "current_regex = {}", self.regex_list.list.cursor_y)?;
         writeln!(stream, "current_cmd = {}", self.cmd_list.list.cursor_y)?;
+        writeln!(stream, "current_shell = {}", self.shell_list.list.cursor_y)?;
 
         self.key_map.to_file(stream)?;
 
@@ -135,6 +158,13 @@ impl Profile {
         }
     }
 
+    pub fn current_shell(&self) -> Option<String> {
+        match self.shell_list.state {
+            StringListState::Navigate => self.shell_list.current_item().map(String::from),
+            StringListState::Editing { .. } => Some(self.shell_list.edit_field.buffer.clone()),
+        }
+    }
+
     pub fn initial() -> Self {
         let mut result = Self::new();
         result
@@ -148,6 +178,7 @@ impl Profile {
             .list
             .items
             .push("emacs -nw +\\2 \\1".to_string());
+        result.shell_list.list.items.push("/bin/sh".to_string());
         result.key_map = KeyMap::initial();
         result
     }

@@ -301,6 +301,13 @@ impl KeyMap {
             },
             action::PREV_SEARCH_MATCH,
         );
+        result.bind(
+            KeyStroke {
+                key: 'S' as i32,
+                alt: false,
+            },
+            action::EDIT_SHELL,
+        );
         result
     }
 

@@ -6,9 +6,10 @@ pub enum Focus {
     Output = 0,
     Regexs = 1,
     Cmds = 2,
+    Shell = 3,
 }
 
-const FOCUS_COUNT: usize = 3;
+const FOCUS_COUNT: usize = 4;
 
 impl Focus {
     pub fn from_number(n: usize) -> Option<Focus> {
@@ -16,6 +17,7 @@ impl Focus {
             0 => Some(Focus::Output),
             1 => Some(Focus::Regexs),
             2 => Some(Focus::Cmds),
+            3 => Some(Focus::Shell),
             _ => None,
         }
     }
@@ -40,6 +42,7 @@ pub enum BottomState {
     Nothing,
     Cmdline,
     Search,
+    Shell,
 }
 
 pub struct Global {
@@ -58,6 +61,7 @@ pub struct Global {
     /// `cm <user_provided_cmdline>`
     pub user_provided_cmdline: Option<String>,
     pub search_regex: Option<Regex>,
+    pub shell: String,
 }
 
 impl Global {
@@ -72,6 +76,7 @@ impl Global {
             cursor: Cursor::new(),
             user_provided_cmdline,
             search_regex: None,
+            shell: String::new(),
         }
     }
 
@@ -109,6 +114,13 @@ impl Global {
                     .clone()
                     .unwrap_or_else(String::new),
             );
+            true
+        } else if self.bottom_state == BottomState::Nothing
+            && key_map.is_bound(key_stroke, action::EDIT_SHELL)
+        {
+            self.bottom_state = BottomState::Shell;
+            self.bottom_edit_field
+                .activate(&mut self.cursor, self.shell.clone());
             true
         } else {
             false
