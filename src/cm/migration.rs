@@ -14,6 +14,7 @@ pub fn read_and_migrate_file(filepath: &Path) -> Vec<String> {
             ["version", number] => {
                 let mut version_number = number.parse::<usize>().unwrap();
                 let mut input = lines.map(|x| x.to_string()).collect::<Vec::<String>>();
+                #[allow(clippy::absurd_extreme_comparisons)]
                 while version_number < CURRENT_VERSION {
                     input = MIGRATIONS[version_number](input);
                     version_number += 1;
