@@ -1,6 +1,5 @@
 use super::*;
 use pcre2::bytes::Regex;
-use std::fs::read_to_string;
 use std::io;
 use std::path::Path;
 use std::str::FromStr;
@@ -21,12 +20,10 @@ impl Profile {
         }
     }
 
-    pub fn from_file(file_path: &Path) -> Self {
+    pub fn from_file(input: Vec<String>, file_path: &Path) -> Self {
         let mut result = Profile::new();
-        let input = read_to_string(file_path)
-            .unwrap_or_else(|_| panic!("Could not read file {}", file_path.display()));
         let (mut regex_count, mut cmd_count) = (0, 0);
-        for (i, line) in input.lines().map(|x| x.trim_start()).enumerate() {
+        for (i, line) in input.iter().map(|x| x.trim_start()).enumerate() {
             // TODO(#128): profile parsing errors should be application error messages instead of Rust panics
             let fail = |message| panic!("{}:{}: {}", file_path.display(), i + 1, message);
 
@@ -86,6 +83,8 @@ impl Profile {
     }
 
     pub fn to_file<F: io::Write>(&self, stream: &mut F) -> io::Result<()> {
+        writeln!(stream, "version = {}", migration::CURRENT_VERSION)?;
+
         for regex in self.regex_list.list.items.iter() {
             writeln!(stream, "regexs = {}", regex)?;
         }

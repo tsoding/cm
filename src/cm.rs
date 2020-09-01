@@ -8,6 +8,7 @@ mod item_list;
 mod key_map;
 mod key_map_settings;
 mod key_stroke;
+pub mod migration;
 mod output_buffer;
 mod profile;
 mod string_list;
