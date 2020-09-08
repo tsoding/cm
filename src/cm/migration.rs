@@ -6,6 +6,14 @@ pub type Type = fn(Vec<String>) -> Vec<String>;
 pub const CURRENT_VERSION: usize = 0;
 pub const MIGRATIONS: [Type; CURRENT_VERSION] = [];
 
+// NOTE: One of the important features of read_and_migrate_file is
+// that it never saves the migrated file. It is saved at the end of
+// the life of the application (grep for @migrate-fail). Because of
+// that if the migration fails, the original configuration file will
+// not be corrupted.
+//
+// It is very important to not mess with that behaviour!
+
 pub fn read_and_migrate_file(filepath: &Path) -> Vec<String> {
     let input = read_to_string(filepath).unwrap();
     let mut lines = input.lines();
