@@ -3,8 +3,10 @@ static mut CTRLC: bool = false;
 // TODO: ctrlc module is not implemented for windows
 
 #[cfg(unix)]
-extern fn callback(_signum: i32) {
-    unsafe { CTRLC = true; }
+extern "C" fn callback(_signum: i32) {
+    unsafe {
+        CTRLC = true;
+    }
 }
 
 pub fn init() {
