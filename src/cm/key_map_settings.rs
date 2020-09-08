@@ -59,6 +59,26 @@ impl KeyMapSettings {
     pub fn handle_key(&mut self, key_stroke: KeyStroke, key_map: &mut KeyMap, global: &mut Global) {
         if !global.handle_key(key_stroke, key_map) {
             match self.state {
+                State::ListOfActions => {
+                    if key_map.is_bound(key_stroke, action::BACK) {
+                        global.key_map_settings = false;
+                    } else if key_map.is_bound(key_stroke, action::UP) {
+                        self.list_of_actions.up();
+                    } else if key_map.is_bound(key_stroke, action::DOWN) {
+                        self.list_of_actions.down();
+                    } else if key_map.is_bound(key_stroke, action::ACCEPT) {
+                        self.keys_of_action.items.clear();
+                        self.keys_of_action.cursor_y = 0;
+                        for key_stroke in
+                            key_map.keys_of_action(self.list_of_actions.cursor_y).iter()
+                        {
+                            self.keys_of_action.items.push(*key_stroke);
+                        }
+                        self.state = State::KeysOfAction;
+                    } else {
+                        self.list_of_actions.handle_key(key_stroke, key_map);
+                    }
+                }
                 State::KeysOfAction => {
                     if key_map.is_bound(key_stroke, action::BACK) {
                         self.state = State::ListOfActions;
@@ -82,24 +102,8 @@ impl KeyMapSettings {
                         self.state = State::SelectingKey;
                     } else if key_map.is_bound(key_stroke, action::CANCEL) {
                         self.state = State::ListOfActions;
-                    }
-                }
-                State::ListOfActions => {
-                    if key_map.is_bound(key_stroke, action::BACK) {
-                        global.key_map_settings = false;
-                    } else if key_map.is_bound(key_stroke, action::UP) {
-                        self.list_of_actions.up();
-                    } else if key_map.is_bound(key_stroke, action::DOWN) {
-                        self.list_of_actions.down();
-                    } else if key_map.is_bound(key_stroke, action::ACCEPT) {
-                        self.keys_of_action.items.clear();
-                        self.keys_of_action.cursor_y = 0;
-                        for key_stroke in
-                            key_map.keys_of_action(self.list_of_actions.cursor_y).iter()
-                        {
-                            self.keys_of_action.items.push(*key_stroke);
-                        }
-                        self.state = State::KeysOfAction;
+                    } else {
+                        self.keys_of_action.handle_key(key_stroke, key_map);
                     }
                 }
                 State::SelectingKey => {
