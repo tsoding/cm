@@ -94,8 +94,6 @@ impl<T: ToString + Clone> ItemList<T> {
             self.right();
         } else if key_map.is_bound(key_stroke, action::LEFT) {
             self.left();
-        } else if key_map.is_bound(key_stroke, action::DELETE) {
-            self.delete_current();
         } else if key_map.is_bound(key_stroke, action::HOME) {
             self.home();
         } else if key_map.is_bound(key_stroke, action::JUMP_TO_START) {
