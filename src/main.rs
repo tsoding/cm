@@ -31,16 +31,8 @@ fn render_cmdline(line: &str, cmd: &str, regex: &Regex) -> Option<String> {
     })
 }
 
-static mut CTRLC: bool = false;
-
-extern fn callback(_a: i32) {
-    unsafe { CTRLC = true; }
-}
-
 fn main() {
-    unsafe {
-        libc::signal(libc::SIGINT, callback as libc::sighandler_t);
-    }
+    ctrlc::init();
 
     let config_path = {
         const CONFIG_FILE_NAME: &str = "cm.conf";
@@ -110,12 +102,9 @@ fn main() {
     let mut rerender = true;
     while !global.quit {
         // BEGIN INPUT SECTION //////////////////////////////
-        unsafe {
-            if CTRLC {
-                output_buffer.ctrlc();
-                CTRLC = false;
-                rerender = true;
-            }
+        if ctrlc::poll() {
+            output_buffer.ctrlc();
+            rerender = true;
         }
 
         if let Some(key_stroke) = KeyStroke::get() {
