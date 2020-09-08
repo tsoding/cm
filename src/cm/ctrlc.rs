@@ -1,6 +1,6 @@
 static mut CTRLC: bool = false;
 
-// TODO: ctrlc module is not implemented for windows
+// TODO(#181): ctrlc module is not implemented for windows
 
 #[cfg(unix)]
 extern "C" fn callback(_signum: i32) {
