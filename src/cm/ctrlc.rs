@@ -12,7 +12,7 @@ extern "C" fn callback(_signum: i32) {
 pub fn init() {
     if cfg!(unix) {
         unsafe {
-            // TODO: Explore portability issues of using signal(2)
+            // TODO(#182): Explore portability issues of using signal(2)
             libc::signal(libc::SIGINT, callback as libc::sighandler_t);
         }
     }
