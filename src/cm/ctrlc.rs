@@ -1,21 +1,32 @@
 static mut CTRLC: bool = false;
 
-extern fn callback(_a: i32) {
+// TODO: ctrlc module is not implemented for windows
+
+#[cfg(unix)]
+extern fn callback(_signum: i32) {
     unsafe { CTRLC = true; }
 }
 
 pub fn init() {
-    unsafe {
-        libc::signal(libc::SIGINT, callback as libc::sighandler_t);
+    if cfg!(unix) {
+        unsafe {
+            // TODO: Explore portability issues of using signal(2)
+            libc::signal(libc::SIGINT, callback as libc::sighandler_t);
+        }
     }
 }
 
+#[cfg(unix)]
 pub fn poll() -> bool {
-    unsafe {
-        let result = CTRLC;
-        if CTRLC {
-            CTRLC = false;
+    if cfg!(unix) {
+        unsafe {
+            let result = CTRLC;
+            if CTRLC {
+                CTRLC = false;
+            }
+            result
         }
-        result
+    } else {
+        false
     }
 }

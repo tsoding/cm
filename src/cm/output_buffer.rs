@@ -60,9 +60,11 @@ impl OutputBuffer {
     }
 
     pub fn ctrlc(&mut self) {
-        if let Some((_, child)) = &self.child {
-            unsafe {
-                libc::kill(child.id() as i32, libc::SIGINT);
+        if cfg!(unix) {
+            if let Some((_, child)) = &self.child {
+                unsafe {
+                    libc::kill(child.id() as i32, libc::SIGINT);
+                }
             }
         }
     }
