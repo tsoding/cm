@@ -32,6 +32,8 @@ fn render_cmdline(line: &str, cmd: &str, regex: &Regex) -> Option<String> {
 }
 
 fn main() {
+    ctrlc::init();
+
     let config_path = {
         const CONFIG_FILE_NAME: &str = "cm.conf";
         let xdg_config_dir = var("XDG_CONFIG_HOME").map(PathBuf::from);
@@ -100,6 +102,11 @@ fn main() {
     let mut rerender = true;
     while !global.quit {
         // BEGIN INPUT SECTION //////////////////////////////
+        if ctrlc::poll() {
+            output_buffer.ctrlc();
+            rerender = true;
+        }
+
         if let Some(key_stroke) = KeyStroke::get() {
             // NOTE(rerender): at the point the user provided some input which potentially
             // changes the state of the application which needs to be reflected by rerendering
