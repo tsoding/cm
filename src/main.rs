@@ -31,7 +31,17 @@ fn render_cmdline(line: &str, cmd: &str, regex: &Regex) -> Option<String> {
     })
 }
 
+static mut CTRLC: bool = false;
+
+extern fn callback(_a: i32) {
+    unsafe { CTRLC = true; }
+}
+
 fn main() {
+    unsafe {
+        libc::signal(libc::SIGINT, callback as libc::sighandler_t);
+    }
+
     let config_path = {
         const CONFIG_FILE_NAME: &str = "cm.conf";
         let xdg_config_dir = var("XDG_CONFIG_HOME").map(PathBuf::from);
@@ -100,6 +110,14 @@ fn main() {
     let mut rerender = true;
     while !global.quit {
         // BEGIN INPUT SECTION //////////////////////////////
+        unsafe {
+            if CTRLC {
+                output_buffer.ctrlc();
+                CTRLC = false;
+                rerender = true;
+            }
+        }
+
         if let Some(key_stroke) = KeyStroke::get() {
             // NOTE(rerender): at the point the user provided some input which potentially
             // changes the state of the application which needs to be reflected by rerendering
