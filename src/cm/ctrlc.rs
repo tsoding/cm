@@ -18,7 +18,6 @@ pub fn init() {
     }
 }
 
-#[cfg(unix)]
 pub fn poll() -> bool {
     if cfg!(unix) {
         unsafe {
