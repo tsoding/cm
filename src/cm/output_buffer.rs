@@ -293,3 +293,39 @@ impl OutputBuffer {
         }
     }
 }
+
+/// Expands tab ('\t' 0x9) characters within an input string
+/// into a variable amount of spaces.
+///
+/// ```text
+/// |--------|    |--------|--------| 8 spaces/tab (tabsize = 8)
+/// |\t      | => |........|        | 8 spaces
+/// |\ta     | => |........|a       | 8 spaces + "a"
+/// |aaa\t   | => |aaa.....|        | "aaa" + 5 spaces
+/// ```
+///
+fn expand_tabs(input: &str, tabsize: usize) -> String {
+    if tabsize == 0 {
+        return input.replace('\t', "");
+    }
+    if tabsize == 1 {
+        return input.replace('\t', " ");
+    }
+
+    let mut result =
+        String::with_capacity(input.len() + (tabsize - 1) * input.matches('\t').count());
+    let mut char_count = 0;
+
+    for c in input.chars() {
+        if c == '\t' {
+            let space_count = tabsize - (char_count % tabsize);
+            char_count += space_count;
+            result.extend(std::iter::repeat(' ').take(space_count));
+        } else {
+            char_count += 1;
+            result.push(c);
+        }
+    }
+
+    result
+}
