@@ -1,12 +1,12 @@
-static mut CTRLC: bool = false;
+use std::sync::atomic::{AtomicBool, Ordering};
+
+static CTRLC: AtomicBool = AtomicBool::new(false);
 
 // TODO(#181): ctrlc module is not implemented for windows
 
 #[cfg(unix)]
 extern "C" fn callback(_signum: i32) {
-    unsafe {
-        CTRLC = true;
-    }
+    CTRLC.store(true, Ordering::Relaxed);
 }
 
 pub fn init() {
@@ -19,15 +19,5 @@ pub fn init() {
 }
 
 pub fn poll() -> bool {
-    if cfg!(unix) {
-        unsafe {
-            let result = CTRLC;
-            if CTRLC {
-                CTRLC = false;
-            }
-            result
-        }
-    } else {
-        false
-    }
+    CTRLC.swap(false, Ordering::Relaxed)
 }
