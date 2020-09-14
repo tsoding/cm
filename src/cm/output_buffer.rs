@@ -211,6 +211,7 @@ impl OutputBuffer {
                     Ok(0) => break,
                     Ok(_) => {
                         if let Some(list) = self.lists.last_mut() {
+                            // TODO(#185): move the tab expansion to ItemList so it's available for every list-like component
                             list.items.push(expand_tabs(&line, TABSIZE() as usize));
                             changed = true;
                         }
