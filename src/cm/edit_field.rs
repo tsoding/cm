@@ -54,7 +54,7 @@ impl EditField {
     }
 
     pub fn handle_key(&mut self, key_stroke: KeyStroke, key_map: &KeyMap) {
-        // TODO: EditField does not support unicode
+        // TODO(#187): EditField does not support unicode
         if 32 <= key_stroke.key && key_stroke.key <= 126 {
             self.insert_char(key_stroke.key as u8 as char);
         } else if key_map.is_bound(key_stroke, action::RIGHT) {
