@@ -126,8 +126,10 @@ impl<T: ToString + Clone> ItemList<T> {
                     line_to_render.iter().collect()
                 };
 
+
                 mv((y + i) as i32, x as i32);
                 let selected = i == (self.cursor_y % h);
+                // TODO: item list selection does not extend until the end of the screen
                 let pair = if selected {
                     if focused {
                         CURSOR_PAIR

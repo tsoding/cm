@@ -2,7 +2,7 @@ mod cm;
 
 use cm::*;
 use ncurses::*;
-use pcre2::bytes::Regex;
+use pcre2::bytes::{RegexBuilder, Regex};
 use std::env::var;
 use std::fs::{create_dir_all, File};
 use std::path::PathBuf;
@@ -140,7 +140,7 @@ fn main() {
                         }
                         BottomState::Search => {
                             if let Ok(regex) =
-                                Regex::new(global.bottom_edit_field.edit_field.buffer.as_str())
+                                RegexBuilder::new().utf(true).ucp(true).build(global.bottom_edit_field.edit_field.buffer.as_str())
                             {
                                 output_buffer.jump_to_next_match(&regex);
                                 global.search_regex = Some(regex);
