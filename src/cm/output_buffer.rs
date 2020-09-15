@@ -107,6 +107,8 @@ impl OutputBuffer {
                         // particular reason. Just to simplify the
                         // implementation. Maybe in the future it will
                         // make sense.
+                        // TODO(#189): regex capture highlighting is rendered with an offset
+                        //   Probably due to pcre2 returning matches in bytes instead of chars
                         let cap_mats = regex.captures_iter(item.as_bytes()).next();
                         if let Some(cap_mat) = cap_mats {
                             if let Ok(caps) = cap_mat {

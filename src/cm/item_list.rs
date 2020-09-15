@@ -113,26 +113,27 @@ impl<T: ToString + Clone> ItemList<T> {
                 .enumerate()
                 .take_while(|(i, _)| *i < h)
             {
-                let line_to_render = {
-                    let mut line_to_render = item
+                let line_to_render: String = {
+                    let mut line_to_render: Vec<char> = item
                         .to_string()
-                        .trim_end()
-                        .get(self.cursor_x..)
-                        .unwrap_or("")
-                        .to_string();
+                        .chars()
+                        .skip(self.cursor_x)
+                        .take(w)
+                        .collect();
+
                     let n = line_to_render.len();
                     if n < w {
                         for _ in 0..(w - n) {
                             line_to_render.push(' ');
                         }
-                        line_to_render
-                    } else {
-                        line_to_render[..w].to_string()
                     }
+
+                    line_to_render.iter().collect()
                 };
 
                 mv((y + i) as i32, x as i32);
                 let selected = i == (self.cursor_y % h);
+                // TODO(#188): item list selection does not extend until the end of the screen
                 let pair = if selected {
                     if focused {
                         CURSOR_PAIR
