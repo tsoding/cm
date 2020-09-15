@@ -7,7 +7,10 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ncurses = "5.99.0"
 libc = "0.2.69"
 pcre2 = "0.2"
 os_pipe = "0.9.2"
+
+[dependencies.ncurses]
+version = "5.99.0"
+features = ["wide"]

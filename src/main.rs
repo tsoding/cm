@@ -34,6 +34,9 @@ fn render_cmdline(line: &str, cmd: &str, regex: &Regex) -> Option<String> {
 fn main() {
     ctrlc::init();
 
+    let locale_conf = LcCategory::all;
+    setlocale(locale_conf, "en_US.UTF-8");
+
     let config_path = {
         const CONFIG_FILE_NAME: &str = "cm.conf";
         let xdg_config_dir = var("XDG_CONFIG_HOME").map(PathBuf::from);
