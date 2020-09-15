@@ -103,8 +103,16 @@ impl Profile {
 
     pub fn current_regex(&self) -> Option<Result<Regex, pcre2::Error>> {
         match self.regex_list.state {
-            StringListState::Navigate => self.regex_list.current_item().map(|s| RegexBuilder::new().utf(true).ucp(true).build(&s)),
-            StringListState::Editing { .. } => Some(RegexBuilder::new().utf(true).ucp(true).build(&self.regex_list.edit_field.buffer)),
+            StringListState::Navigate => self
+                .regex_list
+                .current_item()
+                .map(|s| RegexBuilder::new().utf(true).ucp(true).build(&s)),
+            StringListState::Editing { .. } => Some(
+                RegexBuilder::new()
+                    .utf(true)
+                    .ucp(true)
+                    .build(&self.regex_list.edit_field.buffer),
+            ),
         }
     }
 

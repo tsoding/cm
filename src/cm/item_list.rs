@@ -114,7 +114,12 @@ impl<T: ToString + Clone> ItemList<T> {
                 .take_while(|(i, _)| *i < h)
             {
                 let line_to_render: String = {
-                    let mut line_to_render: Vec<char> = item.to_string().chars().skip(self.cursor_x).take(w).collect();
+                    let mut line_to_render: Vec<char> = item
+                        .to_string()
+                        .chars()
+                        .skip(self.cursor_x)
+                        .take(w)
+                        .collect();
 
                     let n = line_to_render.len();
                     if n < w {
@@ -125,7 +130,6 @@ impl<T: ToString + Clone> ItemList<T> {
 
                     line_to_render.iter().collect()
                 };
-
 
                 mv((y + i) as i32, x as i32);
                 let selected = i == (self.cursor_y % h);
