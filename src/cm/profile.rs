@@ -40,10 +40,6 @@ impl Profile {
                     fail("Key is not provided");
                 }
 
-                if value.is_empty() {
-                    fail("Value is not provided");
-                }
-
                 match key {
                     "regexs" => {
                         regex_count += 1;
@@ -54,6 +50,9 @@ impl Profile {
                         result.cmd_list.list.items.push(value.to_string());
                     }
                     "current_regex" => {
+                        if value.is_empty() {
+                            fail("Value is not provided");
+                        }
                         result.regex_list.list.cursor_y =
                             value.parse::<usize>().unwrap_or_else(|_| {
                                 fail("Not a number");
@@ -61,6 +60,9 @@ impl Profile {
                             })
                     }
                     "current_cmd" => {
+                        if value.is_empty() {
+                            fail("Value is not provided");
+                        }
                         result.cmd_list.list.cursor_y =
                             value.parse::<usize>().unwrap_or_else(|_| {
                                 fail("Not a number");
@@ -68,6 +70,9 @@ impl Profile {
                             })
                     }
                     key => {
+                        if value.is_empty() {
+                            fail("Value is not provided");
+                        }
                         let key_stroke = KeyStroke::from_str(key).unwrap();
                         let action = action::from_str(value).unwrap();
                         result.key_map.bind(key_stroke, action);
