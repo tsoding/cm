@@ -28,15 +28,22 @@ impl Profile {
             let fail = |message| panic!("{}:{}: {}", file_path.display(), i + 1, message);
 
             if !line.is_empty() {
-                let mut assign = line.split('=');
-                let key = assign
-                    .next()
-                    .unwrap_or_else(|| fail("Key is not provided"))
-                    .trim();
-                let value = assign
-                    .next()
-                    .unwrap_or_else(|| fail("Value is not provided"))
-                    .trim();
+                let (key, value) = line
+                    .find('=')
+                    .map(|pos| {
+                        let (lh, rh) = line.split_at(pos);
+                        (lh.trim(), rh[1..].trim())
+                    })
+                    .unwrap_or_else(|| fail("Invalid configuration line"));
+
+                if key.is_empty() {
+                    fail("Key is not provided");
+                }
+
+                if value.is_empty() {
+                    fail("Value is not provided");
+                }
+
                 match key {
                     "regexs" => {
                         regex_count += 1;
