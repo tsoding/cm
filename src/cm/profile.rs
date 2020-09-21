@@ -28,15 +28,18 @@ impl Profile {
             let fail = |message| panic!("{}:{}: {}", file_path.display(), i + 1, message);
 
             if !line.is_empty() {
-                let mut assign = line.split('=');
-                let key = assign
-                    .next()
-                    .unwrap_or_else(|| fail("Key is not provided"))
-                    .trim();
-                let value = assign
-                    .next()
-                    .unwrap_or_else(|| fail("Value is not provided"))
-                    .trim();
+                let (key, value) = line
+                    .find('=')
+                    .map(|pos| {
+                        let (lh, rh) = line.split_at(pos);
+                        (lh.trim(), rh[1..].trim())
+                    })
+                    .unwrap_or_else(|| fail("Invalid configuration line"));
+
+                if key.is_empty() {
+                    fail("Key is not provided");
+                }
+
                 match key {
                     "regexs" => {
                         regex_count += 1;
@@ -47,6 +50,9 @@ impl Profile {
                         result.cmd_list.list.items.push(value.to_string());
                     }
                     "current_regex" => {
+                        if value.is_empty() {
+                            fail("Value is not provided");
+                        }
                         result.regex_list.list.cursor_y =
                             value.parse::<usize>().unwrap_or_else(|_| {
                                 fail("Not a number");
@@ -54,6 +60,9 @@ impl Profile {
                             })
                     }
                     "current_cmd" => {
+                        if value.is_empty() {
+                            fail("Value is not provided");
+                        }
                         result.cmd_list.list.cursor_y =
                             value.parse::<usize>().unwrap_or_else(|_| {
                                 fail("Not a number");
@@ -61,6 +70,9 @@ impl Profile {
                             })
                     }
                     key => {
+                        if value.is_empty() {
+                            fail("Value is not provided");
+                        }
                         let key_stroke = KeyStroke::from_str(key).unwrap();
                         let action = action::from_str(value).unwrap();
                         result.key_map.bind(key_stroke, action);
