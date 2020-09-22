@@ -2,7 +2,7 @@ use super::*;
 use libc::*;
 use ncurses::*;
 use os_pipe::{pipe, PipeReader};
-use pcre2::bytes::{Regex, Match};
+use pcre2::bytes::{Match, Regex};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::os::unix::io::AsRawFd;
@@ -141,15 +141,30 @@ impl OutputBuffer {
                                 for j in 1..caps.len() {
                                     if let Some(byte_mat) = caps.get(j) {
                                         // TODO: test cm on incorrect utf-8 data
-                                        let char_mat = byte_match_to_char_match(&byte_mat, item).unwrap();
+                                        let char_mat =
+                                            byte_match_to_char_match(&byte_mat, item).unwrap();
                                         let char_start = usize::max(list.cursor_x, char_mat.start);
-                                        let char_end   = usize::min(list.cursor_x + w, char_mat.end);
+                                        let char_end = usize::min(list.cursor_x + w, char_mat.end);
                                         if char_start != char_end {
-                                            let effective_byte_mat =
-                                                char_match_to_byte_match(ByteMatch {start: char_start, end: char_end}, item);
-                                            mv((y + i) as i32, (char_start - list.cursor_x + x) as i32);
+                                            let effective_byte_mat = char_match_to_byte_match(
+                                                ByteMatch {
+                                                    start: char_start,
+                                                    end: char_end,
+                                                },
+                                                item,
+                                            );
+                                            mv(
+                                                (y + i) as i32,
+                                                (char_start - list.cursor_x + x) as i32,
+                                            );
                                             attron(COLOR_PAIR(cap_pair));
-                                            addstr(item.get(effective_byte_mat.start..effective_byte_mat.end).unwrap_or(""));
+                                            addstr(
+                                                item.get(
+                                                    effective_byte_mat.start
+                                                        ..effective_byte_mat.end,
+                                                )
+                                                .unwrap_or(""),
+                                            );
                                             attroff(COLOR_PAIR(cap_pair));
                                         }
                                     }
