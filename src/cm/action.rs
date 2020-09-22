@@ -32,8 +32,7 @@ pub const JUMP_TO_START: Type = 27;
 pub const JUMP_TO_END: Type = 28;
 pub const NEXT_SEARCH_MATCH: Type = 29;
 pub const PREV_SEARCH_MATCH: Type = 30;
-pub const EDIT_SHELL: Type = 31;
-pub const LEN: usize = 32;
+pub const LEN: usize = 31;
 
 pub const NAMES: [&str; LEN] = [
     "up",
@@ -67,7 +66,6 @@ pub const NAMES: [&str; LEN] = [
     "jump_to_end",
     "next_search_match",
     "prev_search_match",
-    "edit_shell",
 ];
 
 pub fn from_str(s: &str) -> Result<Type, String> {

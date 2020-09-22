@@ -42,7 +42,6 @@ pub enum BottomState {
     Nothing,
     Cmdline,
     Search,
-    Shell,
 }
 
 pub struct Global {
@@ -114,13 +113,6 @@ impl Global {
                     .clone()
                     .unwrap_or_else(String::new),
             );
-            true
-        } else if self.bottom_state == BottomState::Nothing
-            && key_map.is_bound(key_stroke, action::EDIT_SHELL)
-        {
-            self.bottom_state = BottomState::Shell;
-            self.bottom_edit_field
-                .activate(&mut self.cursor, self.shell.clone());
             true
         } else {
             false

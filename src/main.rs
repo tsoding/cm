@@ -152,9 +152,6 @@ fn main() {
                                 global.search_regex = Some(regex);
                             }
                         }
-                        BottomState::Shell => {
-                            global.shell = global.bottom_edit_field.edit_field.buffer.clone();
-                        }
                         BottomState::Nothing => {
                             unreachable!("Unexpected bottom state");
                         }
@@ -261,9 +258,8 @@ fn main() {
                     h: h - 1,
                 };
                 if global.profile_pane {
-                    let (output_buffer_rect, profile_rect, shell_rect) =
-                        working_rect.horizontal_split(4);
-                    let (regex_rect, cmd_rect) = profile_rect.vertical_split(2);
+                    let (output_buffer_rect, profile_rect) = working_rect.horizontal_split(3);
+                    let (regex_rect, cmd_rect, shell_rect) = profile_rect.vertical_split(3);
 
                     output_buffer.render(
                         output_buffer_rect,
