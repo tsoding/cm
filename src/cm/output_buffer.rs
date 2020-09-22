@@ -141,7 +141,7 @@ impl OutputBuffer {
                                 // TODO(#196): match highlighting does not respect the column width of the unicode characters
                                 for j in 1..caps.len() {
                                     if let Some(byte_mat) = caps.get(j) {
-                                        // TODO: test cm on incorrect utf-8 data
+                                        // TODO(#197): test cm on incorrect utf-8 data
                                         let char_mat =
                                             byte_match_to_char_match(&byte_mat, item).unwrap();
                                         let char_start = usize::max(list.cursor_x, char_mat.start);
