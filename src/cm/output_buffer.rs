@@ -138,6 +138,7 @@ impl OutputBuffer {
                             if let Ok(caps) = cap_mat {
                                 // NOTE: we are skiping first cap because it contains the
                                 // whole match which is not needed in our case
+                                // TODO: match highlighting does not respect the column width the unicode characters
                                 for j in 1..caps.len() {
                                     if let Some(byte_mat) = caps.get(j) {
                                         // TODO: test cm on incorrect utf-8 data

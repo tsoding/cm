@@ -2,6 +2,7 @@ use super::*;
 use ncurses::*;
 use pcre2::bytes::Regex;
 use std::cmp::{max, min};
+use unicode_width::UnicodeWidthChar;
 
 pub struct ItemList<T: ToString + Clone> {
     pub items: Vec<T>,
@@ -114,21 +115,37 @@ impl<T: ToString + Clone> ItemList<T> {
                 .take_while(|(i, _)| *i < h)
             {
                 let line_to_render: String = {
-                    let mut line_to_render: Vec<char> = item
-                        .to_string()
-                        .chars()
-                        .skip(self.cursor_x)
-                        .take(w)
-                        .collect();
+                    let s = item.to_string();
+                    let mut line_to_render = s.chars();
 
-                    let n = line_to_render.len();
-                    if n < w {
-                        for _ in 0..(w - n) {
-                            line_to_render.push(' ');
+                    // .skip(self.cursor_x)
+                    {
+                        let mut m = self.cursor_x;
+                        while m > 0 {
+                            match line_to_render.next().map(|x| x.width().unwrap_or(0)) {
+                                Some(n) if n <= m => m -= n,
+                                _ => break,
+                            }
                         }
                     }
 
-                    line_to_render.iter().collect()
+                    let mut result: Vec<char> = Vec::new();
+
+                    // .take(w)
+                    {
+                        let mut m = w;
+                        while m > 0 {
+                            match line_to_render.next().map(|x| (x, x.width().unwrap_or(0))) {
+                                Some((x, n)) if n <= m => {
+                                    result.push(x);
+                                    m -= n;
+                                }
+                                _ => break,
+                            }
+                        }
+                    }
+
+                    result.iter().collect()
                 };
 
                 mv((y + i) as i32, x as i32);
