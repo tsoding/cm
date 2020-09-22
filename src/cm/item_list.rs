@@ -139,7 +139,7 @@ impl<T: ToString + Clone> ItemList<T> {
                                 Some((x, n)) if n <= m => {
                                     result.push(x);
                                     m -= n;
-                                },
+                                }
                                 _ => break,
                             }
                         }
