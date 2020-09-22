@@ -2,7 +2,7 @@ use super::*;
 use libc::*;
 use ncurses::*;
 use os_pipe::{pipe, PipeReader};
-use pcre2::bytes::Regex;
+use pcre2::bytes::{Regex, Match};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::os::unix::io::AsRawFd;
@@ -13,6 +13,30 @@ fn mark_nonblocking<Fd: AsRawFd>(fd: &mut Fd) {
     unsafe {
         let flags = libc::fcntl(fd.as_raw_fd(), F_GETFL, 0);
         libc::fcntl(fd.as_raw_fd(), F_SETFL, flags | O_NONBLOCK);
+    }
+}
+
+struct CharMatch {
+    start: usize,
+    end: usize,
+}
+
+fn byte_match_to_char_match(mat: &Match, s: &String) -> Option<CharMatch> {
+    Some(CharMatch {
+        start: s.get(0..mat.start())?.chars().count(),
+        end: s.get(0..mat.end())?.chars().count(),
+    })
+}
+
+struct ByteMatch {
+    start: usize,
+    end: usize,
+}
+
+fn char_match_to_byte_match(mat: ByteMatch, s: &String) -> ByteMatch {
+    ByteMatch {
+        start: s.chars().take(mat.start).collect::<String>().len(),
+        end: s.chars().take(mat.end).collect::<String>().len(),
     }
 }
 
@@ -115,13 +139,17 @@ impl OutputBuffer {
                                 // NOTE: we are skiping first cap because it contains the
                                 // whole match which is not needed in our case
                                 for j in 1..caps.len() {
-                                    if let Some(mat) = caps.get(j) {
-                                        let start = usize::max(list.cursor_x, mat.start());
-                                        let end = usize::min(list.cursor_x + w, mat.end());
-                                        if start != end {
-                                            mv((y + i) as i32, (start - list.cursor_x + x) as i32);
+                                    if let Some(byte_mat) = caps.get(j) {
+                                        // TODO: test cm on incorrect utf-8 data
+                                        let char_mat = byte_match_to_char_match(&byte_mat, item).unwrap();
+                                        let char_start = usize::max(list.cursor_x, char_mat.start);
+                                        let char_end   = usize::min(list.cursor_x + w, char_mat.end);
+                                        if char_start != char_end {
+                                            let effective_byte_mat =
+                                                char_match_to_byte_match(ByteMatch {start: char_start, end: char_end}, item);
+                                            mv((y + i) as i32, (char_start - list.cursor_x + x) as i32);
                                             attron(COLOR_PAIR(cap_pair));
-                                            addstr(item.get(start..end).unwrap_or(""));
+                                            addstr(item.get(effective_byte_mat.start..effective_byte_mat.end).unwrap_or(""));
                                             attroff(COLOR_PAIR(cap_pair));
                                         }
                                     }
