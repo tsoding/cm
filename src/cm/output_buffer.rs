@@ -21,7 +21,7 @@ struct CharMatch {
     end: usize,
 }
 
-fn byte_match_to_char_match(mat: &Match, s: &String) -> Option<CharMatch> {
+fn byte_match_to_char_match(mat: &Match, s: &str) -> Option<CharMatch> {
     Some(CharMatch {
         start: s.get(0..mat.start())?.chars().count(),
         end: s.get(0..mat.end())?.chars().count(),
@@ -33,7 +33,7 @@ struct ByteMatch {
     end: usize,
 }
 
-fn char_match_to_byte_match(mat: ByteMatch, s: &String) -> ByteMatch {
+fn char_match_to_byte_match(mat: ByteMatch, s: &str) -> ByteMatch {
     ByteMatch {
         start: s.chars().take(mat.start).collect::<String>().len(),
         end: s.chars().take(mat.end).collect::<String>().len(),
