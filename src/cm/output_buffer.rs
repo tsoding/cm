@@ -178,7 +178,7 @@ impl OutputBuffer {
         }
     }
 
-    pub fn run_cmdline(&mut self, cmdline: String) {
+    pub fn run_cmdline(&mut self, cmdline: String, shell: String) {
         // TODO(#102): cm does not warn the user when it kills the child process
         if let Some((_, child)) = &mut self.child {
             child
@@ -191,7 +191,7 @@ impl OutputBuffer {
         }
 
         // @ref(#40) customize the argument of Command::new()
-        let mut command = Command::new("sh");
+        let mut command = Command::new(shell);
         command.arg("-c");
         command.arg(cmdline.clone());
         let (mut reader, writer) =
@@ -221,13 +221,13 @@ impl OutputBuffer {
         self.child = Some((output, child));
     }
 
-    pub fn fork_cmdline(&mut self, cmdline: String) {
+    pub fn fork_cmdline(&mut self, cmdline: String, shell: String) {
         // TODO(#47): endwin() on Enter in OutputBuffer looks like a total hack and it's unclear why it even works
         endwin();
         // TODO(#40): shell is not customizable
         //   Grep for @ref(#40)
         // TODO(#50): cm doesn't say anything if the executed command has failed
-        Command::new("sh")
+        Command::new(shell)
             .stdin(
                 File::open("/dev/tty").expect("Could not open /dev/tty as stdin for child process"),
             )
@@ -302,21 +302,22 @@ impl OutputBuffer {
         cmdline_result: &Option<String>,
         regex_result: Option<Result<Regex, pcre2::Error>>,
         global: &mut Global,
+        shell: String,
     ) {
         if !global.handle_key(key_stroke, key_map) {
             if key_map.is_bound(key_stroke, action::RUN_INTO_ITSELF) {
                 if let Some(cmdline) = cmdline_result {
-                    self.run_cmdline(cmdline.clone());
+                    self.run_cmdline(cmdline.clone(), shell);
                 }
             } else if key_map.is_bound(key_stroke, action::RUN) {
                 if let Some(cmdline) = cmdline_result {
-                    self.fork_cmdline(cmdline.clone());
+                    self.fork_cmdline(cmdline.clone(), shell);
                 }
             } else if key_map.is_bound(key_stroke, action::BACK) {
                 self.lists.pop();
             } else if key_map.is_bound(key_stroke, action::RERUN) {
                 if let Some(cmdline) = global.user_provided_cmdline.clone() {
-                    self.run_cmdline(cmdline);
+                    self.run_cmdline(cmdline, shell);
                 }
             } else if key_map.is_bound(key_stroke, action::PREV_MATCH) {
                 if let Some(Ok(regex)) = regex_result {

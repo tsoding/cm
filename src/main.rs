@@ -73,7 +73,8 @@ fn main() {
     }
 
     if let Some(cmdline) = global.user_provided_cmdline.clone() {
-        output_buffer.run_cmdline(cmdline);
+        let shell = profile.current_shell().unwrap();
+        output_buffer.run_cmdline(cmdline, shell);
     }
 
     initscr();
@@ -115,6 +116,7 @@ fn main() {
             // changes the state of the application which needs to be reflected by rerendering
             // the screen.
             rerender = true;
+            let shell = profile.current_shell().unwrap();
 
             let cmdline = match (
                 &profile.current_regex(),
@@ -135,8 +137,10 @@ fn main() {
                         BottomState::Cmdline => {
                             global.user_provided_cmdline =
                                 Some(global.bottom_edit_field.edit_field.buffer.clone());
-                            output_buffer
-                                .run_cmdline(global.bottom_edit_field.edit_field.buffer.clone());
+                            output_buffer.run_cmdline(
+                                global.bottom_edit_field.edit_field.buffer.clone(),
+                                shell,
+                            );
                         }
                         BottomState::Search => {
                             if let Ok(regex) = RegexBuilder::new()
@@ -168,6 +172,7 @@ fn main() {
                     &cmdline,
                     profile.current_regex(),
                     &mut global,
+                    shell,
                 );
             } else {
                 match global.focus {
@@ -177,6 +182,7 @@ fn main() {
                         &cmdline,
                         profile.current_regex(),
                         &mut global,
+                        shell,
                     ),
                     Focus::Regexs => {
                         profile
@@ -186,6 +192,11 @@ fn main() {
                     Focus::Cmds => {
                         profile
                             .cmd_list
+                            .handle_key(key_stroke, &profile.key_map, &mut global)
+                    }
+                    Focus::Shell => {
+                        profile
+                            .shell_list
                             .handle_key(key_stroke, &profile.key_map, &mut global)
                     }
                 }
@@ -198,9 +209,9 @@ fn main() {
             // TODO(#129): OutputBuffer::poll_cmdline_output() == true does not guarantee it is necessary to rerender
             //   If the output is appended outside of the screen it's kinda pointless to rerender
             let output_buffer_changed = output_buffer.poll_cmdline_output();
-            // NOTE(rerender): output_buffer_changed == true means we recieved some output
+            // NOTE(rerender): output_buffer_changed == true means we received some output
             // from the currently running child process and the output is pushed to the
-            // output_buffer which effectevly changes the state of the application which needs
+            // output_buffer which effectively changes the state of the application which needs
             // to be reflected by rerendering the screen.
             rerender = rerender || output_buffer_changed;
         }
@@ -248,7 +259,7 @@ fn main() {
                 };
                 if global.profile_pane {
                     let (output_buffer_rect, profile_rect) = working_rect.horizontal_split(3);
-                    let (regex_rect, cmd_rect) = profile_rect.vertical_split(2);
+                    let (regex_rect, cmd_rect, shell_rect) = profile_rect.vertical_split(3);
 
                     output_buffer.render(
                         output_buffer_rect,
@@ -263,6 +274,11 @@ fn main() {
                     profile.cmd_list.render(
                         cmd_rect,
                         global.focus == Focus::Cmds,
+                        &mut global.cursor,
+                    );
+                    profile.shell_list.render(
+                        shell_rect,
+                        global.focus == Focus::Shell,
                         &mut global.cursor,
                     );
                 } else {

@@ -3,8 +3,14 @@ use std::path::Path;
 
 pub type Type = fn(Vec<String>) -> Vec<String>;
 
-pub const CURRENT_VERSION: usize = 0;
-pub const MIGRATIONS: [Type; CURRENT_VERSION] = [];
+fn migrate_v0_to_v1(mut lines: Vec<String>) -> Vec<String> {
+    lines.push("shells = /bin/sh".to_string());
+    lines.push("current_shell = 0".to_string());
+    lines
+}
+
+pub const CURRENT_VERSION: usize = 1;
+pub const MIGRATIONS: [Type; CURRENT_VERSION] = [migrate_v0_to_v1];
 
 // NOTE: One of the important features of read_and_migrate_file is
 // that it never saves the migrated file. It is saved at the end of
