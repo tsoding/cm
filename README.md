@@ -23,22 +23,6 @@ $ ./target/debug/cm 'grep -rn String src/'
 
 ## Usage
 
-### Starting up
-
-
-Right now there are two ways to start up cm:
-1. By giving it some data through stdin: `grep -rn String src/ | cm`
-2. By passing the shell command as an argument: `cm 'grep -rn String src/'`
-
-In the second case scenario it is possible to re-run command by pressing F5,
-which is convenient when you are fixing compilation errors and need to constatnly
-re-run the build process.
-
-### Application layout
-
-<!-- TODO(#86): Document application layout -->
-[TBD](https://github.com/tsoding/cm/issues/86)
-
 ### Default Shortcuts
 
 |Shortcut|Description|
@@ -50,6 +34,11 @@ re-run the build process.
 
 <!-- TODO(#87): Document shortcuts -->
 Rest default shortcuts are [TBD](https://github.com/tsoding/cm/issues/87)
+
+### Application layout
+
+<!-- TODO(#86): Document application layout -->
+[TBD](https://github.com/tsoding/cm/issues/86)
 
 ### Configuration file cm.conf
 
