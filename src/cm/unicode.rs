@@ -49,8 +49,14 @@ mod tests {
     #[test]
     fn test_width_substr() {
         assert_eq!(super::width_substr("hello", 0..4), Some(("hell", (0, 0))));
-        assert_eq!(super::width_substr("😂👌💯🔥", 0..4), Some(("😂👌", (0, 0))));
-        assert_eq!(super::width_substr("😂👌💯🔥", 0..5), Some(("😂👌", (0, 1))));
+        assert_eq!(
+            super::width_substr("😂👌💯🔥", 0..4),
+            Some(("😂👌", (0, 0)))
+        );
+        assert_eq!(
+            super::width_substr("😂👌💯🔥", 0..5),
+            Some(("😂👌", (0, 1)))
+        );
         assert_eq!(super::width_substr("😂👌💯🔥", 1..4), Some(("👌", (1, 1))));
         assert_eq!(super::width_substr("", 0..5), Some(("", (0, 5))));
     }
