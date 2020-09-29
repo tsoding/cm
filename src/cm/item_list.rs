@@ -114,7 +114,8 @@ impl<T: ToString + Clone> ItemList<T> {
                 .take_while(|(i, _)| *i < h)
             {
                 let s = item.to_string();
-                let (line_to_render, (left, right)) = unicode::width_substr(s.trim_end(), self.cursor_x..self.cursor_x + w).unwrap();
+                let (line_to_render, (left, right)) =
+                    unicode::width_substr(s.trim_end(), self.cursor_x..self.cursor_x + w).unwrap();
 
                 mv((y + i) as i32, x as i32);
                 let selected = i == (self.cursor_y % h);

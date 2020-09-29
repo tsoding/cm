@@ -14,7 +14,7 @@ pub fn width_substr(s: &str, range: Range<usize>) -> Option<(&str, (usize, usize
                 Some((boxes, bytes)) => {
                     m -= boxes as i32;
                     start_bytes += bytes;
-                },
+                }
                 _ => break,
             }
         }
@@ -42,5 +42,6 @@ pub fn width_substr(s: &str, range: Range<usize>) -> Option<(&str, (usize, usize
         m as usize
     };
 
-    s.get(start_bytes..end_bytes).map(|x| (x, (left_padding, right_padding)))
+    s.get(start_bytes..end_bytes)
+        .map(|x| (x, (left_padding, right_padding)))
 }
