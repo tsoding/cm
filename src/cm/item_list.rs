@@ -2,7 +2,6 @@ use super::*;
 use ncurses::*;
 use pcre2::bytes::Regex;
 use std::cmp::{max, min};
-use unicode_width::UnicodeWidthChar;
 
 pub struct ItemList<T: ToString + Clone> {
     pub items: Vec<T>,
@@ -114,39 +113,9 @@ impl<T: ToString + Clone> ItemList<T> {
                 .enumerate()
                 .take_while(|(i, _)| *i < h)
             {
-                let line_to_render: String = {
-                    let s = item.to_string();
-                    let mut line_to_render = s.chars();
-
-                    // .skip(self.cursor_x)
-                    {
-                        let mut m = self.cursor_x;
-                        while m > 0 {
-                            match line_to_render.next().map(|x| x.width().unwrap_or(0)) {
-                                Some(n) if n <= m => m -= n,
-                                _ => break,
-                            }
-                        }
-                    }
-
-                    let mut result: Vec<char> = Vec::new();
-
-                    // .take(w)
-                    {
-                        let mut m = w;
-                        while m > 0 {
-                            match line_to_render.next().map(|x| (x, x.width().unwrap_or(0))) {
-                                Some((x, n)) if n <= m => {
-                                    result.push(x);
-                                    m -= n;
-                                }
-                                _ => break,
-                            }
-                        }
-                    }
-
-                    result.iter().collect()
-                };
+                let s = item.to_string();
+                let (line_to_render, (left, right)) =
+                    unicode::width_substr(s.trim_end(), self.cursor_x..self.cursor_x + w).unwrap();
 
                 mv((y + i) as i32, x as i32);
                 let selected = i == (self.cursor_y % h);
@@ -161,7 +130,14 @@ impl<T: ToString + Clone> ItemList<T> {
                     REGULAR_PAIR
                 };
                 attron(COLOR_PAIR(pair));
+                for _ in 0..left {
+                    addstr(" ");
+                }
+                // addstr(&format!("{:?}", (left, right)));
                 addstr(&line_to_render);
+                for _ in 0..right {
+                    addstr(" ");
+                }
                 attroff(COLOR_PAIR(pair));
             }
         }
