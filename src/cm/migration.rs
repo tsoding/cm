@@ -1,4 +1,4 @@
-use std::fs::{read_to_string, copy};
+use std::fs::{copy, read_to_string};
 use std::path::Path;
 
 pub type Type = fn(Vec<String>) -> Vec<String>;
