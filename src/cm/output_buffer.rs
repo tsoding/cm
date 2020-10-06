@@ -222,11 +222,20 @@ impl OutputBuffer {
     }
 
     pub fn fork_cmdline(&mut self, cmdline: String, shell: String) {
-        // TODO(#47): endwin() on Enter in OutputBuffer looks like a total hack and it's unclear why it even works
+        // NOTE: It is important to call endwin() function before running any child processes.
+        // According to https://invisible-island.net/ncurses/man/curs_initscr.3x.html#h3-endwin
+        //
+        // > <..>
+        // > A program should always call endwin before exiting or escaping from curses mode temporarily.
+        // > <..>
+        // > Calling refresh(3x) or doupdate(3x) after a temporary escape causes the program to resume visual mode.
+        //
+        // Add we will call refresh(3x) after the child process exists on the next iteration of the event loop
         endwin();
         // TODO(#40): shell is not customizable
         //   Grep for @ref(#40)
         // TODO(#50): cm doesn't say anything if the executed command has failed
+
         Command::new(shell)
             .stdin(
                 File::open("/dev/tty").expect("Could not open /dev/tty as stdin for child process"),
