@@ -5,6 +5,7 @@ use ncurses::*;
 use pcre2::bytes::{Regex, RegexBuilder};
 use std::env::var;
 use std::fs::{create_dir_all, File};
+use std::panic::catch_unwind;
 use std::path::PathBuf;
 
 fn render_status(y: usize, text: &str) {
@@ -31,11 +32,24 @@ fn render_cmdline(line: &str, cmd: &str, regex: &Regex) -> Option<String> {
     })
 }
 
-fn main() {
+fn start_cm() {
     ctrlc::init();
 
-    let locale_conf = LcCategory::all;
-    setlocale(locale_conf, "en_US.UTF-8");
+    // NOTE(timeout): timeout(16) is a very important setting of ncurses for our
+    // application. It makes getch() asynchronous, which is essential
+    // for non-blocking UI when receiving the output from the child
+    // process.
+    //
+    // The value of 16 milliseconds also blocks the application for a
+    // little. This improves the performance by making the application
+    // to not constantly busy loop on checking the input from the user
+    // and the running child process.
+    //
+    // 16 milliseconds were chosen to make the application "run in 60 fps" :D
+    timeout(16);
+    noecho();
+    keypad(stdscr(), true);
+    init_style();
 
     let config_path = {
         const CONFIG_FILE_NAME: &str = "cm.conf";
@@ -76,24 +90,6 @@ fn main() {
         let shell = profile.current_shell().unwrap();
         output_buffer.run_cmdline(cmdline, shell);
     }
-
-    initscr();
-    // NOTE(timeout): timeout(16) is a very important setting of ncurses for our
-    // application. It makes getch() asynchronous, which is essential
-    // for non-blocking UI when receiving the output from the child
-    // process.
-    //
-    // The value of 16 milliseconds also blocks the application for a
-    // little. This improves the performance by making the application
-    // to not constantly busy loop on checking the input from the user
-    // and the running child process.
-    //
-    // 16 milliseconds were chosen to make the application "run in 60 fps" :D
-    timeout(16);
-    noecho();
-    keypad(stdscr(), true);
-
-    init_style();
 
     // NOTE(rerender): because of the asynchronous nature of the application the
     // rendering process could be invoked every 16 millisecond (See NOTE(timeout)),
@@ -302,11 +298,18 @@ fn main() {
         rerender = false;
     }
 
-    // TODO(#21): if application crashes it does not finalize the terminal
-    endwin();
-
     config_path.parent().map(create_dir_all);
     profile
         .to_file(&mut File::create(config_path).expect("Could not open configuration file"))
         .expect("Could not save configuration");
+}
+
+fn main() {
+    let locale_conf = LcCategory::all;
+    setlocale(locale_conf, "en_US.UTF-8");
+
+    initscr();
+    let result = catch_unwind(start_cm);
+    endwin();
+    result.unwrap();
 }
