@@ -33,6 +33,8 @@ fn render_cmdline(line: &str, cmd: &str, regex: &Regex) -> Option<String> {
 }
 
 fn start_cm() {
+    ctrlc::init();
+
     // NOTE(timeout): timeout(16) is a very important setting of ncurses for our
     // application. It makes getch() asynchronous, which is essential
     // for non-blocking UI when receiving the output from the child
@@ -48,11 +50,6 @@ fn start_cm() {
     noecho();
     keypad(stdscr(), true);
     init_style();
-
-    ctrlc::init();
-
-    let locale_conf = LcCategory::all;
-    setlocale(locale_conf, "en_US.UTF-8");
 
     let config_path = {
         const CONFIG_FILE_NAME: &str = "cm.conf";
@@ -308,6 +305,9 @@ fn start_cm() {
 }
 
 fn main() {
+    let locale_conf = LcCategory::all;
+    setlocale(locale_conf, "en_US.UTF-8");
+
     initscr();
     let result = catch_unwind(start_cm);
     endwin();
