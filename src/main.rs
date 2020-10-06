@@ -255,13 +255,20 @@ fn start_cm() {
                 };
                 if global.profile_pane {
                     let (output_buffer_rect, profile_rect) = working_rect.horizontal_split(3);
-                    let (regex_rect, cmd_rect, shell_rect) = profile_rect.vertical_split(3);
+                    let (regex_rect, cmd_rect, shell_rect) =
+                        profile_rect.remove_rows_from_top(1).vertical_split(3);
 
                     output_buffer.render(
                         output_buffer_rect,
                         global.focus == Focus::Output,
                         profile.current_regex(),
                     );
+
+                    mv(profile_rect.y as i32, profile_rect.x as i32);
+                    for _ in 0..profile_rect.w {
+                        addstr("-");
+                    }
+
                     profile.regex_list.render(
                         regex_rect,
                         global.focus == Focus::Regexs,
