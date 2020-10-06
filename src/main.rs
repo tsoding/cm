@@ -6,6 +6,7 @@ use pcre2::bytes::{Regex, RegexBuilder};
 use std::env::var;
 use std::fs::{create_dir_all, File};
 use std::path::PathBuf;
+use std::panic::catch_unwind;
 
 fn render_status(y: usize, text: &str) {
     attron(COLOR_PAIR(REGULAR_PAIR));
@@ -308,7 +309,7 @@ fn start_cm() {
 
 fn main() {
     initscr();
-    let result = std::panic::catch_unwind(|| start_cm());
+    let result = catch_unwind(start_cm);
     endwin();
-    result.unwrap()
+    result.unwrap();
 }
