@@ -5,7 +5,7 @@ use ncurses::*;
 use pcre2::bytes::{Regex, RegexBuilder};
 use std::env::var;
 use std::fs::{create_dir_all, File};
-use std::panic::catch_unwind;
+use std::panic::{set_hook, take_hook};
 use std::path::PathBuf;
 
 fn render_status(y: usize, text: &str) {
@@ -315,8 +315,15 @@ fn main() {
     let locale_conf = LcCategory::all;
     setlocale(locale_conf, "en_US.UTF-8");
 
+    set_hook(Box::new({
+        let default_hook = take_hook();
+        move |payload| {
+            endwin();
+            default_hook(payload);
+        }
+    }));
+
     initscr();
-    let result = catch_unwind(start_cm);
+    start_cm();
     endwin();
-    result.unwrap();
 }
