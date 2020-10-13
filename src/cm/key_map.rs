@@ -363,7 +363,7 @@ impl KeyMap {
     pub fn check_bound(&self, key: KeyStroke) -> action::Type {
         let mut tmp_action: usize = 34;
         for act in 0..34 {
-            if self.key_map.get(act).and_then(|x| x.get(&key)).is_some() {
+            if self.is_bound(key, act) {
                 tmp_action = act;
                 break;
             }
