@@ -26,10 +26,12 @@ impl<T: ToString + Clone> ItemList<T> {
         } else {
             self.scroll_y -= page_size;
         }
+        self.cursor_y = self.scroll_y;
     }
 
     pub fn page_down(&mut self, page_size: usize) {
-        self.scroll_y = min(self.scroll_y + page_size, self.items.len());
+        self.scroll_y = min(self.scroll_y + page_size, self.items.len() - 1);
+        self.cursor_y = min(self.scroll_y + page_size - 1, self.items.len() - 1);
     }
 
     pub fn up(&mut self) {
@@ -100,6 +102,9 @@ impl<T: ToString + Clone> ItemList<T> {
     }
 
     pub fn handle_key(&mut self, key_stroke: KeyStroke, key_map: &KeyMap) {
+        // TODO: page-up/page-down page size is hardcoded
+        const PAGE_SIZE: usize = 30;
+
         if key_map.is_bound(key_stroke, action::DOWN) {
             self.down();
         } else if key_map.is_bound(key_stroke, action::UP) {
@@ -114,6 +119,10 @@ impl<T: ToString + Clone> ItemList<T> {
             self.jump_to_start();
         } else if key_map.is_bound(key_stroke, action::JUMP_TO_END) {
             self.jump_to_end();
+        } else if key_map.is_bound(key_stroke, action::PAGE_UP) {
+            self.page_up(PAGE_SIZE);
+        } else if key_map.is_bound(key_stroke, action::PAGE_DOWN) {
+            self.page_down(PAGE_SIZE);
         }
     }
 
