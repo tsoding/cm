@@ -102,7 +102,7 @@ impl<T: ToString + Clone> ItemList<T> {
     }
 
     pub fn handle_key(&mut self, key_stroke: KeyStroke, key_map: &KeyMap) {
-        // TODO(#221): page-up/page-down page size is hardcoded        
+        // TODO(#221): page-up/page-down page size is hardcoded
         const PAGE_SIZE: usize = 30;
         match key_map.check_bound(key_stroke) {
             action::DOWN => self.down(),
