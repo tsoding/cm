@@ -9,8 +9,14 @@ fn migrate_v0_to_v1(mut lines: Vec<String>) -> Vec<String> {
     lines
 }
 
-pub const CURRENT_VERSION: usize = 1;
-pub const MIGRATIONS: [Type; CURRENT_VERSION] = [migrate_v0_to_v1];
+fn migrate_v1_to_v2(mut lines: Vec<String>) -> Vec<String> {
+    lines.push("key:PPAGE = page_up".to_string());
+    lines.push("key:NPAGE = page_down".to_string());
+    lines
+}
+
+pub const CURRENT_VERSION: usize = 2;
+pub const MIGRATIONS: [Type; CURRENT_VERSION] = [migrate_v0_to_v1, migrate_v1_to_v2];
 
 pub fn read_and_migrate_file(filepath: &Path) -> Vec<String> {
     let input = read_to_string(filepath).unwrap();
