@@ -6,6 +6,7 @@ use std::cmp::{max, min};
 pub struct ItemList<T: ToString + Clone> {
     pub items: Vec<T>,
     pub scroll_x: usize,
+    pub scroll_y: usize,
     pub cursor_y: usize,
 }
 
@@ -14,6 +15,7 @@ impl<T: ToString + Clone> ItemList<T> {
         Self {
             items: Vec::new(),
             scroll_x: 0,
+            scroll_y: 0,
             cursor_y: 0,
         }
     }
@@ -106,39 +108,36 @@ impl<T: ToString + Clone> ItemList<T> {
     pub fn render(&self, Rect { x, y, w, h }: Rect, focused: bool) {
         if h > 0 {
             // TODO(#16): word wrapping for long lines
-            for (i, item) in self
-                .items
-                .iter()
-                .skip(self.cursor_y / h * h)
-                .enumerate()
-                .take_while(|(i, _)| *i < h)
-            {
-                let s = item.to_string();
-                let (line_to_render, (left, right)) =
-                    unicode::width_substr(s.trim_end(), self.scroll_x..self.scroll_x + w).unwrap();
+            for i in 0..h {
+                if self.scroll_y + i < self.items.len() {
+                    let s = self.items[self.scroll_y + i].to_string();
+                    let (line_to_render, (left, right)) =
+                        unicode::width_substr(s.trim_end(), self.scroll_x..self.scroll_x + w).unwrap();
 
-                mv((y + i) as i32, x as i32);
-                let selected = i == (self.cursor_y % h);
-                // TODO(#188): item list selection does not extend until the end of the screen
-                let pair = if selected {
-                    if focused {
-                        CURSOR_PAIR
+                    mv((y + i) as i32, x as i32);
+                    let selected = self.scroll_y + i == self.cursor_y;
+                    // TODO(#188): item list selection does not extend until the end of the screen
+                    let pair = if selected {
+                        if focused {
+                            CURSOR_PAIR
+                        } else {
+                            UNFOCUSED_CURSOR_PAIR
+                        }
                     } else {
-                        UNFOCUSED_CURSOR_PAIR
+                        REGULAR_PAIR
+                    };
+                    attron(COLOR_PAIR(pair));
+                    for _ in 0..left {
+                        addstr(" ");
                     }
-                } else {
-                    REGULAR_PAIR
-                };
-                attron(COLOR_PAIR(pair));
-                for _ in 0..left {
-                    addstr(" ");
+                    // addstr(&format!("{:?}", (left, right)));
+                    addstr(&line_to_render);
+                    for _ in 0..right {
+                        addstr(" ");
+                    }
+                    attroff(COLOR_PAIR(pair));
+
                 }
-                // addstr(&format!("{:?}", (left, right)));
-                addstr(&line_to_render);
-                for _ in 0..right {
-                    addstr(" ");
-                }
-                attroff(COLOR_PAIR(pair));
             }
         }
     }

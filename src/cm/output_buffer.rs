@@ -105,68 +105,64 @@ impl OutputBuffer {
             let Rect { x, y, w, h } = rect;
             if h > 0 {
                 // TODO(#16): word wrapping for long lines
-                for (i, item) in list
-                    .items
-                    .iter()
-                    .skip(list.cursor_y / h * h)
-                    .enumerate()
-                    .take_while(|(i, _)| *i < h)
-                {
-                    let selected = i == (list.cursor_y % h);
-
-                    let cap_pair = if selected {
-                        if focused {
-                            MATCH_CURSOR_PAIR
+                for i in 0..h {
+                    if list.scroll_y + i < list.items.len() {
+                        let item = &list.items[list.scroll_y + i];
+                        let selected = list.scroll_y + i == list.cursor_y;
+                        let cap_pair = if selected {
+                            if focused {
+                                MATCH_CURSOR_PAIR
+                            } else {
+                                UNFOCUSED_MATCH_CURSOR_PAIR
+                            }
                         } else {
-                            UNFOCUSED_MATCH_CURSOR_PAIR
-                        }
-                    } else {
-                        MATCH_PAIR
-                    };
+                            MATCH_PAIR
+                        };
 
-                    if let Some(Ok(regex)) = &regex_result {
-                        // NOTE: we are ignoring any further potential
-                        // capture matches (I don't like this term but
-                        // that's what PCRE2 lib is calling it). For no
-                        // particular reason. Just to simplify the
-                        // implementation. Maybe in the future it will
-                        // make sense.
-                        // TODO(#189): regex capture highlighting is rendered with an offset
-                        //   Probably due to pcre2 returning matches in bytes instead of chars
-                        let cap_mats = regex.captures_iter(item.as_bytes()).next();
-                        if let Some(cap_mat) = cap_mats {
-                            if let Ok(caps) = cap_mat {
-                                // NOTE: we are skiping first cap because it contains the
-                                // whole match which is not needed in our case
-                                // TODO(#196): match highlighting does not respect the column width of the unicode characters
-                                for j in 1..caps.len() {
-                                    if let Some(byte_mat) = caps.get(j) {
-                                        // TODO(#197): test cm on incorrect utf-8 data
-                                        let char_mat =
-                                            byte_match_to_char_match(&byte_mat, item).unwrap();
-                                        let char_start = usize::max(list.scroll_x, char_mat.start);
-                                        let char_end = usize::min(list.scroll_x + w, char_mat.end);
-                                        if char_start != char_end {
-                                            let effective_byte_mat = char_match_to_byte_match(
-                                                ByteMatch {
-                                                    start: char_start,
-                                                    end: char_end,
-                                                },
-                                                item,
-                                            );
-                                            mv(
-                                                (y + i) as i32,
-                                                (char_start - list.scroll_x + x) as i32,
-                                            );
-                                            attron(COLOR_PAIR(cap_pair));
-                                            addstr(
-                                                item.get(
-                                                    effective_byte_mat.start
-                                                        ..effective_byte_mat.end,
-                                                )
-                                                .unwrap_or(""),
-                                            );
-                                            attroff(COLOR_PAIR(cap_pair));
+                        if let Some(Ok(regex)) = &regex_result {
+                            // NOTE: we are ignoring any further potential
+                            // capture matches (I don't like this term but
+                            // that's what PCRE2 lib is calling it). For no
+                            // particular reason. Just to simplify the
+                            // implementation. Maybe in the future it will
+                            // make sense.
+                            // TODO(#189): regex capture highlighting is rendered with an offset
+                            //   Probably due to pcre2 returning matches in bytes instead of chars
+                            let cap_mats = regex.captures_iter(item.as_bytes()).next();
+                            if let Some(cap_mat) = cap_mats {
+                                if let Ok(caps) = cap_mat {
+                                    // NOTE: we are skiping first cap because it contains the
+                                    // whole match which is not needed in our case
+                                    // TODO(#196): match highlighting does not respect the column width of the unicode characters
+                                    for j in 1..caps.len() {
+                                        if let Some(byte_mat) = caps.get(j) {
+                                            // TODO(#197): test cm on incorrect utf-8 data
+                                            let char_mat =
+                                                byte_match_to_char_match(&byte_mat, item).unwrap();
+                                            let char_start = usize::max(list.scroll_x, char_mat.start);
+                                            let char_end = usize::min(list.scroll_x + w, char_mat.end);
+                                            if char_start != char_end {
+                                                let effective_byte_mat = char_match_to_byte_match(
+                                                    ByteMatch {
+                                                        start: char_start,
+                                                        end: char_end,
+                                                    },
+                                                    item,
+                                                );
+                                                mv(
+                                                    (y + i) as i32,
+                                                    (char_start - list.scroll_x + x) as i32,
+                                                );
+                                                attron(COLOR_PAIR(cap_pair));
+                                                addstr(
+                                                    item.get(
+                                                        effective_byte_mat.start
+                                                            ..effective_byte_mat.end,
+                                                    )
+                                                        .unwrap_or(""),
+                                                );
+                                                attroff(COLOR_PAIR(cap_pair));
+                                            }
                                         }
                                     }
                                 }
