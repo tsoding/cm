@@ -69,7 +69,7 @@ pub const NAMES: [&str; LEN] = [
     "next_search_match",
     "prev_search_match",
     "page_up",
-    "page_down"
+    "page_down",
 ];
 
 pub fn from_str(s: &str) -> Result<Type, String> {

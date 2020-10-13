@@ -2,8 +2,8 @@ use super::*;
 use ncurses::*;
 use std::collections::BTreeSet;
 use std::io;
+use std::mem::{transmute, MaybeUninit};
 use std::string::ToString;
-use std::mem::{MaybeUninit, transmute};
 
 // TODO(#152): KeyMap is not configuration right from the application
 pub struct KeyMap {
@@ -17,9 +17,8 @@ impl KeyMap {
     pub fn new() -> Self {
         Self {
             key_map: {
-                let mut key_map: [MaybeUninit<BTreeSet<KeyStroke>>; action::LEN] = unsafe {
-                    MaybeUninit::uninit().assume_init()
-                };
+                let mut key_map: [MaybeUninit<BTreeSet<KeyStroke>>; action::LEN] =
+                    unsafe { MaybeUninit::uninit().assume_init() };
 
                 for elem in &mut key_map[..] {
                     *elem = MaybeUninit::new(Default::default());
@@ -317,14 +316,14 @@ impl KeyMap {
                 key: KEY_PPAGE,
                 alt: false,
             },
-            action::PAGE_UP
+            action::PAGE_UP,
         );
         result.bind(
             KeyStroke {
                 key: KEY_NPAGE,
                 alt: false,
             },
-            action::PAGE_DOWN
+            action::PAGE_DOWN,
         );
         result
     }
