@@ -312,6 +312,20 @@ impl KeyMap {
             },
             action::PREV_SEARCH_MATCH,
         );
+        result.bind(
+            KeyStroke {
+                key: KEY_PPAGE,
+                alt: false,
+            },
+            action::PAGE_UP
+        );
+        result.bind(
+            KeyStroke {
+                key: KEY_NPAGE,
+                alt: false,
+            },
+            action::PAGE_DOWN
+        );
         result
     }
 
