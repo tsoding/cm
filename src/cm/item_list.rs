@@ -5,7 +5,7 @@ use std::cmp::{max, min};
 
 pub struct ItemList<T: ToString + Clone> {
     pub items: Vec<T>,
-    pub cursor_x: usize,
+    pub scroll_x: usize,
     pub cursor_y: usize,
 }
 
@@ -13,7 +13,7 @@ impl<T: ToString + Clone> ItemList<T> {
     pub fn new() -> Self {
         Self {
             items: Vec::new(),
-            cursor_x: 0,
+            scroll_x: 0,
             cursor_y: 0,
         }
     }
@@ -31,17 +31,17 @@ impl<T: ToString + Clone> ItemList<T> {
     }
 
     pub fn left(&mut self) {
-        if self.cursor_x > 0 {
-            self.cursor_x -= 1;
+        if self.scroll_x > 0 {
+            self.scroll_x -= 1;
         }
     }
 
     pub fn right(&mut self) {
-        self.cursor_x += 1;
+        self.scroll_x += 1;
     }
 
     pub fn home(&mut self) {
-        self.cursor_x = 0;
+        self.scroll_x = 0;
     }
 
     pub fn delete_current(&mut self) {
@@ -115,7 +115,7 @@ impl<T: ToString + Clone> ItemList<T> {
             {
                 let s = item.to_string();
                 let (line_to_render, (left, right)) =
-                    unicode::width_substr(s.trim_end(), self.cursor_x..self.cursor_x + w).unwrap();
+                    unicode::width_substr(s.trim_end(), self.scroll_x..self.scroll_x + w).unwrap();
 
                 mv((y + i) as i32, x as i32);
                 let selected = i == (self.cursor_y % h);
