@@ -139,8 +139,10 @@ impl OutputBuffer {
                                             // TODO(#197): test cm on incorrect utf-8 data
                                             let char_mat =
                                                 byte_match_to_char_match(&byte_mat, item).unwrap();
-                                            let char_start = usize::max(list.scroll_x, char_mat.start);
-                                            let char_end = usize::min(list.scroll_x + w, char_mat.end);
+                                            let char_start =
+                                                usize::max(list.scroll_x, char_mat.start);
+                                            let char_end =
+                                                usize::min(list.scroll_x + w, char_mat.end);
                                             if char_start != char_end {
                                                 let effective_byte_mat = char_match_to_byte_match(
                                                     ByteMatch {
@@ -159,7 +161,7 @@ impl OutputBuffer {
                                                         effective_byte_mat.start
                                                             ..effective_byte_mat.end,
                                                     )
-                                                        .unwrap_or(""),
+                                                    .unwrap_or(""),
                                                 );
                                                 attroff(COLOR_PAIR(cap_pair));
                                             }

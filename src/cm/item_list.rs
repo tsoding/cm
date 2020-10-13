@@ -121,7 +121,8 @@ impl<T: ToString + Clone> ItemList<T> {
                 if self.scroll_y + i < self.items.len() {
                     let s = self.items[self.scroll_y + i].to_string();
                     let (line_to_render, (left, right)) =
-                        unicode::width_substr(s.trim_end(), self.scroll_x..self.scroll_x + w).unwrap();
+                        unicode::width_substr(s.trim_end(), self.scroll_x..self.scroll_x + w)
+                            .unwrap();
 
                     mv((y + i) as i32, x as i32);
                     let selected = self.scroll_y + i == self.cursor_y;
@@ -145,7 +146,6 @@ impl<T: ToString + Clone> ItemList<T> {
                         addstr(" ");
                     }
                     attroff(COLOR_PAIR(pair));
-
                 }
             }
         }
