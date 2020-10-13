@@ -108,30 +108,28 @@ impl StringList {
         match self.state {
             StringListState::Navigate => {
                 if !global.handle_key(key_stroke, key_map) {
-                    if key_map.is_bound(key_stroke, action::DUP_AFTER_ITEM) {
-                        self.duplicate_after();
-                    } else if key_map.is_bound(key_stroke, action::DUP_BEFORE_ITEM) {
-                        self.duplicate_before();
-                    } else if key_map.is_bound(key_stroke, action::INSERT_AFTER_ITEM) {
-                        self.insert_after(&mut global.cursor);
-                    } else if key_map.is_bound(key_stroke, action::INSERT_BEFORE_ITEM) {
-                        self.insert_before(&mut global.cursor);
-                    } else if key_map.is_bound(key_stroke, action::EDIT_ITEM) {
-                        self.start_editing(&mut global.cursor);
-                    } else if key_map.is_bound(key_stroke, action::DELETE) {
-                        self.list.delete_current();
-                    } else {
-                        self.list.handle_key(key_stroke, key_map);
+                    match key_map.check_bound(key_stroke) {
+                        action::DUP_AFTER_ITEM => self.duplicate_after(),
+                        action::DUP_BEFORE_ITEM => self.duplicate_before(),
+                        action::INSERT_AFTER_ITEM => self.insert_after(&mut global.cursor),
+                        action::INSERT_BEFORE_ITEM => self.insert_before(&mut global.cursor),
+                        action::EDIT_ITEM => self.start_editing(&mut global.cursor),
+                        action::DELETE => self.list.delete_current(),
+                        /*//if we create action::ERR_HANDLER = 32: usize, we can handle errors
+                        action::ERR_HANDLER => //Error handling,*/
+                        _ => {
+                            self.list.handle_key(key_stroke, key_map);
+                        }
                     }
                 }
             }
             StringListState::Editing { .. } => {
-                if key_map.is_bound(key_stroke, action::ACCEPT) {
-                    self.accept_editing(&mut global.cursor);
-                } else if key_map.is_bound(key_stroke, action::CANCEL) {
-                    self.cancel_editing(&mut global.cursor);
-                } else {
-                    self.edit_field.handle_key(key_stroke, key_map);
+                match key_map.check_bound(key_stroke) {
+                    action::ACCEPT => self.accept_editing(&mut global.cursor),
+                    action::CANCEL => self.cancel_editing(&mut global.cursor),
+                    /*//if we create action::ERR_HANDLER = 32: usize, we can handle errors
+                    action::ERR_HANDLER => //Error handling,*/
+                    _ => self.edit_field.handle_key(key_stroke, key_map),
                 }
             }
         }

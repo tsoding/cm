@@ -102,27 +102,20 @@ impl<T: ToString + Clone> ItemList<T> {
     }
 
     pub fn handle_key(&mut self, key_stroke: KeyStroke, key_map: &KeyMap) {
-        // TODO(#221): page-up/page-down page size is hardcoded
+        // TODO(#221): page-up/page-down page size is hardcoded        
         const PAGE_SIZE: usize = 30;
-
-        if key_map.is_bound(key_stroke, action::DOWN) {
-            self.down();
-        } else if key_map.is_bound(key_stroke, action::UP) {
-            self.up();
-        } else if key_map.is_bound(key_stroke, action::RIGHT) {
-            self.right();
-        } else if key_map.is_bound(key_stroke, action::LEFT) {
-            self.left();
-        } else if key_map.is_bound(key_stroke, action::HOME) {
-            self.home();
-        } else if key_map.is_bound(key_stroke, action::JUMP_TO_START) {
-            self.jump_to_start();
-        } else if key_map.is_bound(key_stroke, action::JUMP_TO_END) {
-            self.jump_to_end();
-        } else if key_map.is_bound(key_stroke, action::PAGE_UP) {
-            self.page_up(PAGE_SIZE);
-        } else if key_map.is_bound(key_stroke, action::PAGE_DOWN) {
-            self.page_down(PAGE_SIZE);
+        match key_map.check_bound(key_stroke) {
+            action::DOWN => self.down(),
+            action::UP => self.up(),
+            action::RIGHT => self.right(),
+            action::LEFT => self.left(),
+            action::HOME => self.home(),
+            action::JUMP_TO_START => self.jump_to_start(),
+            action::JUMP_TO_END => self.jump_to_end(),
+            action::PAGE_UP => self.page_up(PAGE_SIZE),
+            action::PAGE_DOWN => self.page_down(PAGE_SIZE),
+            _ => { /*maybe there can be an error handling function in case action::Type is 32 => see comments on string_list.rs*/
+            }
         }
     }
 

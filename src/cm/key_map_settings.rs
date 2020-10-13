@@ -59,14 +59,11 @@ impl KeyMapSettings {
     pub fn handle_key(&mut self, key_stroke: KeyStroke, key_map: &mut KeyMap, global: &mut Global) {
         if !global.handle_key(key_stroke, key_map) {
             match self.state {
-                State::ListOfActions => {
-                    if key_map.is_bound(key_stroke, action::BACK) {
-                        global.key_map_settings = false;
-                    } else if key_map.is_bound(key_stroke, action::UP) {
-                        self.list_of_actions.up();
-                    } else if key_map.is_bound(key_stroke, action::DOWN) {
-                        self.list_of_actions.down();
-                    } else if key_map.is_bound(key_stroke, action::ACCEPT) {
+                State::ListOfActions => match key_map.check_bound(key_stroke) {
+                    action::BACK => global.key_map_settings = false,
+                    action::UP => self.list_of_actions.up(),
+                    action::DOWN => self.list_of_actions.down(),
+                    action::ACCEPT => {
                         self.keys_of_action.items.clear();
                         self.keys_of_action.cursor_y = 0;
                         for key_stroke in
@@ -75,35 +72,34 @@ impl KeyMapSettings {
                             self.keys_of_action.items.push(*key_stroke);
                         }
                         self.state = State::KeysOfAction;
-                    } else {
-                        self.list_of_actions.handle_key(key_stroke, key_map);
                     }
-                }
+                    _ => self.list_of_actions.handle_key(key_stroke, key_map),
+                },
                 State::KeysOfAction => {
-                    if key_map.is_bound(key_stroke, action::BACK) {
-                        self.state = State::ListOfActions;
-                        key_map.update_keys_of_action(
-                            self.list_of_actions.cursor_y,
-                            &self.keys_of_action.items,
-                        );
-                    } else if key_map.is_bound(key_stroke, action::UP) {
-                        self.keys_of_action.up();
-                    } else if key_map.is_bound(key_stroke, action::DOWN) {
-                        self.keys_of_action.down();
-                    } else if key_map.is_bound(key_stroke, action::DELETE) {
-                        self.keys_of_action.delete_current();
-                    } else if key_map.is_bound(key_stroke, action::INSERT_AFTER_ITEM) {
-                        self.keys_of_action
-                            .insert_after_current(KeyStroke { key: 0, alt: false });
-                        self.state = State::SelectingKey;
-                    } else if key_map.is_bound(key_stroke, action::INSERT_BEFORE_ITEM) {
-                        self.keys_of_action
-                            .insert_before_current(KeyStroke { key: 0, alt: false });
-                        self.state = State::SelectingKey;
-                    } else if key_map.is_bound(key_stroke, action::CANCEL) {
-                        self.state = State::ListOfActions;
-                    } else {
-                        self.keys_of_action.handle_key(key_stroke, key_map);
+                    match key_map.check_bound(key_stroke) {
+                        action::BACK => {
+                            self.state = State::ListOfActions;
+                            key_map.update_keys_of_action(
+                                self.list_of_actions.cursor_y,
+                                &self.keys_of_action.items,
+                            );
+                        }
+                        action::UP => self.keys_of_action.up(),
+                        action::DOWN => self.keys_of_action.down(),
+                        action::DELETE => self.keys_of_action.delete_current(),
+                        action::INSERT_AFTER_ITEM => {
+                            self.keys_of_action
+                                .insert_after_current(KeyStroke { key: 0, alt: false });
+                            self.state = State::SelectingKey;
+                        }
+                        action::INSERT_BEFORE_ITEM => {
+                            self.keys_of_action
+                                .insert_before_current(KeyStroke { key: 0, alt: false });
+                            self.state = State::SelectingKey;
+                        }
+                        action::CANCEL => self.state = State::ListOfActions,
+                        //also, there can be an error handling with action::ERR_HANDLE which is 32
+                        _ => self.keys_of_action.handle_key(key_stroke, key_map),
                     }
                 }
                 State::SelectingKey => {

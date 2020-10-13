@@ -345,6 +345,32 @@ impl KeyMap {
         self.key_map.get(action).and_then(|x| x.get(&key)).is_some()
     }
 
+    /**
+     * This function will take a keystroke and convert it to action::Type
+     * by iterating from 0 to 31, tmp_action is set to 32 by default.
+     * Because there are no action::Type for 32. action::Type 32 can
+     * be used for error handling if we can't read the keystroke from user.
+     * I also don't know if this will affect the performance. I think it
+     * will not change the performance that much. I think it is better to
+     * use an iterator instead of lots of else if's. It will be easier to
+     * read. But like I said I don't know if this is a good solution.
+     *
+     * I started learning Rust for my first programming language around 1
+     * month ago. So, I am not sure if this is a good solution. My program-
+     * ming knowledge is very limited compared to you.
+     * -Furkan S.
+     */
+    pub fn check_bound(&self, key: KeyStroke) -> action::Type {
+        let mut tmp_action: usize = 32;
+        for act in 0..32 {
+            if self.key_map.get(act).and_then(|x| x.get(&key)).is_some() {
+                tmp_action = act;
+                break;
+            }
+        }
+        tmp_action
+    }
+
     pub fn keys_of_action(&self, action: action::Type) -> Vec<KeyStroke> {
         let mut result = Vec::new();
         if let Some(keys) = self.key_map.get(action) {

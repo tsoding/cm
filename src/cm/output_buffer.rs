@@ -312,38 +312,50 @@ impl OutputBuffer {
         shell: String,
     ) {
         if !global.handle_key(key_stroke, key_map) {
-            if key_map.is_bound(key_stroke, action::RUN_INTO_ITSELF) {
-                if let Some(cmdline) = cmdline_result {
-                    self.run_cmdline(cmdline.clone(), shell);
+            match key_map.check_bound(key_stroke) {
+                action::RUN_INTO_ITSELF => {
+                    if let Some(cmdline) = cmdline_result {
+                        self.run_cmdline(cmdline.clone(), shell);
+                    }
                 }
-            } else if key_map.is_bound(key_stroke, action::RUN) {
-                if let Some(cmdline) = cmdline_result {
-                    self.fork_cmdline(cmdline.clone(), shell);
+                action::RUN => {
+                    if let Some(cmdline) = cmdline_result {
+                        self.fork_cmdline(cmdline.clone(), shell);
+                    }
                 }
-            } else if key_map.is_bound(key_stroke, action::BACK) {
-                self.lists.pop();
-            } else if key_map.is_bound(key_stroke, action::RERUN) {
-                if let Some(cmdline) = global.user_provided_cmdline.clone() {
-                    self.run_cmdline(cmdline, shell);
+                action::BACK => {
+                    self.lists.pop();
                 }
-            } else if key_map.is_bound(key_stroke, action::PREV_MATCH) {
-                if let Some(Ok(regex)) = regex_result {
-                    self.jump_to_prev_match(&regex);
+                action::RERUN => {
+                    if let Some(cmdline) = global.user_provided_cmdline.clone() {
+                        self.run_cmdline(cmdline, shell);
+                    }
                 }
-            } else if key_map.is_bound(key_stroke, action::NEXT_MATCH) {
-                if let Some(Ok(regex)) = regex_result {
-                    self.jump_to_next_match(&regex);
+                action::PREV_MATCH => {
+                    if let Some(Ok(regex)) = regex_result {
+                        self.jump_to_prev_match(&regex);
+                    }
                 }
-            } else if key_map.is_bound(key_stroke, action::NEXT_SEARCH_MATCH) {
-                if let Some(regex) = &global.search_regex {
-                    self.jump_to_next_match(&regex);
+                action::NEXT_MATCH => {
+                    if let Some(Ok(regex)) = regex_result {
+                        self.jump_to_next_match(&regex);
+                    }
                 }
-            } else if key_map.is_bound(key_stroke, action::PREV_SEARCH_MATCH) {
-                if let Some(regex) = &global.search_regex {
-                    self.jump_to_prev_match(&regex);
+                action::NEXT_SEARCH_MATCH => {
+                    if let Some(regex) = &global.search_regex {
+                        self.jump_to_next_match(&regex);
+                    }
                 }
-            } else if let Some(list) = self.lists.last_mut() {
-                list.handle_key(key_stroke, key_map);
+                action::PREV_SEARCH_MATCH => {
+                    if let Some(regex) = &global.search_regex {
+                        self.jump_to_prev_match(&regex);
+                    }
+                }
+                _ => {
+                    if let Some(list) = self.lists.last_mut() {
+                        list.handle_key(key_stroke, key_map);
+                    }
+                }
             }
         }
     }

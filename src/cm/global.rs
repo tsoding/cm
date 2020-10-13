@@ -80,42 +80,53 @@ impl Global {
     }
 
     pub fn handle_key(&mut self, key_stroke: KeyStroke, key_map: &KeyMap) -> bool {
-        if key_map.is_bound(key_stroke, action::TOGGLE_PROFILE_PANEL) {
-            self.profile_pane = !self.profile_pane;
-            true
-        } else if key_map.is_bound(key_stroke, action::QUIT) {
-            self.quit = true;
-            true
-        } else if key_map.is_bound(key_stroke, action::FOCUS_FORWARD) {
-            self.focus = self.focus.next();
-            true
-        } else if key_map.is_bound(key_stroke, action::FOCUS_BACKWARD) {
-            self.focus = self.focus.prev();
-            true
-        } else if key_map.is_bound(key_stroke, action::OPEN_KEY_MAP_SETTINGS) {
-            self.key_map_settings = true;
-            true
-        } else if self.bottom_state == BottomState::Nothing
-            && key_map.is_bound(key_stroke, action::START_SEARCH)
-        {
-            // TODO(#160): cm search does not support jumping to next/previous matches
-            self.bottom_state = BottomState::Search;
-            self.bottom_edit_field
-                .activate(&mut self.cursor, String::new());
-            true
-        } else if self.bottom_state == BottomState::Nothing
-            && key_map.is_bound(key_stroke, action::EDIT_CMDLINE)
-        {
-            self.bottom_state = BottomState::Cmdline;
-            self.bottom_edit_field.activate(
-                &mut self.cursor,
-                self.user_provided_cmdline
-                    .clone()
-                    .unwrap_or_else(String::new),
-            );
-            true
-        } else {
-            false
+        match key_map.check_bound(key_stroke) {
+            action::TOGGLE_PROFILE_PANEL => {
+                self.profile_pane = !self.profile_pane;
+                true
+            }
+            action::QUIT => {
+                self.quit = true;
+                true
+            }
+            action::FOCUS_FORWARD => {
+                self.focus = self.focus.next();
+                true
+            }
+            action::FOCUS_BACKWARD => {
+                self.focus = self.focus.prev();
+                true
+            }
+            action::OPEN_KEY_MAP_SETTINGS => {
+                self.key_map_settings = true;
+                true
+            }
+            action::START_SEARCH => {
+                if self.bottom_state == BottomState::Nothing {
+                    // TODO(#160): cm search does not support jumping to next/previous matches
+                    self.bottom_state = BottomState::Search;
+                    self.bottom_edit_field
+                        .activate(&mut self.cursor, String::new());
+                    true
+                } else {
+                    false
+                }
+            }
+            action::EDIT_CMDLINE => {
+                if self.bottom_state == BottomState::Nothing {
+                    self.bottom_state = BottomState::Cmdline;
+                    self.bottom_edit_field.activate(
+                        &mut self.cursor,
+                        self.user_provided_cmdline
+                            .clone()
+                            .unwrap_or_else(String::new),
+                    );
+                    true
+                } else {
+                    false
+                }
+            }
+            _ => false,
         }
     }
 }

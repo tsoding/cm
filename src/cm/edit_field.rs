@@ -55,6 +55,8 @@ impl EditField {
 
     pub fn handle_key(&mut self, key_stroke: KeyStroke, key_map: &KeyMap) {
         // TODO(#187): EditField does not support unicode
+        // here is a thing about keystroke.key, i mean the key number 32. can it cause problems here?
+        // check comment in line 324 in key_map.rs
         if 32 <= key_stroke.key && key_stroke.key <= 126 {
             self.insert_char(key_stroke.key as u8 as char);
         } else if key_map.is_bound(key_stroke, action::RIGHT) {
