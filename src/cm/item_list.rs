@@ -5,7 +5,8 @@ use std::cmp::{max, min};
 
 pub struct ItemList<T: ToString + Clone> {
     pub items: Vec<T>,
-    pub cursor_x: usize,
+    pub scroll_x: usize,
+    pub scroll_y: usize,
     pub cursor_y: usize,
 }
 
@@ -13,7 +14,8 @@ impl<T: ToString + Clone> ItemList<T> {
     pub fn new() -> Self {
         Self {
             items: Vec::new(),
-            cursor_x: 0,
+            scroll_x: 0,
+            scroll_y: 0,
             cursor_y: 0,
         }
     }
@@ -31,17 +33,17 @@ impl<T: ToString + Clone> ItemList<T> {
     }
 
     pub fn left(&mut self) {
-        if self.cursor_x > 0 {
-            self.cursor_x -= 1;
+        if self.scroll_x > 0 {
+            self.scroll_x -= 1;
         }
     }
 
     pub fn right(&mut self) {
-        self.cursor_x += 1;
+        self.scroll_x += 1;
     }
 
     pub fn home(&mut self) {
-        self.cursor_x = 0;
+        self.scroll_x = 0;
     }
 
     pub fn delete_current(&mut self) {
@@ -103,42 +105,48 @@ impl<T: ToString + Clone> ItemList<T> {
         }
     }
 
-    pub fn render(&self, Rect { x, y, w, h }: Rect, focused: bool) {
-        if h > 0 {
-            // TODO(#16): word wrapping for long lines
-            for (i, item) in self
-                .items
-                .iter()
-                .skip(self.cursor_y / h * h)
-                .enumerate()
-                .take_while(|(i, _)| *i < h)
-            {
-                let s = item.to_string();
-                let (line_to_render, (left, right)) =
-                    unicode::width_substr(s.trim_end(), self.cursor_x..self.cursor_x + w).unwrap();
+    pub fn sync_scroll_y(&mut self, h: usize) {
+        if self.cursor_y >= self.scroll_y + h {
+            self.scroll_y = self.cursor_y - h + 1;
+        } else if self.cursor_y < self.scroll_y {
+            self.scroll_y = self.cursor_y;
+        }
+    }
 
-                mv((y + i) as i32, x as i32);
-                let selected = i == (self.cursor_y % h);
-                // TODO(#188): item list selection does not extend until the end of the screen
-                let pair = if selected {
-                    if focused {
-                        CURSOR_PAIR
+    pub fn render(&mut self, Rect { x, y, w, h }: Rect, focused: bool) {
+        if h > 0 {
+            self.sync_scroll_y(h);
+            // TODO(#16): word wrapping for long lines
+            for i in 0..h {
+                if self.scroll_y + i < self.items.len() {
+                    let s = self.items[self.scroll_y + i].to_string();
+                    let (line_to_render, (left, right)) =
+                        unicode::width_substr(s.trim_end(), self.scroll_x..self.scroll_x + w)
+                            .unwrap();
+
+                    mv((y + i) as i32, x as i32);
+                    let selected = self.scroll_y + i == self.cursor_y;
+                    // TODO(#188): item list selection does not extend until the end of the screen
+                    let pair = if selected {
+                        if focused {
+                            CURSOR_PAIR
+                        } else {
+                            UNFOCUSED_CURSOR_PAIR
+                        }
                     } else {
-                        UNFOCUSED_CURSOR_PAIR
+                        REGULAR_PAIR
+                    };
+                    attron(COLOR_PAIR(pair));
+                    for _ in 0..left {
+                        addstr(" ");
                     }
-                } else {
-                    REGULAR_PAIR
-                };
-                attron(COLOR_PAIR(pair));
-                for _ in 0..left {
-                    addstr(" ");
+                    // addstr(&format!("{:?}", (left, right)));
+                    addstr(&line_to_render);
+                    for _ in 0..right {
+                        addstr(" ");
+                    }
+                    attroff(COLOR_PAIR(pair));
                 }
-                // addstr(&format!("{:?}", (left, right)));
-                addstr(&line_to_render);
-                for _ in 0..right {
-                    addstr(" ");
-                }
-                attroff(COLOR_PAIR(pair));
             }
         }
     }

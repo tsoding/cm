@@ -28,7 +28,7 @@ impl KeyMapSettings {
         result
     }
 
-    pub fn render(&self, rect: Rect, focused: bool) {
+    pub fn render(&mut self, rect: Rect, focused: bool) {
         match self.state {
             State::ListOfActions => self.list_of_actions.render(rect, focused),
             State::KeysOfAction => {
