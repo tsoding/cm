@@ -25,7 +25,7 @@ impl StringList {
         self.list.current_item()
     }
 
-    pub fn render(&self, rect: Rect, focused: bool, cursor: &mut Cursor) {
+    pub fn render(&mut self, rect: Rect, focused: bool, cursor: &mut Cursor) {
         self.list.render(rect, focused);
         if let StringListState::Editing { .. } = self.state {
             let row = self.list.current_row(rect);

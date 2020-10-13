@@ -94,12 +94,12 @@ impl OutputBuffer {
     }
 
     pub fn render(
-        &self,
+        &mut self,
         rect: Rect,
         focused: bool,
         regex_result: Option<Result<Regex, pcre2::Error>>,
     ) {
-        if let Some(list) = self.lists.last() {
+        if let Some(list) = self.lists.last_mut() {
             list.render(rect, focused);
 
             let Rect { x, y, w, h } = rect;

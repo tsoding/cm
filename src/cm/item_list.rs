@@ -105,8 +105,17 @@ impl<T: ToString + Clone> ItemList<T> {
         }
     }
 
-    pub fn render(&self, Rect { x, y, w, h }: Rect, focused: bool) {
+    pub fn sync_scroll_y(&mut self, h: usize) {
+        if self.cursor_y >= self.scroll_y + h {
+            self.scroll_y = self.cursor_y - h + 1;
+        } else if self.cursor_y < self.scroll_y {
+            self.scroll_y = self.cursor_y;
+        }
+    }
+
+    pub fn render(&mut self, Rect { x, y, w, h }: Rect, focused: bool) {
         if h > 0 {
+            self.sync_scroll_y(h);
             // TODO(#16): word wrapping for long lines
             for i in 0..h {
                 if self.scroll_y + i < self.items.len() {
