@@ -99,16 +99,23 @@ impl OutputBuffer {
         focused: bool,
         regex_result: Option<Result<Regex, pcre2::Error>>,
     ) {
-        let list = if let Some(_list) = self.lists.last_mut() { _list }
-            else { return; };
+        let list = if let Some(_list) = self.lists.last_mut() {
+            _list
+        } else {
+            return;
+        };
         list.render(rect, focused);
 
         let Rect { x, y, w, h } = rect;
-        if h == 0 { return ;}
+        if h == 0 {
+            return;
+        }
 
         // TODO(#16): word wrapping for long lines
         for i in 0..h {
-            if list.scroll_y + i >= list.items.len() { continue; }
+            if list.scroll_y + i >= list.items.len() {
+                continue;
+            }
             let item = &list.items[list.scroll_y + i];
             let selected = list.scroll_y + i == list.cursor_y;
             let cap_pair = if selected {
@@ -121,8 +128,11 @@ impl OutputBuffer {
                 MATCH_PAIR
             };
 
-            let regex = if let Some(Ok(_regex)) = &regex_result { _regex }
-                else { continue; };
+            let regex = if let Some(Ok(_regex)) = &regex_result {
+                _regex
+            } else {
+                continue;
+            };
             // NOTE: we are ignoring any further potential
             // capture matches (I don't like this term but
             // that's what PCRE2 lib is calling it). For no
@@ -132,24 +142,30 @@ impl OutputBuffer {
             // TODO(#189): regex capture highlighting is rendered with an offset
             //   Probably due to pcre2 returning matches in bytes instead of chars
             let cap_mats = regex.captures_iter(item.as_bytes()).next();
-            let cap_mat = if let Some(_cap_mat) = cap_mats { _cap_mat }
-                else { continue; };
-            let caps = if let Ok(_caps) = cap_mat { _caps }
-                else { continue; };
+            let cap_mat = if let Some(_cap_mat) = cap_mats {
+                _cap_mat
+            } else {
+                continue;
+            };
+            let caps = if let Ok(_caps) = cap_mat {
+                _caps
+            } else {
+                continue;
+            };
             // NOTE: we are skiping first cap because it contains the
             // whole match which is not needed in our case
             // TODO(#196): match highlighting does not respect the column width of the unicode characters
             for j in 1..caps.len() {
-                let byte_mat = if let Some(_byte_mat) = caps.get(j) { _byte_mat }
-                    else { continue; };
+                let byte_mat = if let Some(_byte_mat) = caps.get(j) {
+                    _byte_mat
+                } else {
+                    continue;
+                };
 
                 // TODO(#197): test cm on incorrect utf-8 data
-                let char_mat =
-                    byte_match_to_char_match(&byte_mat, item).unwrap();
-                let char_start =
-                    usize::max(list.scroll_x, char_mat.start);
-                let char_end =
-                    usize::min(list.scroll_x + w, char_mat.end);
+                let char_mat = byte_match_to_char_match(&byte_mat, item).unwrap();
+                let char_start = usize::max(list.scroll_x, char_mat.start);
+                let char_end = usize::min(list.scroll_x + w, char_mat.end);
                 if char_start != char_end {
                     let effective_byte_mat = char_match_to_byte_match(
                         ByteMatch {
@@ -158,17 +174,11 @@ impl OutputBuffer {
                         },
                         item,
                     );
-                    mv(
-                        (y + i) as i32,
-                        (char_start - list.scroll_x + x) as i32,
-                    );
+                    mv((y + i) as i32, (char_start - list.scroll_x + x) as i32);
                     attron(COLOR_PAIR(cap_pair));
                     addstr(
-                        item.get(
-                            effective_byte_mat.start
-                                ..effective_byte_mat.end,
-                        )
-                        .unwrap_or(""),
+                        item.get(effective_byte_mat.start..effective_byte_mat.end)
+                            .unwrap_or(""),
                     );
                     attroff(COLOR_PAIR(cap_pair));
                 }
