@@ -30,8 +30,10 @@ impl<T: ToString + Clone> ItemList<T> {
     }
 
     pub fn page_down(&mut self, page_size: usize) {
-        self.scroll_y = min(self.scroll_y + page_size, self.items.len() - 1);
-        self.cursor_y = min(self.scroll_y + page_size - 1, self.items.len() - 1);
+        if self.cursor_y < self.items.len() - 1 {
+            self.scroll_y = min(self.scroll_y + page_size, self.items.len() - 1);
+            self.cursor_y = min(self.scroll_y + page_size - 1, self.items.len() - 1);
+        }
     }
 
     pub fn up(&mut self) {
