@@ -295,7 +295,7 @@ impl OutputBuffer {
                 File::open("/dev/tty").expect("Could not open /dev/tty as stdin for child process"),
             )
             .arg("-c")
-            .arg(cmdline)
+            .arg(cmdline.clone())
             .spawn()
             .expect("Could not spawn child process")
             .wait()
@@ -303,8 +303,8 @@ impl OutputBuffer {
 
         if !exit.success() {
             match exit.code() {
-                Some(code) => self.status_line.set_error(format!("Child process exited with code: {}", code)),
-                None => self.status_line.set_error("Child process was terminated by a signal".to_string()),
+                Some(code) => self.status_line.set_error(format!("`{}` exited with code: {}", cmdline, code)),
+                None => self.status_line.set_error(format!("`{}` was terminated by a signal", cmdline)),
             }
         }
     }
