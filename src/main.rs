@@ -8,15 +8,6 @@ use std::fs::{create_dir_all, File};
 use std::panic::{set_hook, take_hook};
 use std::path::PathBuf;
 
-fn render_status(y: usize, text: &str) {
-    attron(COLOR_PAIR(REGULAR_PAIR));
-    mv(y as i32, 0);
-    addstr(text);
-    attroff(COLOR_PAIR(REGULAR_PAIR));
-}
-
-
-
 fn start_cm() {
     ctrlc::init();
 
@@ -202,7 +193,7 @@ fn start_cm() {
                 key_map_settings.render(Rect { x: 0, y: 0, w, h }, true);
             } else {
                 if h >= 1 {
-                    render_status(h - 1, &output_buffer.status_line);
+                    output_buffer.status_line.render(h - 1);
                 }
 
                 let working_rect = Rect {
