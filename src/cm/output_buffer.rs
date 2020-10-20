@@ -71,7 +71,11 @@ impl StatusLine {
     }
 
     pub fn render(&self, y: usize) {
-        let pair = if self.error { STATUS_ERROR_PAIR } else { REGULAR_PAIR };
+        let pair = if self.error {
+            STATUS_ERROR_PAIR
+        } else {
+            REGULAR_PAIR
+        };
 
         attron(COLOR_PAIR(pair));
         mv(y as i32, 0);
@@ -100,7 +104,7 @@ pub struct OutputBuffer {
     /// currently running process that generates data for OutputBuffer.
     /// See [OutputBuffer::poll_cmdline_output](struct.OutputBuffer.html#method.poll_cmdline_output)
     pub child: Option<(BufReader<PipeReader>, Child)>,
-    pub status_line: StatusLine
+    pub status_line: StatusLine,
 }
 
 impl OutputBuffer {
@@ -303,8 +307,12 @@ impl OutputBuffer {
 
         if !exit.success() {
             match exit.code() {
-                Some(code) => self.status_line.set_error(format!("`{}` exited with code: {}", cmdline, code)),
-                None => self.status_line.set_error(format!("`{}` was terminated by a signal", cmdline)),
+                Some(code) => self
+                    .status_line
+                    .set_error(format!("`{}` exited with code: {}", cmdline, code)),
+                None => self
+                    .status_line
+                    .set_error(format!("`{}` was terminated by a signal", cmdline)),
             }
         }
     }
@@ -374,7 +382,7 @@ impl OutputBuffer {
             (Some(Ok(regex)), Some(cmd), Some(line)) => {
                 let cmdline = render_cmdline(line, &cmd, regex).unwrap_or_default();
                 self.status_line.set_text(cmdline);
-            },
+            }
             (Some(Err(err)), _, _) => self.status_line.set_error(err.to_string()),
             _ => self.status_line.clear(),
         };
@@ -390,11 +398,7 @@ impl OutputBuffer {
         let key_map = &profile.key_map;
         let regex_result = profile.current_regex();
 
-        let cmdline_result = match (
-            &regex_result,
-            &profile.current_cmd(),
-            &self.current_item(),
-        ) {
+        let cmdline_result = match (&regex_result, &profile.current_cmd(), &self.current_item()) {
             (Some(Ok(regex)), Some(cmd), Some(line)) => render_cmdline(line, &cmd, regex),
             _ => None,
         };

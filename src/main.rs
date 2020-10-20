@@ -2,7 +2,7 @@ mod cm;
 
 use cm::*;
 use ncurses::*;
-use pcre2::bytes::{RegexBuilder};
+use pcre2::bytes::RegexBuilder;
 use std::env::var;
 use std::fs::{create_dir_all, File};
 use std::panic::{set_hook, take_hook};
@@ -129,20 +129,12 @@ fn start_cm() {
                         .handle_key(key_stroke, &profile.key_map);
                 }
             } else if !global.profile_pane {
-                output_buffer.handle_key(
-                    key_stroke,
-                    &profile,
-                    &mut global,
-                    shell,
-                );
+                output_buffer.handle_key(key_stroke, &profile, &mut global, shell);
             } else {
                 match global.focus {
-                    Focus::Output => output_buffer.handle_key(
-                        key_stroke,
-                        &profile,
-                        &mut global,
-                        shell,
-                    ),
+                    Focus::Output => {
+                        output_buffer.handle_key(key_stroke, &profile, &mut global, shell)
+                    }
                     Focus::Regexs => {
                         profile
                             .regex_list
