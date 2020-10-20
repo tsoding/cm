@@ -2,35 +2,11 @@ mod cm;
 
 use cm::*;
 use ncurses::*;
-use pcre2::bytes::{Regex, RegexBuilder};
+use pcre2::bytes::RegexBuilder;
 use std::env::var;
 use std::fs::{create_dir_all, File};
 use std::panic::{set_hook, take_hook};
 use std::path::PathBuf;
-
-fn render_status(y: usize, text: &str) {
-    attron(COLOR_PAIR(REGULAR_PAIR));
-    mv(y as i32, 0);
-    addstr(text);
-    attroff(COLOR_PAIR(REGULAR_PAIR));
-}
-
-fn render_cmdline(line: &str, cmd: &str, regex: &Regex) -> Option<String> {
-    regex.captures_iter(line.as_bytes()).next().map(|cap_mat| {
-        let mut result = cmd.to_string();
-        if let Ok(caps) = cap_mat {
-            for i in 1..caps.len() {
-                if let Some(mat) = caps.get(i) {
-                    result = result.replace(
-                        format!("\\{}", i).as_str(),
-                        line.get(mat.start()..mat.end()).unwrap_or(""),
-                    )
-                }
-            }
-        }
-        result
-    })
-}
 
 fn start_cm() {
     ctrlc::init();
@@ -114,15 +90,6 @@ fn start_cm() {
             rerender = true;
             let shell = profile.current_shell().unwrap();
 
-            let cmdline = match (
-                &profile.current_regex(),
-                &profile.current_cmd(),
-                &output_buffer.current_item(),
-            ) {
-                (Some(Ok(regex)), Some(cmd), Some(line)) => render_cmdline(line, &cmd, regex),
-                _ => None,
-            };
-
             if global.key_map_settings {
                 key_map_settings.handle_key(key_stroke, &mut profile.key_map, &mut global)
             } else if global.bottom_state != BottomState::Nothing {
@@ -162,33 +129,23 @@ fn start_cm() {
                         .handle_key(key_stroke, &profile.key_map);
                 }
             } else if !global.profile_pane {
-                output_buffer.handle_key(
-                    key_stroke,
-                    &profile.key_map,
-                    &cmdline,
-                    profile.current_regex(),
-                    &mut global,
-                    shell,
-                );
+                output_buffer.handle_key(key_stroke, &profile, &mut global, shell);
             } else {
                 match global.focus {
-                    Focus::Output => output_buffer.handle_key(
-                        key_stroke,
-                        &profile.key_map,
-                        &cmdline,
-                        profile.current_regex(),
-                        &mut global,
-                        shell,
-                    ),
+                    Focus::Output => {
+                        output_buffer.handle_key(key_stroke, &profile, &mut global, shell)
+                    }
                     Focus::Regexs => {
                         profile
                             .regex_list
-                            .handle_key(key_stroke, &profile.key_map, &mut global)
+                            .handle_key(key_stroke, &profile.key_map, &mut global);
+                        output_buffer.refresh_status_line(&profile);
                     }
                     Focus::Cmds => {
                         profile
                             .cmd_list
-                            .handle_key(key_stroke, &profile.key_map, &mut global)
+                            .handle_key(key_stroke, &profile.key_map, &mut global);
+                        output_buffer.refresh_status_line(&profile);
                     }
                     Focus::Shell => {
                         profile
@@ -230,21 +187,7 @@ fn start_cm() {
                 key_map_settings.render(Rect { x: 0, y: 0, w, h }, true);
             } else {
                 if h >= 1 {
-                    // NOTE: we are rerendering cmdline here because it could be changed by OutputBuffer
-                    // after the input handling section
-                    match (
-                        &profile.current_regex(),
-                        &profile.current_cmd(),
-                        &output_buffer.current_item(),
-                    ) {
-                        (Some(Ok(regex)), Some(cmd), Some(line)) => {
-                            if let Some(cmdline) = render_cmdline(line, &cmd, regex) {
-                                render_status(h - 1, &cmdline);
-                            }
-                        }
-                        (Some(Err(err)), _, _) => render_status(h - 1, &err.to_string()),
-                        _ => {}
-                    }
+                    output_buffer.status_line.render(h - 1);
                 }
 
                 let working_rect = Rect {

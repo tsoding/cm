@@ -40,11 +40,71 @@ fn char_match_to_byte_match(mat: ByteMatch, s: &str) -> ByteMatch {
     }
 }
 
+fn render_cmdline(line: &str, cmd: &str, regex: &Regex) -> Option<String> {
+    regex.captures_iter(line.as_bytes()).next().map(|cap_mat| {
+        let mut result = cmd.to_string();
+        if let Ok(caps) = cap_mat {
+            for i in 1..caps.len() {
+                if let Some(mat) = caps.get(i) {
+                    result = result.replace(
+                        format!("\\{}", i).as_str(),
+                        line.get(mat.start()..mat.end()).unwrap_or(""),
+                    )
+                }
+            }
+        }
+        result
+    })
+}
+
+pub struct StatusLine {
+    text_: String,
+    error: bool,
+}
+
+impl StatusLine {
+    pub fn new() -> Self {
+        Self {
+            text_: Default::default(),
+            error: false,
+        }
+    }
+
+    pub fn render(&self, y: usize) {
+        let pair = if self.error {
+            STATUS_ERROR_PAIR
+        } else {
+            REGULAR_PAIR
+        };
+
+        attron(COLOR_PAIR(pair));
+        mv(y as i32, 0);
+        addstr(&self.text_);
+        attroff(COLOR_PAIR(pair));
+    }
+
+    pub fn set_text(&mut self, text: String) {
+        self.text_ = text;
+        self.error = false;
+    }
+
+    pub fn set_error(&mut self, text: String) {
+        self.text_ = text;
+        self.error = true;
+    }
+
+    pub fn clear(&mut self) {
+        self.text_.clear();
+        self.error = false;
+    }
+}
+
 pub struct OutputBuffer {
     pub lists: Vec<ItemList<String>>,
     /// currently running process that generates data for OutputBuffer.
     /// See [OutputBuffer::poll_cmdline_output](struct.OutputBuffer.html#method.poll_cmdline_output)
     pub child: Option<(BufReader<PipeReader>, Child)>,
+    pub status_line: StatusLine,
 }
 
 impl OutputBuffer {
@@ -52,6 +112,7 @@ impl OutputBuffer {
         Self {
             lists: Vec::new(),
             child: None,
+            status_line: StatusLine::new(),
         }
     }
 
@@ -232,18 +293,28 @@ impl OutputBuffer {
         endwin();
         // TODO(#40): shell is not customizable
         //   Grep for @ref(#40)
-        // TODO(#50): cm doesn't say anything if the executed command has failed
 
-        Command::new(shell)
+        let exit = Command::new(shell)
             .stdin(
                 File::open("/dev/tty").expect("Could not open /dev/tty as stdin for child process"),
             )
             .arg("-c")
-            .arg(cmdline)
+            .arg(cmdline.clone())
             .spawn()
             .expect("Could not spawn child process")
-            .wait_with_output()
+            .wait()
             .expect("Error waiting for output of child process");
+
+        if !exit.success() {
+            match exit.code() {
+                Some(code) => self
+                    .status_line
+                    .set_error(format!("`{}` exited with code: {}", cmdline, code)),
+                None => self
+                    .status_line
+                    .set_error(format!("`{}` was terminated by a signal", cmdline)),
+            }
+        }
     }
 
     /// Polls changes from the currently running child (see
@@ -302,48 +373,77 @@ impl OutputBuffer {
         changed
     }
 
+    pub fn refresh_status_line(&mut self, profile: &Profile) {
+        match (
+            &profile.current_regex(),
+            &profile.current_cmd(),
+            &self.current_item(),
+        ) {
+            (Some(Ok(regex)), Some(cmd), Some(line)) => {
+                let cmdline = render_cmdline(line, &cmd, regex).unwrap_or_default();
+                self.status_line.set_text(cmdline);
+            }
+            (Some(Err(err)), _, _) => self.status_line.set_error(err.to_string()),
+            _ => self.status_line.clear(),
+        };
+    }
+
     pub fn handle_key(
         &mut self,
         key_stroke: KeyStroke,
-        key_map: &KeyMap,
-        cmdline_result: &Option<String>,
-        regex_result: Option<Result<Regex, pcre2::Error>>,
+        profile: &Profile,
         global: &mut Global,
         shell: String,
     ) {
+        let key_map = &profile.key_map;
+        let regex_result = profile.current_regex();
+
+        let cmdline_result = match (&regex_result, &profile.current_cmd(), &self.current_item()) {
+            (Some(Ok(regex)), Some(cmd), Some(line)) => render_cmdline(line, &cmd, regex),
+            _ => None,
+        };
+
         if !global.handle_key(key_stroke, key_map) {
             if key_map.is_bound(key_stroke, action::RUN_INTO_ITSELF) {
-                if let Some(cmdline) = cmdline_result {
+                if let Some(cmdline) = &cmdline_result {
                     self.run_cmdline(cmdline.clone(), shell);
+                    self.refresh_status_line(profile);
                 }
             } else if key_map.is_bound(key_stroke, action::RUN) {
-                if let Some(cmdline) = cmdline_result {
+                if let Some(cmdline) = &cmdline_result {
                     self.fork_cmdline(cmdline.clone(), shell);
                 }
             } else if key_map.is_bound(key_stroke, action::BACK) {
                 self.lists.pop();
+                self.refresh_status_line(profile);
             } else if key_map.is_bound(key_stroke, action::RERUN) {
                 if let Some(cmdline) = global.user_provided_cmdline.clone() {
                     self.run_cmdline(cmdline, shell);
+                    self.refresh_status_line(profile);
                 }
             } else if key_map.is_bound(key_stroke, action::PREV_MATCH) {
-                if let Some(Ok(regex)) = regex_result {
+                if let Some(Ok(regex)) = &regex_result {
                     self.jump_to_prev_match(&regex);
+                    self.refresh_status_line(profile);
                 }
             } else if key_map.is_bound(key_stroke, action::NEXT_MATCH) {
-                if let Some(Ok(regex)) = regex_result {
+                if let Some(Ok(regex)) = &regex_result {
                     self.jump_to_next_match(&regex);
+                    self.refresh_status_line(profile);
                 }
             } else if key_map.is_bound(key_stroke, action::NEXT_SEARCH_MATCH) {
                 if let Some(regex) = &global.search_regex {
                     self.jump_to_next_match(&regex);
+                    self.refresh_status_line(profile);
                 }
             } else if key_map.is_bound(key_stroke, action::PREV_SEARCH_MATCH) {
                 if let Some(regex) = &global.search_regex {
                     self.jump_to_prev_match(&regex);
+                    self.refresh_status_line(profile);
                 }
             } else if let Some(list) = self.lists.last_mut() {
                 list.handle_key(key_stroke, key_map);
+                self.refresh_status_line(profile);
             }
         }
     }
