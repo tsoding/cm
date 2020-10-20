@@ -6,8 +6,8 @@ use pcre2::bytes::{Match, Regex};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::os::unix::io::AsRawFd;
-use std::process::{Child, Command};
 use std::os::unix::process::CommandExt;
+use std::process::{Child, Command};
 
 // TODO(#94): mark_nonblocking does not work on Windows
 fn mark_nonblocking<Fd: AsRawFd>(fd: &mut Fd) {
@@ -280,9 +280,7 @@ impl OutputBuffer {
         // @ref(#40) this part should fail if the user provided
         // non-existing shell. So should probably do not unwrap it and
         // properly report the fail somehow without crashing the app.
-        let child = command
-            .spawn()
-            .expect("Could not spawn a child process");
+        let child = command.spawn().expect("Could not spawn a child process");
         drop(command);
 
         let mut new_list = ItemList::new();
