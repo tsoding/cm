@@ -6,6 +6,7 @@ use pcre2::bytes::{Match, Regex};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::os::unix::io::AsRawFd;
+use std::os::unix::process::CommandExt;
 use std::process::{Child, Command};
 
 // TODO(#94): mark_nonblocking does not work on Windows
@@ -148,7 +149,9 @@ impl OutputBuffer {
         if cfg!(unix) {
             if let Some((_, child)) = &self.child {
                 unsafe {
-                    libc::kill(child.id() as i32, libc::SIGINT);
+                    // NOTE: taken from https://github.com/watchexec/watchexec/commit/f3c6df8845ed13e231cd9cbd88afdebe5fd97569
+                    // grep for @pgid
+                    libc::killpg(child.id() as i32, libc::SIGINT);
                 }
             }
         }
@@ -237,17 +240,23 @@ impl OutputBuffer {
         }
     }
 
-    pub fn run_cmdline(&mut self, cmdline: String, shell: String) {
-        // TODO(#102): cm does not warn the user when it kills the child process
+    pub fn kill_the_child(&mut self) {
         if let Some((_, child)) = &mut self.child {
-            child
-                .kill()
-                .expect("Could not kill the currently running child process");
+            unsafe {
+                // NOTE: taken from https://github.com/watchexec/watchexec/commit/f3c6df8845ed13e231cd9cbd88afdebe5fd97569
+                // grep for @pgid
+                libc::killpg(child.id() as i32, libc::SIGTERM);
+            }
             child
                 .wait()
                 .expect("Error waiting for currently running child process");
             self.child = None;
         }
+    }
+
+    pub fn run_cmdline(&mut self, cmdline: String, shell: String) {
+        // TODO(#102): cm does not warn the user when it kills the child process
+        self.kill_the_child();
 
         // @ref(#40) customize the argument of Command::new()
         let mut command = Command::new(shell);
@@ -260,6 +269,14 @@ impl OutputBuffer {
             .expect("Could not clone the pipe for collecting output from a child process");
         command.stdout(writer);
         command.stderr(writer_clone);
+        // NOTE: taken from https://github.com/watchexec/watchexec/commit/f3c6df8845ed13e231cd9cbd88afdebe5fd97569
+        // grep for @pgid
+        unsafe {
+            command.pre_exec(|| {
+                libc::setpgid(0, 0);
+                Ok(())
+            });
+        }
         // @ref(#40) this part should fail if the user provided
         // non-existing shell. So should probably do not unwrap it and
         // properly report the fail somehow without crashing the app.
