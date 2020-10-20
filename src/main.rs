@@ -146,12 +146,14 @@ fn start_cm() {
                     Focus::Regexs => {
                         profile
                             .regex_list
-                            .handle_key(key_stroke, &profile.key_map, &mut global)
+                            .handle_key(key_stroke, &profile.key_map, &mut global);
+                        output_buffer.refresh_status_line(&profile);
                     }
                     Focus::Cmds => {
                         profile
                             .cmd_list
-                            .handle_key(key_stroke, &profile.key_map, &mut global)
+                            .handle_key(key_stroke, &profile.key_map, &mut global);
+                        output_buffer.refresh_status_line(&profile);
                     }
                     Focus::Shell => {
                         profile
