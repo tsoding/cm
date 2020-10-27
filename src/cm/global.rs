@@ -6,10 +6,9 @@ pub enum Focus {
     Output = 0,
     Regexs = 1,
     Cmds = 2,
-    Shell = 3,
 }
 
-const FOCUS_COUNT: usize = 4;
+const FOCUS_COUNT: usize = 3;
 
 impl Focus {
     pub fn from_number(n: usize) -> Option<Focus> {
@@ -17,7 +16,6 @@ impl Focus {
             0 => Some(Focus::Output),
             1 => Some(Focus::Regexs),
             2 => Some(Focus::Cmds),
-            3 => Some(Focus::Shell),
             _ => None,
         }
     }

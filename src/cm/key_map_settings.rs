@@ -32,12 +32,12 @@ impl KeyMapSettings {
         match self.state {
             State::ListOfActions => self.list_of_actions.render(rect, focused),
             State::KeysOfAction => {
-                let (left, middle, _right) = rect.vertical_split(3);
+                let (left, middle) = rect.vertical_split(3);
                 self.list_of_actions.render(left, false);
                 self.keys_of_action.render(middle, focused);
             }
             State::SelectingKey => {
-                let (left, middle, _right) = rect.vertical_split(3);
+                let (left, middle) = rect.vertical_split(3);
                 self.list_of_actions.render(left, false);
                 self.keys_of_action.render(middle, focused);
 

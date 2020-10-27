@@ -39,7 +39,7 @@ impl Rect {
         )
     }
 
-    pub fn vertical_split(self, denominator: usize) -> (Rect, Rect, Rect) {
+    pub fn vertical_split(self, denominator: usize) -> (Rect, Rect) {
         assert!(denominator > 0);
         let w = self.w / denominator;
         (
@@ -53,12 +53,6 @@ impl Rect {
                 x: self.x + w,
                 y: self.y,
                 w: self.w - w,
-                h: self.h,
-            },
-            Rect {
-                x: self.x + 2 * w,
-                y: self.y,
-                w: self.w - 2 * w,
                 h: self.h,
             },
         )

@@ -147,11 +147,6 @@ fn start_cm() {
                             .handle_key(key_stroke, &profile.key_map, &mut global);
                         output_buffer.refresh_status_line(&profile);
                     }
-                    Focus::Shell => {
-                        profile
-                            .shell_list
-                            .handle_key(key_stroke, &profile.key_map, &mut global)
-                    }
                 }
             }
         }
@@ -198,8 +193,8 @@ fn start_cm() {
                 };
                 if global.profile_pane {
                     let (output_buffer_rect, profile_rect) = working_rect.horizontal_split(3);
-                    let (regex_rect, cmd_rect, shell_rect) =
-                        profile_rect.remove_rows_from_top(1).vertical_split(3);
+                    let (regex_rect, cmd_rect) =
+                        profile_rect.remove_rows_from_top(1).vertical_split(2);
 
                     output_buffer.render(
                         output_buffer_rect,
@@ -220,11 +215,6 @@ fn start_cm() {
                     profile.cmd_list.render(
                         cmd_rect,
                         global.focus == Focus::Cmds,
-                        &mut global.cursor,
-                    );
-                    profile.shell_list.render(
-                        shell_rect,
-                        global.focus == Focus::Shell,
                         &mut global.cursor,
                     );
                 } else {
