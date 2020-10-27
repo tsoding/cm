@@ -83,8 +83,13 @@ fn migrate_v4_to_v5(lines: Vec<String>) -> Vec<String> {
 }
 
 pub const CURRENT_VERSION: usize = 5;
-pub const MIGRATIONS: [Type; CURRENT_VERSION] =
-    [migrate_v0_to_v1, migrate_v1_to_v2, migrate_v2_to_v3, migrate_v3_to_v4, migrate_v4_to_v5];
+pub const MIGRATIONS: [Type; CURRENT_VERSION] = [
+    migrate_v0_to_v1,
+    migrate_v1_to_v2,
+    migrate_v2_to_v3,
+    migrate_v3_to_v4,
+    migrate_v4_to_v5,
+];
 
 pub fn read_and_migrate_file(filepath: &Path) -> Vec<String> {
     let input = read_to_string(filepath).unwrap();
