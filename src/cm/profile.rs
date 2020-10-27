@@ -8,6 +8,7 @@ use std::string::ToString;
 pub struct Profile {
     pub regex_list: StringList,
     pub cmd_list: StringList,
+    // TODO: there is no UI for customizing Profile::shell similar to how we customize key bindings
     pub shell: PathBuf,
     pub key_map: KeyMap,
 }
