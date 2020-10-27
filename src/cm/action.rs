@@ -34,7 +34,9 @@ pub const NEXT_SEARCH_MATCH: Type = 29;
 pub const PREV_SEARCH_MATCH: Type = 30;
 pub const PAGE_UP: Type = 31;
 pub const PAGE_DOWN: Type = 32;
-pub const LEN: usize = 33;
+pub const REGEXS_MODE: Type = 33;
+pub const CMDS_MODE: Type = 34;
+pub const LEN: usize = 35;
 
 pub const NAMES: [&str; LEN] = [
     "up",
@@ -70,6 +72,8 @@ pub const NAMES: [&str; LEN] = [
     "prev_search_match",
     "page_up",
     "page_down",
+    "regexs_mode",
+    "cmds_mode",
 ];
 
 pub fn from_str(s: &str) -> Result<Type, String> {

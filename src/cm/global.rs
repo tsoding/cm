@@ -2,37 +2,10 @@ use super::*;
 use pcre2::bytes::Regex;
 
 #[derive(PartialEq, Clone, Copy)]
-pub enum Focus {
-    Output = 0,
-    Regexs = 1,
-    Cmds = 2,
-}
-
-const FOCUS_COUNT: usize = 3;
-
-impl Focus {
-    pub fn from_number(n: usize) -> Option<Focus> {
-        match n {
-            0 => Some(Focus::Output),
-            1 => Some(Focus::Regexs),
-            2 => Some(Focus::Cmds),
-            _ => None,
-        }
-    }
-
-    pub fn next(self) -> Self {
-        Focus::from_number((self as usize + 1) % FOCUS_COUNT).unwrap()
-    }
-
-    pub fn prev(self) -> Self {
-        let mut result = self as usize;
-
-        if result == 0 {
-            result = FOCUS_COUNT;
-        }
-
-        Focus::from_number(result - 1).unwrap()
-    }
+pub enum Mode {
+    Output,
+    Regexs,
+    Cmds,
 }
 
 #[derive(PartialEq)]
@@ -43,13 +16,10 @@ pub enum BottomState {
 }
 
 pub struct Global {
-    /// Indicates that the Profile Panel, that contains Regex and Cmd
-    /// lists is visible
-    pub profile_pane: bool,
     /// Indicates that the application should quit the main event loop
     /// as soon as possible
     pub quit: bool,
-    pub focus: Focus,
+    pub mode: Mode,
     pub key_map_settings: bool,
     pub bottom_state: BottomState,
     pub bottom_edit_field: BottomEditField,
@@ -64,9 +34,8 @@ pub struct Global {
 impl Global {
     pub fn new(user_provided_cmdline: Option<String>) -> Self {
         Self {
-            profile_pane: false,
             quit: false,
-            focus: Focus::Output,
+            mode: Mode::Output,
             key_map_settings: false,
             bottom_state: BottomState::Nothing,
             bottom_edit_field: BottomEditField::new(),
@@ -79,19 +48,33 @@ impl Global {
 
     pub fn handle_key(&mut self, key_stroke: KeyStroke, key_map: &KeyMap) -> bool {
         if key_map.is_bound(key_stroke, action::TOGGLE_PROFILE_PANEL) {
-            self.profile_pane = !self.profile_pane;
+            // TODO: remove action::TOGGLE_PROFILE_PANEL
             true
         } else if key_map.is_bound(key_stroke, action::QUIT) {
             self.quit = true;
             true
         } else if key_map.is_bound(key_stroke, action::FOCUS_FORWARD) {
-            self.focus = self.focus.next();
+            // TODO: remove action::FOCUS_FORWARD
             true
         } else if key_map.is_bound(key_stroke, action::FOCUS_BACKWARD) {
-            self.focus = self.focus.prev();
+            // TODO: remove action::FOCUS_BACKWARD
             true
         } else if key_map.is_bound(key_stroke, action::OPEN_KEY_MAP_SETTINGS) {
             self.key_map_settings = true;
+            true
+        } else if key_map.is_bound(key_stroke, action::REGEXS_MODE) {
+            if self.mode == Mode::Regexs {
+                self.mode = Mode::Output;
+            } else {
+                self.mode = Mode::Regexs;
+            }
+            true
+        } else if key_map.is_bound(key_stroke, action::CMDS_MODE) {
+            if self.mode == Mode::Cmds {
+                self.mode = Mode::Output;
+            } else {
+                self.mode = Mode::Cmds;
+            }
             true
         } else if self.bottom_state == BottomState::Nothing
             && key_map.is_bound(key_stroke, action::START_SEARCH)
