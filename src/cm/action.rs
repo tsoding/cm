@@ -13,30 +13,27 @@ pub const BACK_DELETE: Type = 8;
 pub const EDIT_ITEM: Type = 9;
 pub const DUP_AFTER_ITEM: Type = 10;
 pub const DUP_BEFORE_ITEM: Type = 11;
-pub const TOGGLE_PROFILE_PANEL: Type = 12;
-pub const QUIT: Type = 13;
-pub const FOCUS_FORWARD: Type = 14;
-pub const FOCUS_BACKWARD: Type = 15;
-pub const ACCEPT: Type = 16;
-pub const CANCEL: Type = 17;
-pub const RUN: Type = 18;
-pub const RUN_INTO_ITSELF: Type = 19;
-pub const RERUN: Type = 20;
-pub const BACK: Type = 21;
-pub const NEXT_MATCH: Type = 22;
-pub const PREV_MATCH: Type = 23;
-pub const EDIT_CMDLINE: Type = 24;
-pub const OPEN_KEY_MAP_SETTINGS: Type = 25;
-pub const START_SEARCH: Type = 26;
-pub const JUMP_TO_START: Type = 27;
-pub const JUMP_TO_END: Type = 28;
-pub const NEXT_SEARCH_MATCH: Type = 29;
-pub const PREV_SEARCH_MATCH: Type = 30;
-pub const PAGE_UP: Type = 31;
-pub const PAGE_DOWN: Type = 32;
-pub const REGEXS_MODE: Type = 33;
-pub const CMDS_MODE: Type = 34;
-pub const LEN: usize = 35;
+pub const QUIT: Type = 12;
+pub const ACCEPT: Type = 13;
+pub const CANCEL: Type = 14;
+pub const RUN: Type = 15;
+pub const RUN_INTO_ITSELF: Type = 16;
+pub const RERUN: Type = 17;
+pub const BACK: Type = 18;
+pub const NEXT_MATCH: Type = 19;
+pub const PREV_MATCH: Type = 20;
+pub const EDIT_CMDLINE: Type = 21;
+pub const OPEN_KEY_MAP_SETTINGS: Type = 22;
+pub const START_SEARCH: Type = 23;
+pub const JUMP_TO_START: Type = 24;
+pub const JUMP_TO_END: Type = 25;
+pub const NEXT_SEARCH_MATCH: Type = 26;
+pub const PREV_SEARCH_MATCH: Type = 27;
+pub const PAGE_UP: Type = 28;
+pub const PAGE_DOWN: Type = 29;
+pub const REGEXS_MODE: Type = 30;
+pub const CMDS_MODE: Type = 31;
+pub const LEN: usize = 32;
 
 pub const NAMES: [&str; LEN] = [
     "up",
@@ -51,10 +48,7 @@ pub const NAMES: [&str; LEN] = [
     "edit_item",
     "dup_after_item",
     "dup_before_item",
-    "toggle_profile_panel",
     "quit",
-    "focus_forward",
-    "focus_backward",
     "accept",
     "cancel",
     "run",

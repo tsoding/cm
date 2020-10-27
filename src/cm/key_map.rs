@@ -124,31 +124,10 @@ impl KeyMap {
         );
         result.bind(
             KeyStroke {
-                key: 'e' as i32,
-                alt: false,
-            },
-            action::TOGGLE_PROFILE_PANEL,
-        );
-        result.bind(
-            KeyStroke {
                 key: 'q' as i32,
                 alt: false,
             },
             action::QUIT,
-        );
-        result.bind(
-            KeyStroke {
-                key: '\t' as i32,
-                alt: false,
-            },
-            action::FOCUS_FORWARD,
-        );
-        result.bind(
-            KeyStroke {
-                key: KEY_BTAB,
-                alt: false,
-            },
-            action::FOCUS_BACKWARD,
         );
         result.bind(
             KeyStroke {

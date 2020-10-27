@@ -47,17 +47,8 @@ impl Global {
     }
 
     pub fn handle_key(&mut self, key_stroke: KeyStroke, key_map: &KeyMap) -> bool {
-        if key_map.is_bound(key_stroke, action::TOGGLE_PROFILE_PANEL) {
-            // TODO: remove action::TOGGLE_PROFILE_PANEL
-            true
-        } else if key_map.is_bound(key_stroke, action::QUIT) {
+        if key_map.is_bound(key_stroke, action::QUIT) {
             self.quit = true;
-            true
-        } else if key_map.is_bound(key_stroke, action::FOCUS_FORWARD) {
-            // TODO: remove action::FOCUS_FORWARD
-            true
-        } else if key_map.is_bound(key_stroke, action::FOCUS_BACKWARD) {
-            // TODO: remove action::FOCUS_BACKWARD
             true
         } else if key_map.is_bound(key_stroke, action::OPEN_KEY_MAP_SETTINGS) {
             self.key_map_settings = true;
