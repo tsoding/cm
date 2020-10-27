@@ -63,8 +63,7 @@ fn start_cm() {
     }
 
     if let Some(cmdline) = global.user_provided_cmdline.clone() {
-        let shell = profile.current_shell().unwrap();
-        output_buffer.run_cmdline(cmdline, shell);
+        output_buffer.run_cmdline(cmdline, &profile.shell);
     }
 
     // NOTE(rerender): because of the asynchronous nature of the application the
@@ -88,7 +87,6 @@ fn start_cm() {
             // changes the state of the application which needs to be reflected by rerendering
             // the screen.
             rerender = true;
-            let shell = profile.current_shell().unwrap();
 
             if global.key_map_settings {
                 key_map_settings.handle_key(key_stroke, &mut profile.key_map, &mut global)
@@ -102,7 +100,7 @@ fn start_cm() {
                                 Some(global.bottom_edit_field.edit_field.buffer.clone());
                             output_buffer.run_cmdline(
                                 global.bottom_edit_field.edit_field.buffer.clone(),
-                                shell,
+                                &profile.shell,
                             );
                         }
                         BottomState::Search => {
@@ -129,11 +127,11 @@ fn start_cm() {
                         .handle_key(key_stroke, &profile.key_map);
                 }
             } else if !global.profile_pane {
-                output_buffer.handle_key(key_stroke, &profile, &mut global, shell);
+                output_buffer.handle_key(key_stroke, &profile, &mut global, &profile.shell);
             } else {
                 match global.focus {
                     Focus::Output => {
-                        output_buffer.handle_key(key_stroke, &profile, &mut global, shell)
+                        output_buffer.handle_key(key_stroke, &profile, &mut global, &profile.shell)
                     }
                     Focus::Regexs => {
                         profile

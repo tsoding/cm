@@ -8,6 +8,7 @@ use std::io::{BufRead, BufReader};
 use std::os::unix::io::AsRawFd;
 use std::os::unix::process::CommandExt;
 use std::process::{Child, Command};
+use std::path::Path;
 
 // TODO(#94): mark_nonblocking does not work on Windows
 fn mark_nonblocking<Fd: AsRawFd>(fd: &mut Fd) {
@@ -254,7 +255,7 @@ impl OutputBuffer {
         }
     }
 
-    pub fn run_cmdline(&mut self, cmdline: String, shell: String) {
+    pub fn run_cmdline(&mut self, cmdline: String, shell: &Path) {
         // TODO(#102): cm does not warn the user when it kills the child process
         self.kill_the_child();
 
@@ -297,7 +298,7 @@ impl OutputBuffer {
         self.child = Some((output, child));
     }
 
-    pub fn fork_cmdline(&mut self, cmdline: String, shell: String) {
+    pub fn fork_cmdline(&mut self, cmdline: String, shell: &Path) {
         // NOTE: It is important to call endwin() function before running any child processes.
         // According to https://invisible-island.net/ncurses/man/curs_initscr.3x.html#h3-endwin
         //
@@ -410,7 +411,7 @@ impl OutputBuffer {
         key_stroke: KeyStroke,
         profile: &Profile,
         global: &mut Global,
-        shell: String,
+        shell: &Path,
     ) {
         let key_map = &profile.key_map;
         let regex_result = profile.current_regex();
@@ -428,7 +429,7 @@ impl OutputBuffer {
                 }
             } else if key_map.is_bound(key_stroke, action::RUN) {
                 if let Some(cmdline) = &cmdline_result {
-                    self.fork_cmdline(cmdline.clone(), shell);
+                    self.fork_cmdline(cmdline.clone(), &profile.shell);
                 }
             } else if key_map.is_bound(key_stroke, action::BACK) {
                 self.lists.pop();
