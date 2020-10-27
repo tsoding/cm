@@ -49,9 +49,15 @@ fn migrate_v2_to_v3(lines: Vec<String>) -> Vec<String> {
     new_lines
 }
 
-pub const CURRENT_VERSION: usize = 3;
+fn migrate_v3_to_v4(mut lines: Vec<String>) -> Vec<String> {
+    lines.push("key:r = regexs_mode".to_string());
+    lines.push("key:c = cmds_mode".to_string());
+    lines
+}
+
+pub const CURRENT_VERSION: usize = 4;
 pub const MIGRATIONS: [Type; CURRENT_VERSION] =
-    [migrate_v0_to_v1, migrate_v1_to_v2, migrate_v2_to_v3];
+    [migrate_v0_to_v1, migrate_v1_to_v2, migrate_v2_to_v3, migrate_v3_to_v4];
 
 pub fn read_and_migrate_file(filepath: &Path) -> Vec<String> {
     let input = read_to_string(filepath).unwrap();

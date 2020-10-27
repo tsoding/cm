@@ -325,6 +325,20 @@ impl KeyMap {
             },
             action::PAGE_DOWN,
         );
+        result.bind(
+            KeyStroke {
+                key: 'r' as i32,
+                alt: false,
+            },
+            action::REGEXS_MODE,
+        );
+        result.bind(
+            KeyStroke {
+                key: 'c' as i32,
+                alt: false,
+            },
+            action::CMDS_MODE,
+        );
         result
     }
 
