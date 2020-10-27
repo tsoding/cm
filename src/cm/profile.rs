@@ -31,12 +31,7 @@ impl Profile {
             let fail = |message| panic!("{}:{}: {}", file_path.display(), i + 1, message);
 
             if !line.is_empty() {
-                let (key, value) = line
-                    .find('=')
-                    .map(|pos| {
-                        let (lh, rh) = line.split_at(pos);
-                        (lh.trim(), rh[1..].trim())
-                    })
+                let (key, value) = config::split_key_value(line)
                     .unwrap_or_else(|| fail("Invalid configuration line"));
 
                 if key.is_empty() {

@@ -15,6 +15,7 @@ mod profile;
 mod string_list;
 mod style;
 pub mod unicode;
+pub mod config;
 
 pub use self::bottom_edit_field::*;
 pub use self::cursor::*;
