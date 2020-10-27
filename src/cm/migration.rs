@@ -64,7 +64,7 @@ fn migrate_v4_to_v5(lines: Vec<String>) -> Vec<String> {
             let (key, value) = config::split_key_value(line)
                 .unwrap_or_else(|| panic!("Invalid configuration line: {}", line));
 
-            if let Ok(_) = KeyStroke::from_str(key) {
+            if KeyStroke::from_str(key).is_ok() {
                 match value {
                     "toggle_profile_panel" => {}
                     "focus_forward" => {}
