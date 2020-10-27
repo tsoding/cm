@@ -7,8 +7,8 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::os::unix::io::AsRawFd;
 use std::os::unix::process::CommandExt;
-use std::process::{Child, Command};
 use std::path::Path;
+use std::process::{Child, Command};
 
 // TODO(#94): mark_nonblocking does not work on Windows
 fn mark_nonblocking<Fd: AsRawFd>(fd: &mut Fd) {
