@@ -1,6 +1,7 @@
 use super::*;
 use std::fs::{copy, read_to_string};
 use std::path::Path;
+use std::str::FromStr;
 
 pub type Type = fn(Vec<String>) -> Vec<String>;
 
@@ -49,9 +50,46 @@ fn migrate_v2_to_v3(lines: Vec<String>) -> Vec<String> {
     new_lines
 }
 
-pub const CURRENT_VERSION: usize = 3;
-pub const MIGRATIONS: [Type; CURRENT_VERSION] =
-    [migrate_v0_to_v1, migrate_v1_to_v2, migrate_v2_to_v3];
+fn migrate_v3_to_v4(mut lines: Vec<String>) -> Vec<String> {
+    lines.push("key:r = regexs_mode".to_string());
+    lines.push("key:c = cmds_mode".to_string());
+    lines
+}
+
+fn migrate_v4_to_v5(lines: Vec<String>) -> Vec<String> {
+    let mut new_lines = Vec::new();
+
+    for line in lines.iter().map(|x| x.trim_start()) {
+        if !line.is_empty() {
+            let (key, value) = config::split_key_value(line)
+                .unwrap_or_else(|| panic!("Invalid configuration line: {}", line));
+
+            if KeyStroke::from_str(key).is_ok() {
+                match value {
+                    "toggle_profile_panel" => {}
+                    "focus_forward" => {}
+                    "focus_backward" => {}
+                    _ => {
+                        new_lines.push(line.to_string());
+                    }
+                }
+            } else {
+                new_lines.push(line.to_string());
+            }
+        }
+    }
+
+    new_lines
+}
+
+pub const CURRENT_VERSION: usize = 5;
+pub const MIGRATIONS: [Type; CURRENT_VERSION] = [
+    migrate_v0_to_v1,
+    migrate_v1_to_v2,
+    migrate_v2_to_v3,
+    migrate_v3_to_v4,
+    migrate_v4_to_v5,
+];
 
 pub fn read_and_migrate_file(filepath: &Path) -> Vec<String> {
     let input = read_to_string(filepath).unwrap();
@@ -75,6 +113,7 @@ pub fn read_and_migrate_file(filepath: &Path) -> Vec<String> {
                     input = MIGRATIONS[version_number](input);
                     version_number += 1;
                 }
+
                 return input;
             }
             _ => {

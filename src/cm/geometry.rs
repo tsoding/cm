@@ -7,19 +7,6 @@ pub struct Rect {
 }
 
 impl Rect {
-    pub fn remove_rows_from_top(self, mut n: usize) -> Rect {
-        if n > self.h {
-            n = self.h;
-        }
-
-        Rect {
-            x: self.x,
-            y: self.y + n,
-            w: self.w,
-            h: self.h - n,
-        }
-    }
-
     pub fn horizontal_split(self, denominator: usize) -> (Rect, Rect) {
         assert!(denominator > 0);
         let h = self.h / denominator * (denominator - 1);

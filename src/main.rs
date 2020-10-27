@@ -126,20 +126,18 @@ fn start_cm() {
                         .bottom_edit_field
                         .handle_key(key_stroke, &profile.key_map);
                 }
-            } else if !global.profile_pane {
-                output_buffer.handle_key(key_stroke, &profile, &mut global, &profile.shell);
             } else {
-                match global.focus {
-                    Focus::Output => {
+                match global.mode {
+                    Mode::Output => {
                         output_buffer.handle_key(key_stroke, &profile, &mut global, &profile.shell)
                     }
-                    Focus::Regexs => {
+                    Mode::Regexs => {
                         profile
                             .regex_list
                             .handle_key(key_stroke, &profile.key_map, &mut global);
                         output_buffer.refresh_status_line(&profile);
                     }
-                    Focus::Cmds => {
+                    Mode::Cmds => {
                         profile
                             .cmd_list
                             .handle_key(key_stroke, &profile.key_map, &mut global);
@@ -189,34 +187,25 @@ fn start_cm() {
                     w,
                     h: h - 1,
                 };
-                if global.profile_pane {
-                    let (output_buffer_rect, profile_rect) = working_rect.horizontal_split(3);
-                    let (regex_rect, cmd_rect) =
-                        profile_rect.remove_rows_from_top(1).vertical_split(2);
 
-                    output_buffer.render(
-                        output_buffer_rect,
-                        global.focus == Focus::Output,
-                        profile.current_regex(),
-                    );
-
-                    mv(profile_rect.y as i32, profile_rect.x as i32);
-                    for _ in 0..profile_rect.w {
-                        addstr("-");
+                match global.mode {
+                    Mode::Output => {
+                        output_buffer.render(working_rect, true, profile.current_regex())
                     }
-
-                    profile.regex_list.render(
-                        regex_rect,
-                        global.focus == Focus::Regexs,
-                        &mut global.cursor,
-                    );
-                    profile.cmd_list.render(
-                        cmd_rect,
-                        global.focus == Focus::Cmds,
-                        &mut global.cursor,
-                    );
-                } else {
-                    output_buffer.render(working_rect, true, profile.current_regex());
+                    Mode::Regexs => {
+                        let (output_buffer_rect, profile_rect) = working_rect.horizontal_split(3);
+                        output_buffer.render(output_buffer_rect, false, profile.current_regex());
+                        profile
+                            .regex_list
+                            .render(profile_rect, true, &mut global.cursor);
+                    }
+                    Mode::Cmds => {
+                        let (output_buffer_rect, profile_rect) = working_rect.horizontal_split(3);
+                        output_buffer.render(output_buffer_rect, false, profile.current_regex());
+                        profile
+                            .cmd_list
+                            .render(profile_rect, true, &mut global.cursor);
+                    }
                 }
 
                 if global.bottom_state != BottomState::Nothing {
