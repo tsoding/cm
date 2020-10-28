@@ -8,7 +8,19 @@ use std::fs::{create_dir_all, File};
 use std::panic::{set_hook, take_hook};
 use std::path::PathBuf;
 
-fn start_cm() {
+fn main() {
+    let locale_conf = LcCategory::all;
+    setlocale(locale_conf, "en_US.UTF-8");
+
+    set_hook(Box::new({
+        let default_hook = take_hook();
+        move |payload| {
+            endwin();
+            default_hook(payload);
+        }
+    }));
+
+    initscr();
     ctrlc::init();
 
     // NOTE(timeout): timeout(16) is a very important setting of ncurses for our
@@ -231,21 +243,6 @@ fn start_cm() {
     profile
         .to_file(&mut File::create(config_path).expect("Could not open configuration file"))
         .expect("Could not save configuration");
-}
 
-fn main() {
-    let locale_conf = LcCategory::all;
-    setlocale(locale_conf, "en_US.UTF-8");
-
-    set_hook(Box::new({
-        let default_hook = take_hook();
-        move |payload| {
-            endwin();
-            default_hook(payload);
-        }
-    }));
-
-    initscr();
-    start_cm();
     endwin();
 }
