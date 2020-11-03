@@ -120,6 +120,8 @@ impl StringList {
                         self.start_editing(&mut global.cursor);
                     } else if key_map.is_bound(key_stroke, action::DELETE) {
                         self.list.delete_current();
+                    } else if key_map.is_bound(key_stroke, action::BACK) {
+                        global.mode = Mode::Output;
                     } else {
                         self.list.handle_key(key_stroke, key_map);
                     }
